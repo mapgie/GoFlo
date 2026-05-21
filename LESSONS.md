@@ -1,0 +1,81 @@
+# Transferable Lessons
+
+Keep entries short and principle-focused — the "why" matters more than the project-specific "what". Merge or remove entries if they become redundant.
+
+Entries within each section are ordered by risk to a new project if forgotten: build failures and data loss first, UX degradation last.
+
+---
+
+### Android / Compose
+
+**`ModalBottomSheetProperties` requires all parameters explicitly in Material3 1.2.x**
+The constructor has no default values in this version — passing only `shouldDismissOnBackPress` fails to compile. Always supply all three: `securePolicy = SecureFlagPolicy.Inherit, isFocusable = true, shouldDismissOnBackPress = false`. `SecureFlagPolicy` also needs an explicit import from `androidx.compose.ui.window`.
+
+**Commit a stable debug keystore to the repo**
+Android generates a fresh debug keystore per machine/CI runner. Without a committed keystore, every CI build has a different signature and OTA updates are blocked — users get a "conflicting package" error and must uninstall first. Commit a single debug keystore and wire it into `signingConfigs.debug`.
+
+**Time-critical notifications need the alarm audio stream, not the notification stream**
+A notification channel created without explicit `AudioAttributes` plays at notification volume and respects Do Not Disturb — both of which users routinely silence. For any reminder that must be heard (alarm, timer, urgent alert), call `setSound(uri, AudioAttributes(USAGE_ALARM))` on the channel so it plays at alarm volume and bypasses Do Not Disturb. Channel properties are written once and then immutable — changing stream type requires a new channel ID, since the OS ignores `createNotificationChannel()` for properties on an existing channel.
+
+**`onDismissRequest = {}` causes a stuck invisible sheet overlay**
+A no-op `onDismissRequest` lets the sheet animate to its hidden state (e.g. via swipe-down), but the parent `show` flag stays `true` so the composable stays in the tree. The result: an invisible `ModalBottomSheet` overlay that blocks all touches behind it, with no way to re-open or dismiss it. Fix: bounce the sheet back to expanded in `onDismissRequest` using `sheetScope.launch { sheetState.show() }`. This preserves data-loss protection while preventing the stuck state.
+
+**Prevent accidental dismissal of data-entry sheets**
+`ModalBottomSheet` dismisses on backdrop tap and back gesture by default. For any sheet containing a form, set `onDismissRequest = { sheetScope.launch { sheetState.show() } }` and `properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false)`. The only exit paths should be an explicit close button and a save/submit button.
+
+**Hoist SheetState above the composable that uses it**
+If `SheetState` (or similar stateful objects) is created inside a composable, it gets reset on recomposition. Hoist it to the parent screen so it survives the child composable's lifecycle. This also allows the parent to programmatically show/hide the sheet without losing form state.
+
+**Never hardcode colours in TextStyle / typography**
+Hardcoded colours in `TextStyle` entries override Material3's `LocalContentColor`, breaking contrast in non-default themes. Always omit `color` from `TextStyle` and let the theme propagate it.
+
+---
+
+### UI / UX
+
+**Never ship partially visible controls**
+`LazyRow` (and similar clipping containers) gives no affordance that content is hidden — it just clips silently. A partially visible chip or control looks like a bug and may hide required input. For short chip groups (5–8 items) in a vertical-scroll form, use `FlowRow` (wraps to next line) so nothing is hidden. Apply `@OptIn(ExperimentalLayoutApi::class)` per composable.
+
+**Half-implemented validation is worse than no validation**
+A guard that sometimes fails to catch bad input creates false confidence — users stop double-checking because they believe the app is doing it for them. If a feature is meant to prevent a harmful outcome (data corruption, wrong entry, unsafe action), implement it completely or don't ship it. A partial check that occasionally passes bad data is the worst outcome.
+
+**UI feedback must always reference the current action**
+If actions can occur in rapid succession, snackbars or toasts queue up. An UNDO or CANCEL on what *appears* to be the latest notification may actually target an earlier queued one. Cancel the current notification before showing the next so feedback always belongs to the most recent action.
+
+**Dark theme colour tokens drift if not pinned to exact hex values**
+Colour values in dark themes can drift incrementally (e.g. toward olive or gray) without anyone noticing the change in isolation. Treat all design token hex values as spec, not preference — any change is a deliberate decision reviewed against the full palette. Regular visual QA against the canonical token table catches drift before it compounds.
+
+**Separate immediate completion feedback from long-term progress**
+A "done today" indicator (e.g. 3 of 4 tasks complete) and a long-term progress indicator (e.g. level or streak progress) serve different cognitive needs — immediate reinforcement vs. sustained motivation. Conflating them in a single bar weakens both signals and makes it hard for the user to read their current state at a glance.
+
+---
+
+### Data / State
+
+**Remap all foreign keys on data import**
+When importing data that generates new primary IDs (e.g. JSON/CSV restore), every foreign key referencing those IDs must also be remapped. Importing parent records with new IDs but leaving child records pointing at old IDs silently breaks relational integrity.
+
+**Store the per-event delta on the event record, not only in the running aggregate**
+When an action adds to a running total (points, balance, count), store the per-event amount on the event itself. Every deletion and undo path can then read and subtract that stored delta, keeping the aggregate in sync. An aggregate that's only ever incremented drifts away from the true value over time — the only reliable fix is a symmetric decrement path that reads from the event record.
+
+**`remember` state resets on every tab switch — use ViewModel `StateFlow` for session-persistent UI state**
+In a Compose Navigation graph with a bottom nav bar, navigating between tabs destroys and recreates each destination composable. Any state held in `remember { mutableStateOf(...) }` resets on every tab switch. For UI state that should persist within a session (e.g. a banner was dismissed, a filter was applied), hoist it into the ViewModel as a `MutableStateFlow` — the ViewModel survives recomposition. Reserve `remember` for truly ephemeral UI state (hover, in-flight animation) that is fine to lose.
+
+**SQL `:param IS NULL` in a parameterised `OR` condition matches every row when the param is null**
+A Room DAO query like `AND (:id IS NULL OR col = :id)` evaluates to `AND TRUE` when `:id` is null, returning all rows rather than only those where `col IS NULL`. This silently broadens the result set in ways that are hard to spot in testing. Fix by splitting into separate query methods — one for the null case and one for the non-null case — or handle the branch in application code before calling the DAO.
+
+**Non-reactive suspend calls inside a `combine` lambda silently break reactivity**
+Calling a `suspend` DAO function inside a `combine { }` transform reads data once at emission time and never again. If the queried table changes, the outer flow won't re-emit. Fix: promote the query to a `Flow` and include it as an additional `combine` argument so the pipeline re-fires on every table change.
+
+**Design data models for anticipated features before you need the UI**
+For features you know are coming (e.g. user export, audit logging, sharing), design the schema to accommodate them even if the UI isn't built. Retrofitting relational structure after data has accumulated is expensive and risky; an extra nullable column now costs nothing.
+
+**Chip selected states must be unambiguous at a glance**
+The default Material3 `FilterChip` selected treatment (slightly brighter text, subtle border change) requires interpretation — it fails the "readable in 100ms" bar. Override `FilterChipDefaults.filterChipColors(selectedContainerColor, selectedLabelColor)` with a high-contrast fill (e.g. amber + dark text) to make selection state immediately obvious. Encapsulate this in a shared `FormChip` wrapper so the treatment is consistent everywhere.
+
+---
+
+### Auth
+
+**Auth state transitions need explicit guards**
+Don't assume UI flow enforces auth invariants. Guard at the data layer: block enabling biometric if no PIN exists; clear dependent auth factors when a prerequisite is removed. Silent auth gaps (biometric enabled, PIN removed, lock screen never triggers) are worse than a visible error.
