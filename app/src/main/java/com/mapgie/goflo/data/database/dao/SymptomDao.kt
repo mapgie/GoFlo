@@ -1,0 +1,23 @@
+package com.mapgie.goflo.data.database.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.mapgie.goflo.data.database.entities.SymptomEntry
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface SymptomDao {
+    @Query("SELECT * FROM symptoms WHERE periodId = :periodId")
+    fun getSymptomsForPeriod(periodId: Long): Flow<List<SymptomEntry>>
+
+    @Query("SELECT * FROM symptoms WHERE periodId = :periodId")
+    suspend fun getSymptomsForPeriodOnce(periodId: Long): List<SymptomEntry>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertSymptom(symptom: SymptomEntry)
+
+    @Query("DELETE FROM symptoms WHERE periodId = :periodId")
+    suspend fun deleteSymptomsByPeriodId(periodId: Long)
+}

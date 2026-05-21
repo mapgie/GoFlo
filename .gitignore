@@ -1,0 +1,22 @@
+# Build outputs
+.gradle/
+build/
+*.apk
+*.aab
+*.aar
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Local configuration (contains signing credentials — never commit)
+local.properties
+
+# Release keystores — never commit production signing material
+*.jks
+release.keystore
+upload.keystore
+
+# The debug.keystore is intentionally committed for CI signing consistency (see LESSONS.md).
+# Do NOT follow this pattern for release keys.
