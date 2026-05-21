@@ -167,10 +167,12 @@ fun LogPeriodScreen(
             SectionLabel("Notes")
             OutlinedTextField(
                 value = state.notes,
-                onValueChange = viewModel::setNotes,
+                onValueChange = { if (it.length <= 500) viewModel.setNotes(it) },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = { Text("How are you feeling? Any other details…") },
-                minLines = 3
+                minLines = 3,
+                maxLines = 6,
+                supportingText = { Text("${state.notes.length}/500") }
             )
 
             Spacer(Modifier.height(8.dp))

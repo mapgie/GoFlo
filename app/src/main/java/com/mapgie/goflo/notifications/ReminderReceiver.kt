@@ -6,21 +6,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.core.app.NotificationCompat
-import com.mapgie.goflo.GoFloApplication
 import com.mapgie.goflo.MainActivity
 import com.mapgie.goflo.R
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 
+// Unexported — AlarmManager targets this via explicit component intent, so no export needed.
+// This keeps other apps from firing fake reminder notifications.
 class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         ReminderScheduler.createChannel(context)
-
         when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED -> rescheduleAfterBoot(context)
             ACTION_PREPERIOD -> showNotification(
                 context,
                 id = 1,
@@ -62,14 +57,5 @@ class ReminderReceiver : BroadcastReceiver() {
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(id, notification)
-    }
-
-    private fun rescheduleAfterBoot(context: Context) {
-        val app = context.applicationContext as GoFloApplication
-        CoroutineScope(Dispatchers.IO).launch {
-            val periods = app.repository.getAllPeriods().first()
-            val prefs = app.preferencesStore.preferences.first()
-            ReminderScheduler.rescheduleAll(context, periods, prefs.reminder)
-        }
     }
 }

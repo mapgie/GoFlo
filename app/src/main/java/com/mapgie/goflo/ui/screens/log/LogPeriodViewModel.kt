@@ -102,7 +102,7 @@ class LogPeriodViewModel(
                 }
                 _uiState.update { it.copy(saved = true) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                _uiState.update { it.copy(error = "Could not save entry. Please try again.") }
             }
         }
     }
@@ -116,7 +116,7 @@ class LogPeriodViewModel(
                 repository.deletePeriod(period)
                 _uiState.update { it.copy(deleted = true) }
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                _uiState.update { it.copy(error = "Could not delete entry. Please try again.") }
             }
         }
     }

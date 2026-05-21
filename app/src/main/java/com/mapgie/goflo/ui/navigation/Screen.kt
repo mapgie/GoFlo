@@ -8,4 +8,8 @@ sealed class Screen(val route: String) {
         fun withId(periodId: Long) = "log_period?periodId=$periodId"
         val newEntry = "log_period?periodId=-1"
     }
+    data object PinSetup : Screen("pin_setup?changing={changing}") {
+        val newPin = "pin_setup?changing=false"
+        val changePin = "pin_setup?changing=true"
+    }
 }

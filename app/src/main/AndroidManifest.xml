@@ -2,14 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+        USE_EXACT_ALARM is a restricted permission for timer/alarm apps and would be rejected by
+        Google Play for a period tracker. SCHEDULE_EXACT_ALARM is the correct permission here;
+        the app checks canScheduleExactAlarms() at runtime and degrades gracefully.
+    -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <application
         android:name=".GoFloApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -28,14 +33,32 @@
             </intent-filter>
         </activity>
 
+        <!--
+            ReminderReceiver handles alarm-fired notifications only. It does NOT need
+            to be exported — AlarmManager delivers via explicit component PendingIntents
+            without requiring the receiver to be exported. Keeping it unexported prevents
+            any other app from triggering fake notifications.
+        -->
         <receiver
             android:name=".notifications.ReminderReceiver"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="com.mapgie.goflo.ACTION_PREPERIOD_REMINDER" />
                 <action android:name="com.mapgie.goflo.ACTION_OVULATION_REMINDER" />
                 <action android:name="com.mapgie.goflo.ACTION_DAILY_PERIOD_REMINDER" />
+            </intent-filter>
+        </receiver>
+
+        <!--
+            BootReceiver is a separate, minimal receiver that handles only BOOT_COMPLETED.
+            Splitting it from ReminderReceiver ensures the alarm-notification receiver can
+            remain unexported while boot rescheduling still works.
+        -->
+        <receiver
+            android:name=".notifications.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
