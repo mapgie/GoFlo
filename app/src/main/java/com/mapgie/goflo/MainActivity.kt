@@ -34,6 +34,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mapgie.goflo.data.preferences.AppPreferences
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import com.mapgie.goflo.ui.AppState
 import com.mapgie.goflo.ui.MainViewModel
 import com.mapgie.goflo.ui.navigation.Screen
@@ -68,6 +70,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         }
 
         val app = application as GoFloApplication
+        val initialPrefs = runBlocking { app.preferencesStore.preferences.first() }
 
         setContent {
             val mainVm: MainViewModel = viewModel(
@@ -75,7 +78,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             )
             val appState by mainVm.appState.collectAsState()
 
-            val appPrefs by app.preferencesStore.preferences.collectAsState(initial = AppPreferences())
+            val appPrefs by app.preferencesStore.preferences.collectAsState(initial = initialPrefs)
             val currentTheme = runCatching { AppTheme.valueOf(appPrefs.theme) }.getOrDefault(AppTheme.CORAL)
 
             GoFloTheme(appTheme = currentTheme) {
@@ -187,7 +190,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                     viewModel = vm,
                     onNavigateToPinSetup = { changing ->
                         navController.navigate(if (changing) Screen.PinSetup.changePin else Screen.PinSetup.newPin)
-                    }
+                    },
+                    onNavigateToLicenses = { navController.navigate(Screen.Licenses.route) }
                 )
             }
 
@@ -219,6 +223,12 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 PinSetupScreen(
                     viewModel = vm,
                     onDone = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Licenses.route) {
+                com.mapgie.goflo.ui.screens.licenses.LicensesScreen(
                     onBack = { navController.popBackStack() }
                 )
             }
