@@ -82,11 +82,12 @@ Rules:
   - **Version check step** (runs before the build, fast-fail): reads `versionName` from `build.gradle.kts` and fails if a GitHub Release for that tag already exists — enforces the version-bump-per-PR rule
   - **`./gradlew test`** step after the build — unit tests must pass before a PR can merge
   - **`./gradlew lintDebug`** step after tests — lint runs against a committed `lint-baseline.xml` so only new issues surface
-  - Release creation step gated on `github.event_name == 'workflow_dispatch'`
+  - APK rename and release creation gated on `github.event_name == 'workflow_dispatch'` — PR builds verify compilation only; no artifact is produced or published
 
 - [ ] **Licence screen sync check** (`.github/workflows/license-sync.yml` or equivalent):
   - Triggers only when `gradle/libs.versions.toml` changes in a PR
   - Fails if the licences screen source file was not also modified in the same PR
+  - **Caveat:** this is a touch-gate, not a correctness check — it only verifies the file was modified, not that the content is accurate; content correctness is a code review responsibility
 
 ### Open source licences
 
