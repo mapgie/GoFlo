@@ -13,8 +13,8 @@ android {
         applicationId = "com.mapgie.goflo"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "0.2.0-beta.1"
+        versionCode = 4
+        versionName = "0.2.1-beta.1"
     }
 
     signingConfigs {
@@ -49,6 +49,12 @@ android {
         compose = true
         buildConfig = true
     }
+
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError = true
+        warningsAsErrors = false
+    }
 }
 
 dependencies {
@@ -71,4 +77,5 @@ dependencies {
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.biometric)
     debugImplementation(libs.androidx.ui.tooling)
+    testImplementation(libs.junit)
 }

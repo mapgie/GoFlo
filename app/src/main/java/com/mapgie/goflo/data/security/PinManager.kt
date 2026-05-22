@@ -1,8 +1,8 @@
 package com.mapgie.goflo.data.security
 
-import android.util.Base64
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.util.Base64
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
@@ -15,15 +15,15 @@ object PinManager {
     fun generateSalt(): String {
         val salt = ByteArray(SALT_BYTES)
         SecureRandom().nextBytes(salt)
-        return Base64.encodeToString(salt, Base64.NO_WRAP)
+        return Base64.getEncoder().encodeToString(salt)
     }
 
     fun hashPin(pin: String, saltBase64: String): String {
-        val salt = Base64.decode(saltBase64, Base64.NO_WRAP)
+        val salt = Base64.getDecoder().decode(saltBase64)
         val spec = PBEKeySpec(pin.toCharArray(), salt, ITERATIONS, KEY_LENGTH_BITS)
         return try {
             val hash = SecretKeyFactory.getInstance(ALGORITHM).generateSecret(spec).encoded
-            Base64.encodeToString(hash, Base64.NO_WRAP)
+            Base64.getEncoder().encodeToString(hash)
         } finally {
             spec.clearPassword()
         }
@@ -33,8 +33,8 @@ object PinManager {
     fun verifyPin(pin: String, storedHash: String, storedSalt: String): Boolean {
         val candidateHash = hashPin(pin, storedSalt)
         return MessageDigest.isEqual(
-            Base64.decode(candidateHash, Base64.NO_WRAP),
-            Base64.decode(storedHash, Base64.NO_WRAP)
+            Base64.getDecoder().decode(candidateHash),
+            Base64.getDecoder().decode(storedHash)
         )
     }
 }

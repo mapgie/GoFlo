@@ -19,6 +19,20 @@ Rules:
 
 ---
 
+## [0.2.1-beta.1] - 2026-05-22
+
+### Added
+- `README.md` covering project description, privacy summary, build instructions, and contributing links
+- Unit tests for `PeriodRepository` cycle math (13 cases) and `PinManager` PIN hashing (7 cases)
+- `lint-baseline.xml` — lint now runs in CI against a committed baseline; only new issues surface in PRs
+- CI: `./gradlew test` and `./gradlew lintDebug` steps added to the PR build workflow
+
+### Changed
+- `PinManager` switched from `android.util.Base64` to `java.util.Base64` (identical encoding, now testable on JVM without Android SDK)
+- `template_requirements.md`: added README, unit tests in CI, and lint baseline requirements
+
+---
+
 ## [0.2.0-beta.1] - 2026-05-22
 
 ### Added
