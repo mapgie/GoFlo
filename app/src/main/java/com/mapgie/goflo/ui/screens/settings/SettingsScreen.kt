@@ -49,7 +49,8 @@ import com.mapgie.goflo.ui.theme.AppTheme
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    onNavigateToPinSetup: (changing: Boolean) -> Unit
+    onNavigateToPinSetup: (changing: Boolean) -> Unit,
+    onNavigateToLicenses: () -> Unit
 ) {
     val prefs by viewModel.prefs.collectAsState()
     val security by viewModel.securitySettings.collectAsState()
@@ -245,6 +246,10 @@ fun SettingsScreen(
                 Text("GoFlo v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
                 Text("All your data stays on your device — nothing is sent anywhere.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onNavigateToLicenses, modifier = Modifier.fillMaxWidth()) {
+                    Text("Open Source Licences")
+                }
             }
         }
     }

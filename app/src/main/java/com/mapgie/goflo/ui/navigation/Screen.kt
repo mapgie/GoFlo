@@ -12,4 +12,5 @@ sealed class Screen(val route: String) {
         val newPin = "pin_setup?changing=false"
         val changePin = "pin_setup?changing=true"
     }
+    data object Licenses : Screen("licenses")
 }

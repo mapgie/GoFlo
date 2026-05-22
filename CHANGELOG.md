@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.2.0-beta.1] - 2026-05-22
+
+### Added
+- Open Source Licences screen (accessible from Settings → About) listing all runtime dependencies and their copyright holders
+
+---
+
 ## [0.1.1-beta.1] - 2026-05-22
 
 ### Fixed

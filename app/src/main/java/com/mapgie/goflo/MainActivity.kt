@@ -190,7 +190,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                     viewModel = vm,
                     onNavigateToPinSetup = { changing ->
                         navController.navigate(if (changing) Screen.PinSetup.changePin else Screen.PinSetup.newPin)
-                    }
+                    },
+                    onNavigateToLicenses = { navController.navigate(Screen.Licenses.route) }
                 )
             }
 
@@ -222,6 +223,12 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 PinSetupScreen(
                     viewModel = vm,
                     onDone = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Licenses.route) {
+                com.mapgie.goflo.ui.screens.licenses.LicensesScreen(
                     onBack = { navController.popBackStack() }
                 )
             }
