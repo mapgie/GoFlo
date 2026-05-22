@@ -13,6 +13,7 @@ Standards every project must meet before shipping. Work through each section top
 - [ ] **Developer contact** — defined in `README.md` or repo description:
   - Public repo → GitHub Issues enabled; link in README
   - Private repo → determined per-project (Slack channel, email, internal tracker); documented in README
+- [ ] **Minimum supported OS / runtime version** — documented in `README.md` with a rationale (hardware coverage target, API dependency, etc.); any decision to raise the minimum is a MINOR version bump and requires a changelog entry
 
 ### Versioning policy
 
@@ -37,6 +38,20 @@ Rules:
 - Never delete an entry — even for reverts, add a new entry describing the revert
 - Each PR adds its changelog entry in the same commit as the feature or fix
 
+### Accessibility
+
+- [ ] All interactive elements have a minimum touch / click target of **48×48dp** (Android) or **44×44pt** (iOS)
+- [ ] Every icon-only control has a **content description** (or equivalent accessible label) — buttons, icon buttons, image-only elements
+- [ ] Text and interactive elements meet **WCAG AA contrast ratios**: 4.5:1 for body text, 3:1 for large text and UI components
+- [ ] The app is navigable without colour alone — selection state, errors, and status are also communicated via shape, label, or icon
+
+### Error states
+
+- [ ] Every screen that loads data has an **empty state** — a clear message when there is nothing to show (not a blank screen)
+- [ ] Errors shown to users are **generic and actionable** — no raw exception messages, stack traces, or internal identifiers; errors include a suggested next step where possible
+- [ ] Network or I/O failures offer a **retry affordance** where retrying is meaningful
+- [ ] Destructive or irreversible actions require **explicit confirmation** (dialog or multi-step) before executing
+
 ---
 
 ## Android
@@ -53,6 +68,7 @@ Rules:
   android.nonTransitiveRClass=true
   org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
   ```
+- [ ] **`proguard-rules.pro` reviewed** whenever a new library is added — Room, DataStore, Retrofit, and most reflection-heavy libraries require explicit keep rules; crashes that appear only in release builds and not debug builds are almost always a missing ProGuard rule
 
 ### CI workflows
 
@@ -89,6 +105,18 @@ Rules:
 - [ ] Selected chip state must pass the "readable in 100ms" bar — override `FilterChipDefaults` with a high-contrast fill; the default Material3 selected treatment (subtle border change) is not sufficient
 - [ ] No colours hardcoded in `TextStyle` / typography — omit `color` and let the theme propagate it
 
+### Pre-release smoke test
+
+Run before every release build. No CI substitute — these require eyes on a real device or emulator.
+
+- [ ] Fresh install (no prior data) — app launches without crash, empty states are shown correctly
+- [ ] Data survives process kill — background the app, use `adb shell am kill <package>`, reopen; all saved data present
+- [ ] Notifications fire at the correct time and respect the alarm audio stream
+- [ ] Theme switching applies immediately with no flash or restart
+- [ ] PIN lock engages when the app is backgrounded and re-opened
+- [ ] Biometric unlock prompt appears when PIN + biometric are both enabled
+- [ ] Disclaimer appears on first install; does not appear again after acknowledgement unless version code changes
+
 ---
 
 ## Personal data (local or remote)
@@ -110,3 +138,11 @@ Applies whenever the app stores information that could identify or characterise 
 - [ ] **Privacy & medical disclaimer** shown on first install and on every app update (keyed to `BuildConfig.VERSION_CODE`); must be acknowledged before the app is usable; also accessible from Settings at any time
 - [ ] **Backup & transfer exclusions** in `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml`: exclude the database, WAL/SHM files, and all DataStore preference files from both cloud backup and device transfer
 - [ ] No network requests, no third-party analytics, no crash reporting SDK that transmits data off-device — or, if any of these are present, explicitly disclosed in the privacy disclaimer and justified in the PR that introduces them
+
+### Data lifecycle
+
+- [ ] **Data export** — user can export all their data in a portable format (CSV or JSON); especially mandatory when system backup is excluded (see above); export via the platform share sheet so users can save to Files, email, or a third-party app
+- [ ] **Data deletion** — explicit "Delete all data" action in Settings, behind a confirmation dialog; distinct from uninstall (users may not know uninstall deletes data)
+- [ ] **Retention policy** documented in the privacy disclaimer:
+  - Default: data kept indefinitely until the user explicitly deletes it or uninstalls the app
+  - If automatic pruning is implemented (e.g. rolling 24-month window), the policy and threshold must be disclosed in the disclaimer and configurable or opt-out in Settings
