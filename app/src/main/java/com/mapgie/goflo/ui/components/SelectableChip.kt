@@ -14,8 +14,8 @@ import androidx.compose.ui.unit.dp
 fun SelectableChip(
     label: String,
     selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
     FilterChip(
         selected = selected,

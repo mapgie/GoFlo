@@ -1,7 +1,7 @@
 name: Build & Release APK
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
       - "**/*.kt"
@@ -9,6 +9,7 @@ on:
       - "**/*.gradle.kts"
       - "gradle/libs.versions.toml"
       - "gradle/wrapper/**"
+      - "gradle.properties"
   workflow_dispatch:
 
 permissions:
@@ -49,12 +50,6 @@ jobs:
           echo "VERSION=${VERSION}"       >> $GITHUB_ENV
           echo "APK_PATH=app/build/outputs/apk/debug/${APK_NAME}" >> $GITHUB_ENV
           echo "APK_NAME=${APK_NAME}"     >> $GITHUB_ENV
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.APK_NAME }}
-          path: ${{ env.APK_PATH }}
 
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main'
