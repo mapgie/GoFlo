@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
+import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -241,7 +242,7 @@ fun SettingsScreen(
 
             // ── About ──────────────────────────────────────────────────────────
             SettingSection(title = "About") {
-                Text("GoFlo v1.0", style = MaterialTheme.typography.bodyMedium)
+                Text("GoFlo v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
                 Text("All your data stays on your device — nothing is sent anywhere.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
