@@ -8,6 +8,7 @@ Standards every project must meet before shipping. Work through each section top
 
 ### Documentation
 
+- [ ] **`README.md`** at the repo root covering at minimum: what the project is, how to build and run it, minimum OS / runtime version, and a link to developer contact
 - [ ] **`CHANGELOG.md`** at the repo root, following the versioning policy below
 - [ ] **`LESSONS.md`** — principle-focused notes on non-obvious decisions and hard-won fixes; entries ordered by risk to a new project if forgotten
 - [ ] **Developer contact** — defined in `README.md` or repo description:
@@ -68,7 +69,8 @@ Rules:
   android.nonTransitiveRClass=true
   org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
   ```
-- [ ] **`proguard-rules.pro` reviewed** whenever a new library is added — Room, DataStore, Retrofit, and most reflection-heavy libraries require explicit keep rules; crashes that appear only in release builds and not debug builds are almost always a missing ProGuard rule
+- [ ] **`proguard-rules.pro` reviewed** whenever a new library is added
+- [ ] **`lint-baseline.xml` committed** — generated once with `./gradlew lintDebug --write-lint-baseline` to snapshot existing issues; subsequent CI runs report only new ones; `lint { baseline = file("lint-baseline.xml"); abortOnError = true }` in `app/build.gradle.kts` — Room, DataStore, Retrofit, and most reflection-heavy libraries require explicit keep rules; crashes that appear only in release builds and not debug builds are almost always a missing ProGuard rule
 
 ### CI workflows
 
@@ -78,11 +80,14 @@ Rules:
   - No `push` trigger — avoids duplicate builds on merge
   - No `upload-artifact` step — avoids filling artifact storage quota; the build result (pass/fail) is the signal
   - **Version check step** (runs before the build, fast-fail): reads `versionName` from `build.gradle.kts` and fails if a GitHub Release for that tag already exists — enforces the version-bump-per-PR rule
-  - Release creation step gated on `github.event_name == 'workflow_dispatch'`
+  - **`./gradlew test`** step after the build — unit tests must pass before a PR can merge
+  - **`./gradlew lintDebug`** step after tests — lint runs against a committed `lint-baseline.xml` so only new issues surface
+  - APK rename and release creation gated on `github.event_name == 'workflow_dispatch'` — PR builds verify compilation only; no artifact is produced or published
 
 - [ ] **Licence screen sync check** (`.github/workflows/license-sync.yml` or equivalent):
   - Triggers only when `gradle/libs.versions.toml` changes in a PR
   - Fails if the licences screen source file was not also modified in the same PR
+  - **Caveat:** this is a touch-gate, not a correctness check — it only verifies the file was modified, not that the content is accurate; content correctness is a code review responsibility
 
 ### Open source licences
 

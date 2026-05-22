@@ -1,7 +1,10 @@
 package com.mapgie.goflo.ui.screens.licenses
 
 // MAINTAINER NOTE: keep this list in sync with gradle/libs.versions.toml.
-// Add an entry here whenever a new runtime dependency is added to the project.
+// Add an entry here whenever a new RUNTIME dependency is added to the project.
+//
+// Excluded — not shipped in the APK:
+//   junit (testImplementation only)
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

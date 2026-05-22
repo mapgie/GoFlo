@@ -53,19 +53,21 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
 
-      - name: Rename APK
-        run: |
-          APK_NAME="GoFlo-${{ env.VERSION }}-debug.apk"
-          mv app/build/outputs/apk/debug/app-debug.apk \
-             app/build/outputs/apk/debug/${APK_NAME}
-          echo "APK_PATH=app/build/outputs/apk/debug/${APK_NAME}" >> $GITHUB_ENV
+      - name: Run unit tests
+        run: gradle :app:test --no-daemon
 
-      - name: Create GitHub Release
+      - name: Run lint
+        run: gradle :app:lintDebug --no-daemon
+
+      - name: Rename APK and create GitHub Release
         if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          APK_NAME="GoFlo-${{ env.VERSION }}-debug.apk"
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             app/build/outputs/apk/debug/${APK_NAME}
           gh release create "v${{ env.VERSION }}" \
-            "${{ env.APK_PATH }}" \
+            "app/build/outputs/apk/debug/${APK_NAME}" \
             --title "GoFlo v${{ env.VERSION }}" \
             --notes "Debug build — enable 'Install unknown apps' in Android settings to sideload."

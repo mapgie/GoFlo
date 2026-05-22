@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
+import android.os.Build
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.preferences.ReminderSettings
 import com.mapgie.goflo.data.repository.PeriodRepository
@@ -93,6 +94,7 @@ object ReminderScheduler {
         if (triggerAt <= System.currentTimeMillis()) return
 
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarm.canScheduleExactAlarms()) return
         alarm.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             triggerAt,
@@ -110,6 +112,7 @@ object ReminderScheduler {
         if (triggerAt <= now) triggerAt += 24 * 60 * 60 * 1000L
 
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarm.canScheduleExactAlarms()) return
         alarm.setRepeating(
             AlarmManager.RTC_WAKEUP,
             triggerAt,

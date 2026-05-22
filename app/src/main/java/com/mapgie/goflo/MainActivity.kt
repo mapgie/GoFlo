@@ -50,11 +50,15 @@ import com.mapgie.goflo.ui.screens.home.HomeScreen
 import com.mapgie.goflo.ui.screens.home.HomeViewModel
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
+import android.annotation.SuppressLint
 import com.mapgie.goflo.ui.theme.AppTheme
 import com.mapgie.goflo.ui.theme.GoFloTheme
 
 class MainActivity : ComponentActivity() {
 
+    // False positive: lint check targets FragmentActivity users with old fragment versions.
+    // MainActivity extends ComponentActivity directly; no fragment dependency is present.
+    @SuppressLint("InvalidFragmentVersionForActivityResult")
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { /* handled silently */ }
