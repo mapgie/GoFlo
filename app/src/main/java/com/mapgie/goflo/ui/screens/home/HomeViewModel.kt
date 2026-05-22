@@ -43,10 +43,10 @@ class HomeViewModel(private val repository: PeriodRepository) : ViewModel() {
                 }
             }
 
-            val predictedDays = buildSet {
-                if (nextStart != null) {
-                    val predictedEnd = nextStart.plusDays(4)
-                    var d = nextStart
+            val predictedDays = buildSet<LocalDate> {
+                nextStart?.let { start ->
+                    val predictedEnd = start.plusDays(4)
+                    var d = start
                     while (!d.isAfter(predictedEnd)) {
                         if (d !in periodDays) add(d)
                         d = d.plusDays(1)
