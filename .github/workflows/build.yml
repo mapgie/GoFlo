@@ -23,6 +23,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check version is new
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep 'versionName' app/build.gradle.kts | grep -oP '"[^"]+"' | tr -d '"')
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          if gh release view "v${VERSION}" &>/dev/null; then
+            echo "::error::v${VERSION} is already released. Bump versionName (and versionCode) in app/build.gradle.kts before merging."
+            exit 1
+          fi
+          echo "Version ${VERSION} is new."
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -41,27 +53,19 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
 
-      - name: Extract version and rename APK
+      - name: Rename APK
         run: |
-          VERSION=$(grep 'versionName' app/build.gradle.kts | grep -oP '"[^"]+"' | tr -d '"')
-          APK_NAME="GoFlo-${VERSION}-debug.apk"
+          APK_NAME="GoFlo-${{ env.VERSION }}-debug.apk"
           mv app/build/outputs/apk/debug/app-debug.apk \
              app/build/outputs/apk/debug/${APK_NAME}
-          echo "VERSION=${VERSION}"       >> $GITHUB_ENV
           echo "APK_PATH=app/build/outputs/apk/debug/${APK_NAME}" >> $GITHUB_ENV
-          echo "APK_NAME=${APK_NAME}"     >> $GITHUB_ENV
 
       - name: Create GitHub Release
-        if: github.ref == 'refs/heads/main'
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="v${{ env.VERSION }}"
-          if gh release view "$TAG" &>/dev/null; then
-            echo "Release $TAG already exists — skipping."
-          else
-            gh release create "$TAG" \
-              "${{ env.APK_PATH }}" \
-              --title "GoFlo $TAG" \
-              --notes "Debug build — enable 'Install unknown apps' in Android settings to sideload."
-          fi
+          gh release create "v${{ env.VERSION }}" \
+            "${{ env.APK_PATH }}" \
+            --title "GoFlo v${{ env.VERSION }}" \
+            --notes "Debug build — enable 'Install unknown apps' in Android settings to sideload."
