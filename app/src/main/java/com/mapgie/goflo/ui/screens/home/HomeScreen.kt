@@ -80,6 +80,8 @@ fun HomeScreen(
                     }
                     if (period != null) {
                         onNavigate(Screen.LogPeriod.withId(period.id))
+                    } else {
+                        onNavigate(Screen.LogPeriod.newEntryForDate(date))
                     }
                 }
             )

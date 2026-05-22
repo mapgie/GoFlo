@@ -31,10 +31,11 @@ data class LogPeriodUiState(
 
 class LogPeriodViewModel(
     private val repository: PeriodRepository,
-    private val periodId: Long
+    private val periodId: Long,
+    private val prefilledDate: LocalDate? = null
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LogPeriodUiState())
+    private val _uiState = MutableStateFlow(LogPeriodUiState(startDate = prefilledDate ?: LocalDate.now()))
     val uiState: StateFlow<LogPeriodUiState> = _uiState.asStateFlow()
 
     init {
@@ -121,11 +122,14 @@ class LogPeriodViewModel(
         }
     }
 
-    class Factory(private val repository: PeriodRepository, private val periodId: Long) :
-        ViewModelProvider.Factory {
+    class Factory(
+        private val repository: PeriodRepository,
+        private val periodId: Long,
+        private val prefilledDate: LocalDate? = null
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return LogPeriodViewModel(repository, periodId) as T
+            return LogPeriodViewModel(repository, periodId, prefilledDate) as T
         }
     }
 }

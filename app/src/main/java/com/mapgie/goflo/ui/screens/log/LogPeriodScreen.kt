@@ -1,6 +1,7 @@
 package com.mapgie.goflo.ui.screens.log
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -66,12 +68,7 @@ fun LogPeriodScreen(
     var showEndPicker by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
 
-    if (state.isLoading) {
-        CircularProgressIndicator()
-        return
-    }
-
-    if (showStartPicker) {
+    if (showStartPicker && !state.isLoading) {
         DatePickerDialogWrapper(
             initial = state.startDate,
             onConfirm = { viewModel.setStartDate(it); showStartPicker = false },
@@ -79,7 +76,7 @@ fun LogPeriodScreen(
         )
     }
 
-    if (showEndPicker) {
+    if (showEndPicker && !state.isLoading) {
         DatePickerDialogWrapper(
             initial = state.endDate ?: LocalDate.now(),
             minDate = state.startDate,
@@ -88,7 +85,7 @@ fun LogPeriodScreen(
         )
     }
 
-    if (showDeleteConfirm) {
+    if (showDeleteConfirm && !state.isLoading) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete period?") },
@@ -115,86 +112,95 @@ fun LogPeriodScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // Date section
-            SectionLabel("Dates")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f)) {
-                    Text("Start: ${state.startDate.format(displayFormat)}")
-                }
-                OutlinedButton(onClick = { showEndPicker = true }, modifier = Modifier.weight(1f)) {
-                    Text("End: ${state.endDate?.format(displayFormat) ?: "Ongoing"}")
-                }
+        if (state.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-            if (state.endDate != null) {
-                TextButton(onClick = { viewModel.setEndDate(null) }) {
-                    Text("Clear end date (mark as ongoing)")
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Date section
+                SectionLabel("Dates")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f)) {
+                        Text("Start: ${state.startDate.format(displayFormat)}")
+                    }
+                    OutlinedButton(onClick = { showEndPicker = true }, modifier = Modifier.weight(1f)) {
+                        Text("End: ${state.endDate?.format(displayFormat) ?: "Ongoing"}")
+                    }
                 }
-            }
-
-            // Flow section
-            SectionLabel("Flow")
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FlowLevel.entries.forEach { level ->
-                    SelectableChip(
-                        label = level.displayName,
-                        selected = state.flowLevel == level,
-                        onClick = { viewModel.setFlowLevel(level) }
-                    )
+                if (state.endDate != null) {
+                    TextButton(onClick = { viewModel.setEndDate(null) }) {
+                        Text("Clear end date (mark as ongoing)")
+                    }
                 }
-            }
 
-            // Symptoms section
-            SectionLabel("Symptoms")
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SymptomType.entries.forEach { symptom ->
-                    SelectableChip(
-                        label = symptom.displayName,
-                        selected = symptom in state.symptoms,
-                        onClick = { viewModel.toggleSymptom(symptom) }
-                    )
+                // Flow section
+                SectionLabel("Flow")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowLevel.entries.forEach { level ->
+                        SelectableChip(
+                            label = level.displayName,
+                            selected = state.flowLevel == level,
+                            onClick = { viewModel.setFlowLevel(level) }
+                        )
+                    }
                 }
-            }
 
-            // Notes
-            SectionLabel("Notes")
-            OutlinedTextField(
-                value = state.notes,
-                onValueChange = { if (it.length <= 500) viewModel.setNotes(it) },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("How are you feeling? Any other details…") },
-                minLines = 3,
-                maxLines = 6,
-                supportingText = { Text("${state.notes.length}/500") }
-            )
+                // Symptoms section
+                SectionLabel("Symptoms")
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SymptomType.entries.forEach { symptom ->
+                        SelectableChip(
+                            label = symptom.displayName,
+                            selected = symptom in state.symptoms,
+                            onClick = { viewModel.toggleSymptom(symptom) }
+                        )
+                    }
+                }
 
-            Spacer(Modifier.height(8.dp))
-
-            // Save
-            Button(onClick = viewModel::save, modifier = Modifier.fillMaxWidth()) {
-                Text("Save")
-            }
-
-            // Delete (only when editing)
-            if (state.isEditing) {
-                OutlinedButton(
-                    onClick = { showDeleteConfirm = true },
+                // Notes
+                SectionLabel("Notes")
+                OutlinedTextField(
+                    value = state.notes,
+                    onValueChange = { if (it.length <= 500) viewModel.setNotes(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Delete Entry")
-                }
-            }
+                    placeholder = { Text("How are you feeling? Any other details…") },
+                    minLines = 3,
+                    maxLines = 6,
+                    supportingText = { Text("${state.notes.length}/500") }
+                )
 
-            state.error?.let {
-                Text("Error: $it", color = MaterialTheme.colorScheme.error)
+                Spacer(Modifier.height(8.dp))
+
+                // Save
+                Button(onClick = viewModel::save, modifier = Modifier.fillMaxWidth()) {
+                    Text("Save")
+                }
+
+                // Delete (only when editing)
+                if (state.isEditing) {
+                    OutlinedButton(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete Entry")
+                    }
+                }
+
+                state.error?.let {
+                    Text("Error: $it", color = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }
