@@ -1,15 +1,6 @@
 name: Build & Release APK
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "**/*.kt"
-      - "**/*.xml"
-      - "**/*.gradle.kts"
-      - "gradle/libs.versions.toml"
-      - "gradle/wrapper/**"
-      - "gradle.properties"
   pull_request:
     branches: [main]
     paths:
