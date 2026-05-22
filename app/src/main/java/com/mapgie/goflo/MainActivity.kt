@@ -197,14 +197,17 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
 
             composable(
                 route = Screen.LogPeriod.route,
-                arguments = listOf(navArgument("periodId") {
-                    type = NavType.LongType; defaultValue = -1L
-                })
+                arguments = listOf(
+                    navArgument("periodId") { type = NavType.LongType; defaultValue = -1L },
+                    navArgument("startDate") { type = NavType.StringType; nullable = true; defaultValue = null }
+                )
             ) { backStack ->
                 val periodId = backStack.arguments?.getLong("periodId") ?: -1L
+                val startDateStr = backStack.arguments?.getString("startDate")
+                val prefilledDate = startDateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
                 val vm: com.mapgie.goflo.ui.screens.log.LogPeriodViewModel = viewModel(
-                    key = "log_$periodId",
-                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId)
+                    key = "log_${periodId}_${startDateStr}",
+                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate)
                 )
                 com.mapgie.goflo.ui.screens.log.LogPeriodScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
