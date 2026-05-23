@@ -172,7 +172,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) {
-                val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(app.repository))
+                val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(app.repository, app.preferencesStore))
                 HomeScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
 

@@ -19,6 +19,22 @@ Rules:
 
 ---
 
+## [0.6.0-beta.1] - 2026-05-23
+
+### Added
+- **Cycle length personalisation** — Settings → Cycle section with a toggle to
+  switch between "Auto" (calculated from logged history) and a custom fixed length
+  (21–45 days, controlled by a slider); preference is persisted in DataStore and
+  feeds HomeViewModel via a combined flow so the calendar and all cycle predictions
+  update instantly without restart
+- **Ovulation window (±2 days)** — the calendar now marks the two days before and
+  after the peak ovulation day with a softer 4 dp, 50%-alpha dot; the home screen
+  Cycle Info card now shows the full five-day range (e.g. "May 20 – May 24")
+  instead of a single date; TalkBack announces surrounding days as "fertility
+  window" and the peak day as "ovulation day"
+
+---
+
 ## [0.5.1-beta.1] - 2026-05-23
 
 ### Fixed

@@ -45,9 +45,11 @@ fun CalendarGrid(
     periodDays: Set<LocalDate>,
     predictedDays: Set<LocalDate>,
     ovulationDay: LocalDate?,
+    /** Full ±2-day fertility window; each date in this set gets a small indicator dot. */
+    ovulationWindow: Set<LocalDate> = emptySet(),
     today: LocalDate = LocalDate.now(),
     onDayClick: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var displayMonth by rememberSaveable { mutableStateOf(YearMonth.now()) }
 
@@ -65,8 +67,9 @@ fun CalendarGrid(
             periodDays = periodDays,
             predictedDays = predictedDays,
             ovulationDay = ovulationDay,
+            ovulationWindow = ovulationWindow,
             today = today,
-            onDayClick = onDayClick
+            onDayClick = onDayClick,
         )
     }
 }
@@ -113,8 +116,9 @@ private fun CalendarDays(
     periodDays: Set<LocalDate>,
     predictedDays: Set<LocalDate>,
     ovulationDay: LocalDate?,
+    ovulationWindow: Set<LocalDate>,
     today: LocalDate,
-    onDayClick: (LocalDate) -> Unit
+    onDayClick: (LocalDate) -> Unit,
 ) {
     val firstDayOfMonth = month.atDay(1)
     val startOffset = firstDayOfMonth.dayOfWeek.value % 7
@@ -132,12 +136,13 @@ private fun CalendarDays(
                         val date = month.atDay(dayNum)
                         DayCell(
                             date = date,
-                            isPeriod = date in periodDays,
+                            isPeriod    = date in periodDays,
                             isPredicted = date in predictedDays,
                             isOvulation = date == ovulationDay,
-                            isToday = date == today,
-                            onClick = { onDayClick(date) },
-                            modifier = Modifier.weight(1f)
+                            isOvulationWindow = date in ovulationWindow && date != ovulationDay,
+                            isToday     = date == today,
+                            onClick     = { onDayClick(date) },
+                            modifier    = Modifier.weight(1f),
                         )
                     } else {
                         Spacer(Modifier.weight(1f))
@@ -156,9 +161,11 @@ private fun DayCell(
     isPeriod: Boolean,
     isPredicted: Boolean,
     isOvulation: Boolean,
+    /** True for the ±2 days surrounding the peak ovulation day. */
+    isOvulationWindow: Boolean,
     isToday: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val primary = MaterialTheme.colorScheme.primary
 
@@ -171,7 +178,10 @@ private fun DayCell(
             isPeriod    -> append(", period day")
             isPredicted -> append(", predicted period")
         }
-        if (isOvulation) append(", ovulation window")
+        when {
+            isOvulation       -> append(", ovulation day")
+            isOvulationWindow -> append(", fertility window")
+        }
     }
 
     Box(
@@ -209,15 +219,13 @@ private fun DayCell(
                     style = MaterialTheme.typography.bodyMedium,
                     color = textColor
                 )
-                if (isOvulation) {
-                    // 6 dp keeps the dot subtle while remaining perceptible at
-                    // small sizes; white on period days, primary elsewhere.
-                    Box(
-                        Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(if (isPeriod) Color.White else primary)
-                    )
+                when {
+                    isOvulation -> // 6 dp peak-day dot
+                        Box(Modifier.size(6.dp).clip(CircleShape)
+                            .background(if (isPeriod) Color.White else primary))
+                    isOvulationWindow -> // 4 dp softer dot for surrounding window days
+                        Box(Modifier.size(4.dp).clip(CircleShape)
+                            .background((if (isPeriod) Color.White else primary).copy(alpha = 0.5f)))
                 }
             }
         }

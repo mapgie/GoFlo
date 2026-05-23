@@ -22,7 +22,12 @@ data class ReminderSettings(
 
 data class AppPreferences(
     val theme: String = "CORAL",
-    val reminder: ReminderSettings = ReminderSettings()
+    val reminder: ReminderSettings = ReminderSettings(),
+    /**
+     * User-preferred cycle length in days (21–45).
+     * 0 means "auto" — the app calculates the average from logged history.
+     */
+    val preferredCycleLength: Int = 0,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -35,11 +40,13 @@ class AppPreferencesStore(private val context: Context) {
         val DAILY_ENABLED = booleanPreferencesKey("daily_enabled")
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
+        val PREFERRED_CYCLE_LENGTH = intPreferencesKey("preferred_cycle_length")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
         AppPreferences(
             theme = prefs[Keys.THEME] ?: "CORAL",
+            preferredCycleLength = prefs[Keys.PREFERRED_CYCLE_LENGTH] ?: 0,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -76,5 +83,10 @@ class AppPreferencesStore(private val context: Context) {
             it[Keys.REMINDER_HOUR] = hour
             it[Keys.REMINDER_MINUTE] = minute
         }
+    }
+
+    /** 0 clears the override (reverts to auto-calculated average). */
+    suspend fun setPreferredCycleLength(days: Int) {
+        context.dataStore.edit { it[Keys.PREFERRED_CYCLE_LENGTH] = days }
     }
 }

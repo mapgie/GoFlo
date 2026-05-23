@@ -67,6 +67,13 @@ class SettingsViewModel(
         store.setReminderTime(hour, minute); reschedule()
     }
 
+    // ── Cycle ─────────────────────────────────────────────────────────────────
+
+    /** 0 clears the override (reverts to auto-calculated average from history). */
+    fun setPreferredCycleLength(days: Int) = viewModelScope.launch {
+        store.setPreferredCycleLength(days)
+    }
+
     // ── Security ──────────────────────────────────────────────────────────────
 
     // Requires the user to have entered the correct current PIN to call this.

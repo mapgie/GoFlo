@@ -343,6 +343,56 @@ fun SettingsScreen(
 
             HorizontalDivider()
 
+            // ── Cycle ──────────────────────────────────────────────────────────
+            SettingSection(title = "Cycle") {
+                val customEnabled = prefs.preferredCycleLength > 0
+                SwitchRow(
+                    label    = "Custom cycle length",
+                    subtitle = if (customEnabled)
+                        "Using ${prefs.preferredCycleLength} days"
+                    else
+                        "Auto — calculated from your history",
+                    checked        = customEnabled,
+                    onCheckedChange = { on ->
+                        if (on) {
+                            // Default to 28 days (or current override if already set)
+                            viewModel.setPreferredCycleLength(
+                                prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
+                            )
+                        } else {
+                            viewModel.setPreferredCycleLength(0)
+                        }
+                    }
+                )
+                if (customEnabled) {
+                    Spacer(Modifier.height(4.dp))
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(
+                            "Cycle length: ${prefs.preferredCycleLength} days",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value         = prefs.preferredCycleLength.toFloat(),
+                            onValueChange = { viewModel.setPreferredCycleLength(it.toInt()) },
+                            valueRange    = 21f..45f,
+                            // steps = 23 gives 25 discrete tick positions (21–45 inclusive)
+                            steps         = 23
+                        )
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("21 days", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("45 days", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider()
+
             // ── Security ───────────────────────────────────────────────────────
             SettingSection(title = "Security & Privacy") {
                 if (!security.hasPinSet) {
