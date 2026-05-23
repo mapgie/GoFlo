@@ -19,6 +19,28 @@ Rules:
 
 ---
 
+## [0.8.2-beta.1] - 2026-05-23
+
+### Changed
+- **Swipe-to-delete UX** — replaced the confirmation dialog with a Snackbar +
+  Undo pattern; swiping right-to-left now removes the card immediately and shows
+  a 10-second "Period deleted · Undo" snackbar; tapping Undo restores the period
+  with no DB write; the DB deletion is committed only after the snackbar times out
+
+### Technical
+- `HistoryViewModel`: replaced single `deletePeriod()` with three-stage lifecycle
+  — `stageDeletion()` (hide from list), `undoDeletion()` (restore), `commitDeletion()`
+  (DB write); the `periods` StateFlow now combines with `_pendingDeleteIds` to
+  filter out staged entries; `symptomTrends` continues to use the raw repository
+  flow so trends are unaffected by transient pending-delete state
+- `HistoryScreen`: `SwipeToDismissBox.confirmValueChange` returns `true` for
+  `EndToStart` (card slides off); `LaunchedEffect(state.currentValue)` calls
+  `onDelete` when settled; snackbar coroutine launched on screen-level
+  `rememberCoroutineScope` so it survives card composable disposal;
+  `Modifier.animateItem()` on each card for smooth list collapse on removal
+
+---
+
 ## [0.8.1-beta.1] - 2026-05-23
 
 ### Fixed
