@@ -43,7 +43,7 @@ Rules:
 
 - [x] All interactive elements have a minimum touch / click target of **48×48dp** (Android) or **44×44pt** (iOS)
 - [x] Every icon-only control has a **content description** (or equivalent accessible label) — buttons, icon buttons, image-only elements
-- [ ] Text and interactive elements meet **WCAG AA contrast ratios**: 4.5:1 for body text, 3:1 for large text and UI components
+- [x] Text and interactive elements meet **WCAG AA contrast ratios**: 4.5:1 for body text, 3:1 for large text and UI components
 - [x] The app is navigable without colour alone — selection state, errors, and status are also communicated via shape, label, or icon
 
 ### Error states

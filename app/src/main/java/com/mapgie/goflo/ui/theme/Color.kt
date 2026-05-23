@@ -9,7 +9,9 @@ enum class AppTheme { CORAL, TURQUOISE, GREEN }
 
 // ── Coral / Peach ────────────────────────────────────────────────────────────
 private val CoralLight = lightColorScheme(
-    primary = Color(0xFFD9604A),
+    // #C15542 passes WCAG AA 4.5:1 with white (onPrimary) — darkened from the
+    // original #D9604A which only achieved 3.7:1 and failed the normal-text threshold.
+    primary = Color(0xFFC15542),
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFFFDAD4),
     onPrimaryContainer = Color(0xFF3E0400),

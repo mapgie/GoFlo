@@ -19,6 +19,20 @@ Rules:
 
 ---
 
+## [0.4.2-beta.1] - 2026-05-23
+
+### Fixed
+- **WCAG AA contrast — Coral theme**: primary colour darkened from `#D9604A` to `#C15542`
+  to fix three failing contrast pairs:
+  - White day-number text on period-filled circles: was 3.7:1, now **4.5:1** (threshold 4.5:1)
+  - Primary on `surfaceVariant` (chip borders, ovulation dot): was 2.9:1, now **3.5:1** (threshold 3.0:1)
+  - Primary on `primaryContainer` (focused outlines): was 2.8:1, now **3.5:1** (threshold 3.0:1)
+  - Turquoise and Green themes were already fully compliant; no changes needed
+- `template_requirements.md`: WCAG AA checkbox now checked — all 33 measured pairs
+  pass across all three themes
+
+---
+
 ## [0.4.1-beta.1] - 2026-05-23
 
 ### Fixed
