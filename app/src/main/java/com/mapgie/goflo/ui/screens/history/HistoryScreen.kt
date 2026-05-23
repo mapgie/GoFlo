@@ -16,8 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,19 +23,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.ui.navigation.Screen
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -60,6 +63,9 @@ fun HistoryScreen(
     val periods by viewModel.periods.collectAsState()
     val symptomTrends by viewModel.symptomTrends.collectAsState()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -69,6 +75,16 @@ fun HistoryScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
+        },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData     = data,
+                    containerColor   = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor     = MaterialTheme.colorScheme.inverseOnSurface,
+                    actionColor      = MaterialTheme.colorScheme.inversePrimary,
+                )
+            }
         }
     ) { padding ->
         if (periods.isEmpty()) {
@@ -111,8 +127,25 @@ fun HistoryScreen(
                 items(periods, key = { it.id }) { period ->
                     SwipeablePeriodCard(
                         period  = period,
-                        onDelete = { viewModel.deletePeriod(period) },
-                        onClick  = { onNavigate(Screen.LogPeriod.withId(period.id)) }
+                        onDelete = {
+                            // Stage the deletion — card disappears from the list immediately.
+                            viewModel.stageDeletion(period)
+                            // Show snackbar with Undo action from the screen-level scope
+                            // so the coroutine survives after the card composable is disposed.
+                            scope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message     = "Period deleted",
+                                    actionLabel = "Undo",
+                                    duration    = SnackbarDuration.Long,
+                                )
+                                when (result) {
+                                    SnackbarResult.ActionPerformed -> viewModel.undoDeletion(period)
+                                    SnackbarResult.Dismissed       -> viewModel.commitDeletion(period)
+                                }
+                            }
+                        },
+                        onClick = { onNavigate(Screen.LogPeriod.withId(period.id)) },
+                        modifier = Modifier,
                     )
                 }
                 item { Spacer(Modifier.height(4.dp)) }
@@ -150,10 +183,10 @@ private fun SymptomTrendsCard(trends: List<SymptomTrend>) {
                         )
                     }
                     LinearProgressIndicator(
-                        progress       = { trend.percentage / 100f },
-                        modifier       = Modifier.fillMaxWidth().height(4.dp),
-                        color          = MaterialTheme.colorScheme.primary,
-                        trackColor     = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                        progress   = { trend.percentage / 100f },
+                        modifier   = Modifier.fillMaxWidth().height(4.dp),
+                        color      = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                     )
                 }
             }
@@ -164,9 +197,18 @@ private fun SymptomTrendsCard(trends: List<SymptomTrend>) {
 // ── Swipeable period card ─────────────────────────────────────────────────────
 
 /**
- * Wraps [PeriodCard] in a [SwipeToDismissBox].
- * Swiping right-to-left past the threshold shows a delete confirmation dialog;
- * the card always snaps back — no data is lost without explicit confirmation.
+ * Wraps [PeriodCard] in a [SwipeToDismissBox] (right-to-left only).
+ *
+ * When the swipe crosses the threshold and the user releases:
+ *  1. [confirmValueChange] returns `true` — the card slides off the screen.
+ *  2. [LaunchedEffect] fires [onDelete], which (at the screen level) stages the
+ *     deletion so the card disappears from the [LazyColumn] and shows an Undo
+ *     [Snackbar]. The snackbar is launched on the screen-level [rememberCoroutineScope]
+ *     so it survives this composable being disposed.
+ *  3. If the user taps Undo the period reappears; otherwise the DB write happens
+ *     after the snackbar times out.
+ *
+ * There is no confirmation dialog — the Undo snackbar is the safety net.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -174,39 +216,25 @@ private fun SwipeablePeriodCard(
     period: PeriodEntry,
     onDelete: () -> Unit,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    var showDeleteConfirm by remember { mutableStateOf(false) }
-
     val state = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                showDeleteConfirm = true
-            }
-            false // always snap back; deletion is confirmed via dialog
-        }
+        confirmValueChange = { it == SwipeToDismissBoxValue.EndToStart }
     )
 
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title   = { Text("Delete period?") },
-            text    = { Text("This period log will be permanently removed. This cannot be undone.") },
-            confirmButton = {
-                TextButton(
-                    onClick = { showDeleteConfirm = false; onDelete() },
-                    colors  = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) { Text("Delete") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
-            }
-        )
+    // Trigger onDelete the moment the state settles to dismissed.
+    // onDelete stages the deletion in the ViewModel, which removes this item
+    // from the LazyColumn list. The snackbar coroutine (launched from the screen
+    // scope) keeps running even after this composable is disposed.
+    LaunchedEffect(state.currentValue) {
+        if (state.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            onDelete()
+        }
     }
 
     SwipeToDismissBox(
         state                    = state,
+        modifier                 = modifier,
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true,
         backgroundContent        = {
@@ -217,11 +245,11 @@ private fun SwipeablePeriodCard(
                 label       = "swipe_bg"
             )
             Box(
-                modifier          = Modifier
+                modifier         = Modifier
                     .fillMaxSize()
                     .background(bgColor)
                     .padding(end = 24.dp),
-                contentAlignment  = Alignment.CenterEnd
+                contentAlignment = Alignment.CenterEnd
             ) {
                 if (swipeActive) {
                     Icon(
