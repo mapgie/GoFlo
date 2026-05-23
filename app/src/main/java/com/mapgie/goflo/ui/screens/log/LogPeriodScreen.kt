@@ -73,6 +73,7 @@ fun LogPeriodScreen(
     var showEndPicker by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var showAddSymptomDialog by rememberSaveable { mutableStateOf(false) }
+    var showOngoingConfirm by rememberSaveable { mutableStateOf(false) }
 
     if (showStartPicker && !state.isLoading) {
         DatePickerDialogWrapper(
@@ -103,6 +104,30 @@ fun LogPeriodScreen(
                 ) { Text("Delete") }
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } }
+        )
+    }
+
+    if (showOngoingConfirm) {
+        AlertDialog(
+            onDismissRequest = { showOngoingConfirm = false },
+            title = { Text("No end date set") },
+            text  = { Text(
+                "This period will be saved as ongoing. You can add the end date later " +
+                "from History once your period ends. Ongoing entries are excluded from " +
+                "average cycle calculations."
+            ) },
+            confirmButton = {
+                TextButton(onClick = { showOngoingConfirm = false; viewModel.save() }) {
+                    Text("Save as ongoing")
+                }
+            },
+            dismissButton = {
+                // Dismiss the dialog AND immediately open the end-date picker so
+                // the button label matches the action ("Set end date" → date picker opens).
+                TextButton(onClick = { showOngoingConfirm = false; showEndPicker = true }) {
+                    Text("Set end date")
+                }
+            }
         )
     }
 
@@ -230,8 +255,12 @@ fun LogPeriodScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                // Save
-                Button(onClick = viewModel::save, modifier = Modifier.fillMaxWidth()) {
+                // Save — warn when no end date so the user doesn't accidentally create
+                // an "ongoing" entry that would corrupt cycle-length averages.
+                Button(
+                    onClick = { if (state.endDate == null) showOngoingConfirm = true else viewModel.save() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text("Save")
                 }
 

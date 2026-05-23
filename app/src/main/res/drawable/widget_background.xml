@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Semi-transparent dark background for the GoFlo home-screen widget.
+     Rounded corners (12 dp) match the Material3 widget style used by Android 12+
+     launchers; on older launchers the shape provides a clear boundary. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#CC1C1C2B" />
+    <corners android:radius="12dp" />
+</shape>

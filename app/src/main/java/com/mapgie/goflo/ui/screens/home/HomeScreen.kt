@@ -69,9 +69,10 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             CalendarGrid(
-                periodDays = state.periodDays,
-                predictedDays = state.predictedDays,
-                ovulationDay = state.ovulationDay,
+                periodDays      = state.periodDays,
+                predictedDays   = state.predictedDays,
+                ovulationDay    = state.ovulationDay,
+                ovulationWindow = state.ovulationWindow,
                 onDayClick = { date ->
                     val period = state.periods.firstOrNull { p ->
                         val start = LocalDate.parse(p.startDate)
@@ -108,8 +109,15 @@ private fun CycleInfoCard(state: HomeUiState) {
                 InfoRow("Next period", it.format(displayFormat))
             }
 
-            state.ovulationDay?.let {
-                InfoRow("Ovulation window", it.format(displayFormat))
+            if (state.ovulationWindow.isNotEmpty()) {
+                val windowStart = state.ovulationWindow.min()
+                val windowEnd   = state.ovulationWindow.max()
+                val shortFmt    = java.time.format.DateTimeFormatter.ofPattern("MMM d")
+                InfoRow("Ovulation window", "${windowStart.format(shortFmt)} – ${windowEnd.format(shortFmt)}")
+            } else {
+                state.ovulationDay?.let {
+                    InfoRow("Ovulation day", it.format(displayFormat))
+                }
             }
 
             InfoRow("Avg cycle", "${state.avgCycleLength} days")

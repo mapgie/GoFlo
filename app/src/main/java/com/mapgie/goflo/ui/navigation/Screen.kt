@@ -16,4 +16,5 @@ sealed class Screen(val route: String) {
         val changePin = "pin_setup?changing=true"
     }
     data object Licenses : Screen("licenses")
+    data object Privacy  : Screen("privacy")
 }

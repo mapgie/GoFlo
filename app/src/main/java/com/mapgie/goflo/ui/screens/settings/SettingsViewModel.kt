@@ -67,6 +67,13 @@ class SettingsViewModel(
         store.setReminderTime(hour, minute); reschedule()
     }
 
+    // ── Cycle ─────────────────────────────────────────────────────────────────
+
+    /** 0 clears the override (reverts to auto-calculated average from history). */
+    fun setPreferredCycleLength(days: Int) = viewModelScope.launch {
+        store.setPreferredCycleLength(days)
+    }
+
     // ── Security ──────────────────────────────────────────────────────────────
 
     // Requires the user to have entered the correct current PIN to call this.
@@ -96,6 +103,18 @@ class SettingsViewModel(
         viewModelScope.launch {
             val json = repository.exportData()
             val intent = DataExporter.buildShareIntent(context, json)
+            onReady(intent)
+        }
+    }
+
+    /**
+     * Serialises all periods to CSV (RFC 4180) and delivers a share-sheet
+     * Intent back to the caller. The Intent is ready for startActivity().
+     */
+    fun exportCsv(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val csv    = repository.exportAsCsv()
+            val intent = DataExporter.buildCsvShareIntent(context, csv)
             onReady(intent)
         }
     }

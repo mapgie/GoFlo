@@ -19,6 +19,166 @@ Rules:
 
 ---
 
+## [0.8.1-beta.1] - 2026-05-23
+
+### Fixed
+- **Security — widget PIN bypass**: the home screen widget now shows a neutral
+  placeholder ("GoFlo — tap to open") instead of cycle data when PIN lock is
+  enabled; sensitive health data is no longer visible on the home screen without
+  authentication (regression introduced in 0.8.0-beta.1)
+- **Security — CSV formula injection**: `exportAsCsv()` now prefixes any
+  free-text field (notes, custom symptoms) whose first character is `=`, `+`,
+  `-`, `@`, `\t`, or `\r` with a tab so spreadsheet apps never interpret the
+  content as a formula (DDE/CSV injection defence)
+- **Widget — custom cycle length ignored**: the widget now reads
+  `AppPreferencesStore.preferredCycleLength` and uses the user-set override
+  instead of always falling back to the auto-calculated average
+- **"Set end date" button**: tapping "Set end date" in the no-end-date
+  confirmation dialog now immediately opens the end-date picker; previously it
+  only dismissed the dialog, leaving the user to manually find the picker
+- **Cycle slider — DataStore write on every drag frame**: the cycle-length
+  slider now uses a local `Float` state while dragging and writes to DataStore
+  only in `onValueChangeFinished`; eliminates dozens of disk writes per second
+  during drag
+- **Unmanaged CoroutineScope in widget**: `GoFloWidget.updateAllWidgets()` now
+  uses a module-level `CoroutineScope(SupervisorJob() + Dispatchers.IO)` instead
+  of creating a new orphaned scope on every call
+- **No validation guard on `setPreferredCycleLength`**: the DataStore setter now
+  `require`s that the value is either 0 (auto) or within 21–45, throwing
+  `IllegalArgumentException` on out-of-range input to prevent silent prediction
+  corruption
+
+---
+
+## [0.8.0-beta.1] - 2026-05-23
+
+### Added
+- **Home screen widget** — a 2×1 cell AppWidget showing cycle status at a glance:
+  - While a period is active: "Period · day N" + "Avg cycle: N days"
+  - Otherwise: "Period in N days" / "Period due today" / "Period due tomorrow" +
+    "Day N of ~N"
+  - No data logged yet: "Tap to get started"
+  - Tapping the widget opens the app
+  - Updated every 30 minutes by the OS (the system minimum); data is read from
+    Room on `Dispatchers.IO` via `goAsync()` so the main thread is never blocked
+  - Registered in AndroidManifest as `.widget.GoFloWidget` with
+    `@xml/widget_info` (minWidth 180 dp, targetCellWidth 2, minSdk 26 compat)
+  - Background: dark semi-transparent rounded rectangle (`widget_background.xml`)
+    visible on both dark and light launcher wallpapers
+
+---
+
+## [0.7.0-beta.1] - 2026-05-23
+
+### Added
+- **CSV export** — Settings → Data → Export Data (CSV) serialises all period logs
+  to a standard CSV file (RFC 4180) with columns: start_date, end_date,
+  duration_days, flow_level, symptoms (semicolon-separated), notes; shared via the
+  Android share sheet using the existing FileProvider; compatible with spreadsheet
+  apps and data analysis tools
+- **Swipe-to-delete in History** — swipe any period card right-to-left to reveal a
+  red trash background; releasing past the threshold shows a confirmation dialog
+  ("Delete / Cancel"); the card always snaps back so no accidental deletes occur
+- **Symptom trends** — a "Symptom Trends" card appears at the top of the History
+  screen once ≥3 periods are logged; shows up to 5 most-common symptoms with their
+  occurrence count, percentage-of-periods, and a thin progress bar for quick
+  visual comparison
+
+---
+
+## [0.6.0-beta.1] - 2026-05-23
+
+### Added
+- **Cycle length personalisation** — Settings → Cycle section with a toggle to
+  switch between "Auto" (calculated from logged history) and a custom fixed length
+  (21–45 days, controlled by a slider); preference is persisted in DataStore and
+  feeds HomeViewModel via a combined flow so the calendar and all cycle predictions
+  update instantly without restart
+- **Ovulation window (±2 days)** — the calendar now marks the two days before and
+  after the peak ovulation day with a softer 4 dp, 50%-alpha dot; the home screen
+  Cycle Info card now shows the full five-day range (e.g. "May 20 – May 24")
+  instead of a single date; TalkBack announces surrounding days as "fertility
+  window" and the peak day as "ovulation day"
+
+---
+
+## [0.5.1-beta.1] - 2026-05-23
+
+### Fixed
+- **Accessibility**: bottom navigation bar icons now have content descriptions
+  ("Home", "History", "Settings") so TalkBack announces them correctly
+- **End-date warning**: tapping Save on the Log Period screen without setting an
+  end date now shows a confirmation dialog ("Save as ongoing / Set end date")
+  explaining that ongoing entries are excluded from average cycle calculations
+
+### Added
+- **Privacy Policy** button in Settings → About navigates to the full privacy &
+  medical disclaimer — previously the disclaimer was only shown on install/update
+
+---
+
+## [0.5.0-beta.1] - 2026-05-23
+
+### Added
+- **10 themes** — Settings → Appearance now shows a grouped theme picker with a
+  colour-swatch dot on each chip so you can preview the hue before selecting:
+  - **Light** — Coral, Teal (was "Turquoise"), Sage (was "Green")
+  - **Dark** — Coral, Teal, Sage; each is a Material3 dark colour scheme with
+    light primary tones on deep backgrounds; status-bar icons automatically flip
+    to light when a dark theme is active
+  - **Follow system** — adopts the Teal palette in light or dark based on your
+    device's system-wide dark-mode preference
+  - **High Contrast** — Light (near-black on pure white) and Dark (pure white on
+    pure black); every contrast pair exceeds 15:1
+  - **Blue & Orange** — deuteranopia- and protanopia-safe palette; uses blue as
+    the primary colour instead of red, safe for the ~9 % of users with red-green
+    colour vision deficiency; period days render as blue circles
+- Existing "Turquoise" and "Green" preferences stored in DataStore continue to
+  resolve correctly — no data migration needed
+
+### Changed
+- All 10 themes (110 measured colour pairs) verified against WCAG AA before
+  shipping; three dark-theme outline colours bumped by 2 RGB points to clear
+  the 3.0:1 UI-component threshold on dark surfaceVariant backgrounds
+
+---
+
+## [0.4.2-beta.1] - 2026-05-23
+
+### Fixed
+- **WCAG AA contrast — Coral theme**: primary colour darkened from `#D9604A` to `#C15542`
+  to fix three failing contrast pairs:
+  - White day-number text on period-filled circles: was 3.7:1, now **4.5:1** (threshold 4.5:1)
+  - Primary on `surfaceVariant` (chip borders, ovulation dot): was 2.9:1, now **3.5:1** (threshold 3.0:1)
+  - Primary on `primaryContainer` (focused outlines): was 2.8:1, now **3.5:1** (threshold 3.0:1)
+  - Turquoise and Green themes were already fully compliant; no changes needed
+- `template_requirements.md`: WCAG AA checkbox now checked — all 33 measured pairs
+  pass across all three themes
+
+---
+
+## [0.4.1-beta.1] - 2026-05-23
+
+### Fixed
+- **Accessibility — touch targets**: calendar day cells now use the full grid cell as the tap target
+  (≥48 dp on typical phones) instead of the inner 36 dp circle, matching Android's minimum
+- **Accessibility — screen reader labels**: each calendar day now announces its full state to
+  TalkBack, e.g. "May 23, today, period day" or "May 25, predicted period, ovulation window" —
+  no longer relies on colour or shape alone
+- **Accessibility — version row**: Settings → About version row now exposes itself as a button to
+  TalkBack and shows a "Tap to see changelog" subtitle for sighted users
+- **Accessibility — ovulation dot**: dot enlarged from 4 dp to 6 dp for improved visibility at
+  small calendar cell sizes
+
+### Changed
+- `README.md`: documented rationale for API 26 minimum (NotificationChannel, introduced in
+  Android 8.0, is required for the alarm-stream reminder channel)
+- `template_requirements.md`: checked off all items that were implemented but still marked `[ ]`
+  (README, CHANGELOG, LESSONS, CI workflows, build/signing, licences screen, notifications,
+  authentication, privacy — one remaining open item: WCAG AA contrast ratio verification)
+
+---
+
 ## [0.4.0-beta.1] - 2026-05-23
 
 ### Added

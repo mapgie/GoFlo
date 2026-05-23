@@ -22,7 +22,12 @@ data class ReminderSettings(
 
 data class AppPreferences(
     val theme: String = "CORAL",
-    val reminder: ReminderSettings = ReminderSettings()
+    val reminder: ReminderSettings = ReminderSettings(),
+    /**
+     * User-preferred cycle length in days (21–45).
+     * 0 means "auto" — the app calculates the average from logged history.
+     */
+    val preferredCycleLength: Int = 0,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -35,11 +40,13 @@ class AppPreferencesStore(private val context: Context) {
         val DAILY_ENABLED = booleanPreferencesKey("daily_enabled")
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
+        val PREFERRED_CYCLE_LENGTH = intPreferencesKey("preferred_cycle_length")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
         AppPreferences(
             theme = prefs[Keys.THEME] ?: "CORAL",
+            preferredCycleLength = prefs[Keys.PREFERRED_CYCLE_LENGTH] ?: 0,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -76,5 +83,20 @@ class AppPreferencesStore(private val context: Context) {
             it[Keys.REMINDER_HOUR] = hour
             it[Keys.REMINDER_MINUTE] = minute
         }
+    }
+
+    /**
+     * Persists the user's preferred cycle length.
+     *
+     * @param days 0 to clear the override (auto-calculated from history), or a value
+     *             in the range 21–45 for a fixed length. Values outside these bounds
+     *             are rejected with [IllegalArgumentException] to prevent silent
+     *             corruption of cycle predictions.
+     */
+    suspend fun setPreferredCycleLength(days: Int) {
+        require(days == 0 || days in 21..45) {
+            "preferredCycleLength must be 0 (auto) or in 21..45, got $days"
+        }
+        context.dataStore.edit { it[Keys.PREFERRED_CYCLE_LENGTH] = days }
     }
 }

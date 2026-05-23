@@ -30,10 +30,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -42,9 +45,11 @@ fun CalendarGrid(
     periodDays: Set<LocalDate>,
     predictedDays: Set<LocalDate>,
     ovulationDay: LocalDate?,
+    /** Full ±2-day fertility window; each date in this set gets a small indicator dot. */
+    ovulationWindow: Set<LocalDate> = emptySet(),
     today: LocalDate = LocalDate.now(),
     onDayClick: (LocalDate) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var displayMonth by rememberSaveable { mutableStateOf(YearMonth.now()) }
 
@@ -62,8 +67,9 @@ fun CalendarGrid(
             periodDays = periodDays,
             predictedDays = predictedDays,
             ovulationDay = ovulationDay,
+            ovulationWindow = ovulationWindow,
             today = today,
-            onDayClick = onDayClick
+            onDayClick = onDayClick,
         )
     }
 }
@@ -110,8 +116,9 @@ private fun CalendarDays(
     periodDays: Set<LocalDate>,
     predictedDays: Set<LocalDate>,
     ovulationDay: LocalDate?,
+    ovulationWindow: Set<LocalDate>,
     today: LocalDate,
-    onDayClick: (LocalDate) -> Unit
+    onDayClick: (LocalDate) -> Unit,
 ) {
     val firstDayOfMonth = month.atDay(1)
     val startOffset = firstDayOfMonth.dayOfWeek.value % 7
@@ -129,12 +136,13 @@ private fun CalendarDays(
                         val date = month.atDay(dayNum)
                         DayCell(
                             date = date,
-                            isPeriod = date in periodDays,
+                            isPeriod    = date in periodDays,
                             isPredicted = date in predictedDays,
                             isOvulation = date == ovulationDay,
-                            isToday = date == today,
-                            onClick = { onDayClick(date) },
-                            modifier = Modifier.weight(1f)
+                            isOvulationWindow = date in ovulationWindow && date != ovulationDay,
+                            isToday     = date == today,
+                            onClick     = { onDayClick(date) },
+                            modifier    = Modifier.weight(1f),
                         )
                     } else {
                         Spacer(Modifier.weight(1f))
@@ -145,23 +153,46 @@ private fun CalendarDays(
     }
 }
 
+private val accessibilityDateFormat = DateTimeFormatter.ofPattern("MMMM d")
+
 @Composable
 private fun DayCell(
     date: LocalDate,
     isPeriod: Boolean,
     isPredicted: Boolean,
     isOvulation: Boolean,
+    /** True for the ±2 days surrounding the peak ovulation day. */
+    isOvulationWindow: Boolean,
     isToday: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val primary = MaterialTheme.colorScheme.primary
-    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
-    val outline = MaterialTheme.colorScheme.outline
+
+    // Build a human-readable description for screen readers so users know the
+    // date state without relying on colour or shape alone.
+    val cellDescription = buildString {
+        append(date.format(accessibilityDateFormat))
+        if (isToday) append(", today")
+        when {
+            isPeriod    -> append(", period day")
+            isPredicted -> append(", predicted period")
+        }
+        when {
+            isOvulation       -> append(", ovulation day")
+            isOvulationWindow -> append(", fertility window")
+        }
+    }
 
     Box(
         modifier = modifier
             .aspectRatio(1f)
+            // Full cell is the touch target (≥48 dp on typical phones) so users
+            // don't have to hit the 36 dp inner circle precisely.
+            .clickable(onClick = onClick)
+            // clearAndSetSemantics replaces all child semantics so TalkBack reads
+            // only this description, not the raw day-number Text inside the Box.
+            .clearAndSetSemantics { contentDescription = cellDescription }
             .padding(2.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -170,18 +201,17 @@ private fun DayCell(
             .clip(CircleShape)
             .then(
                 when {
-                    isPeriod -> Modifier.background(primary)
+                    isPeriod    -> Modifier.background(primary)
                     isPredicted -> Modifier.border(1.5.dp, primary.copy(alpha = 0.5f), CircleShape)
-                    else -> Modifier
+                    else        -> Modifier
                 }
             )
-            .clickable(onClick = onClick)
 
         Box(circleModifier, contentAlignment = Alignment.Center) {
             val textColor = when {
                 isPeriod -> MaterialTheme.colorScheme.onPrimary
-                isToday -> primary
-                else -> MaterialTheme.colorScheme.onSurface
+                isToday  -> primary
+                else     -> MaterialTheme.colorScheme.onSurface
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -189,18 +219,18 @@ private fun DayCell(
                     style = MaterialTheme.typography.bodyMedium,
                     color = textColor
                 )
-                if (isOvulation) {
-                    Box(
-                        Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(if (isPeriod) Color.White else primary)
-                    )
+                when {
+                    isOvulation -> // 6 dp peak-day dot
+                        Box(Modifier.size(6.dp).clip(CircleShape)
+                            .background(if (isPeriod) Color.White else primary))
+                    isOvulationWindow -> // 4 dp softer dot for surrounding window days
+                        Box(Modifier.size(4.dp).clip(CircleShape)
+                            .background((if (isPeriod) Color.White else primary).copy(alpha = 0.5f)))
                 }
             }
         }
 
-        // Underline for today
+        // Underline for today — shape-based cue that doesn't rely on colour alone.
         if (isToday && !isPeriod) {
             Box(
                 Modifier
