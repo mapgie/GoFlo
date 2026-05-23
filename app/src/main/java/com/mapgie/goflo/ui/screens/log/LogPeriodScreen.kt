@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,6 +63,7 @@ fun LogPeriodScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+    val librarySymptoms by viewModel.librarySymptoms.collectAsState()
 
     LaunchedEffect(state.saved, state.deleted) {
         if (state.saved || state.deleted) onBack()
@@ -67,6 +72,7 @@ fun LogPeriodScreen(
     var showStartPicker by rememberSaveable { mutableStateOf(false) }
     var showEndPicker by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showAddSymptomDialog by rememberSaveable { mutableStateOf(false) }
 
     if (showStartPicker && !state.isLoading) {
         DatePickerDialogWrapper(
@@ -97,6 +103,22 @@ fun LogPeriodScreen(
                 ) { Text("Delete") }
             },
             dismissButton = { TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") } }
+        )
+    }
+
+    if (showAddSymptomDialog) {
+        AddSymptomDialog(
+            librarySymptoms = librarySymptoms,
+            selectedCustomSymptoms = state.customSymptoms,
+            onSelectExisting = { name ->
+                viewModel.toggleCustomSymptom(name)
+                showAddSymptomDialog = false
+            },
+            onAddNew = { name ->
+                viewModel.addAndSelectCustomSymptom(name)
+                showAddSymptomDialog = false
+            },
+            onDismiss = { showAddSymptomDialog = false }
         )
     }
 
@@ -158,14 +180,40 @@ fun LogPeriodScreen(
 
                 // Symptoms section
                 SectionLabel("Symptoms")
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Built-in symptoms — displayed in lowercase for visual consistency
                     SymptomType.entries.forEach { symptom ->
                         SelectableChip(
-                            label = symptom.displayName,
+                            label = symptom.displayName.lowercase(),
                             selected = symptom in state.symptoms,
                             onClick = { viewModel.toggleSymptom(symptom) }
                         )
                     }
+
+                    // Custom symptoms selected for this period (shown so the user can deselect)
+                    state.customSymptoms.sorted().forEach { name ->
+                        SelectableChip(
+                            label = name,
+                            selected = true,
+                            onClick = { viewModel.toggleCustomSymptom(name) }
+                        )
+                    }
+
+                    // "+" chip — opens the Add Symptom dialog
+                    AssistChip(
+                        onClick = { showAddSymptomDialog = true },
+                        label = { Text("Add") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add custom symptom",
+                                modifier = Modifier.size(AssistChipDefaults.IconSize)
+                            )
+                        }
+                    )
                 }
 
                 // Notes
