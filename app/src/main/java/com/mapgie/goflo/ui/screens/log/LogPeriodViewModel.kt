@@ -8,9 +8,12 @@ import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.data.model.SymptomType
 import com.mapgie.goflo.data.repository.PeriodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -23,6 +26,8 @@ data class LogPeriodUiState(
     val endDate: LocalDate? = null,
     val flowLevel: FlowLevel = FlowLevel.MEDIUM,
     val symptoms: Set<SymptomType> = emptySet(),
+    /** Custom symptom names (lowercase) selected for this period entry. */
+    val customSymptoms: Set<String> = emptySet(),
     val notes: String = "",
     val saved: Boolean = false,
     val deleted: Boolean = false,
@@ -38,13 +43,16 @@ class LogPeriodViewModel(
     private val _uiState = MutableStateFlow(LogPeriodUiState(startDate = prefilledDate ?: LocalDate.now()))
     val uiState: StateFlow<LogPeriodUiState> = _uiState.asStateFlow()
 
+    /** All custom symptoms saved to the user's library (alphabetical). */
+    val librarySymptoms: StateFlow<List<String>> = repository.getAllCustomSymptoms()
+        .map { entries -> entries.map { it.name } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     init {
         if (periodId > 0) {
             viewModelScope.launch {
                 val period = repository.getPeriodById(periodId).first()
-                val symptoms = repository.getSymptomsOnce(periodId)
-                    .mapNotNull { runCatching { SymptomType.valueOf(it.symptomType) }.getOrNull() }
-                    .toSet()
+                val (builtIn, custom) = repository.getSymptomsParsed(periodId)
                 if (period != null) {
                     _uiState.update {
                         it.copy(
@@ -54,7 +62,8 @@ class LogPeriodViewModel(
                             startDate = LocalDate.parse(period.startDate),
                             endDate = period.endDate?.let { d -> LocalDate.parse(d) },
                             flowLevel = runCatching { FlowLevel.valueOf(period.flowLevel) }.getOrDefault(FlowLevel.MEDIUM),
-                            symptoms = symptoms,
+                            symptoms = builtIn,
+                            customSymptoms = custom,
                             notes = period.notes
                         )
                     }
@@ -83,6 +92,23 @@ class LogPeriodViewModel(
         state.copy(symptoms = updated)
     }
 
+    /** Toggle a custom symptom in/out of the current period selection. */
+    fun toggleCustomSymptom(name: String) = _uiState.update { state ->
+        val lower = name.lowercase()
+        val updated = if (lower in state.customSymptoms) state.customSymptoms - lower else state.customSymptoms + lower
+        state.copy(customSymptoms = updated)
+    }
+
+    /**
+     * Saves [name] to the user's permanent library and selects it for the current period.
+     * The library insert is fire-and-forget; the selection is immediate.
+     */
+    fun addAndSelectCustomSymptom(name: String) {
+        val lower = name.lowercase()
+        viewModelScope.launch { repository.addCustomSymptom(lower) }
+        _uiState.update { state -> state.copy(customSymptoms = state.customSymptoms + lower) }
+    }
+
     fun setNotes(notes: String) = _uiState.update { it.copy(notes = notes) }
 
     fun save() {
@@ -97,9 +123,9 @@ class LogPeriodViewModel(
                     notes = state.notes
                 )
                 if (state.isEditing && state.existingId != null) {
-                    repository.updatePeriod(entry, state.symptoms.toList())
+                    repository.updatePeriod(entry, state.symptoms.toList(), state.customSymptoms.toList())
                 } else {
-                    repository.insertPeriod(entry, state.symptoms.toList())
+                    repository.insertPeriod(entry, state.symptoms.toList(), state.customSymptoms.toList())
                 }
                 _uiState.update { it.copy(saved = true) }
             } catch (e: Exception) {

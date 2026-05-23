@@ -1,7 +1,9 @@
 package com.mapgie.goflo.data.repository
 
+import com.mapgie.goflo.data.database.dao.CustomSymptomDao
 import com.mapgie.goflo.data.database.dao.PeriodDao
 import com.mapgie.goflo.data.database.dao.SymptomDao
+import com.mapgie.goflo.data.database.entities.CustomSymptomEntry
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.model.SymptomType
@@ -20,7 +22,8 @@ sealed class ImportResult {
 
 class PeriodRepository(
     private val periodDao: PeriodDao,
-    private val symptomDao: SymptomDao
+    private val symptomDao: SymptomDao,
+    private val customSymptomDao: CustomSymptomDao
 ) {
     fun getAllPeriods(): Flow<List<PeriodEntry>> = periodDao.getAllPeriods()
 
@@ -29,24 +32,69 @@ class PeriodRepository(
     fun getSymptomsForPeriod(periodId: Long): Flow<List<SymptomEntry>> =
         symptomDao.getSymptomsForPeriod(periodId)
 
-    suspend fun insertPeriod(entry: PeriodEntry, symptoms: List<SymptomType>): Long {
+    // ── Period write operations ───────────────────────────────────────────────
+
+    suspend fun insertPeriod(
+        entry: PeriodEntry,
+        symptoms: List<SymptomType>,
+        customSymptoms: List<String> = emptyList()
+    ): Long {
         val id = periodDao.insertPeriod(entry)
         symptoms.forEach { symptomDao.insertSymptom(SymptomEntry(periodId = id, symptomType = it.name)) }
+        customSymptoms.forEach { name ->
+            symptomDao.insertSymptom(SymptomEntry(periodId = id, symptomType = name.lowercase()))
+        }
         return id
     }
 
-    suspend fun updatePeriod(entry: PeriodEntry, symptoms: List<SymptomType>) {
+    suspend fun updatePeriod(
+        entry: PeriodEntry,
+        symptoms: List<SymptomType>,
+        customSymptoms: List<String> = emptyList()
+    ) {
         periodDao.updatePeriod(entry)
         symptomDao.deleteSymptomsByPeriodId(entry.id)
         symptoms.forEach { symptomDao.insertSymptom(SymptomEntry(periodId = entry.id, symptomType = it.name)) }
+        customSymptoms.forEach { name ->
+            symptomDao.insertSymptom(SymptomEntry(periodId = entry.id, symptomType = name.lowercase()))
+        }
     }
 
     suspend fun deletePeriod(entry: PeriodEntry) {
         periodDao.deletePeriod(entry)
     }
 
-    suspend fun getSymptomsOnce(periodId: Long): List<SymptomEntry> =
-        symptomDao.getSymptomsForPeriodOnce(periodId)
+    // ── Symptom read operations ───────────────────────────────────────────────
+
+    /**
+     * Returns symptoms for a period split into built-in ([SymptomType]) and custom (lowercase
+     * [String]) sets.  Built-in symptoms are identified by a successful [SymptomType.valueOf]
+     * lookup; anything else is treated as a custom symptom.
+     */
+    suspend fun getSymptomsParsed(periodId: Long): Pair<Set<SymptomType>, Set<String>> {
+        val entries = symptomDao.getSymptomsForPeriodOnce(periodId)
+        val builtIn = mutableSetOf<SymptomType>()
+        val custom = mutableSetOf<String>()
+        for (entry in entries) {
+            val type = runCatching { SymptomType.valueOf(entry.symptomType) }.getOrNull()
+            if (type != null) builtIn.add(type)
+            else if (entry.symptomType.isNotBlank()) custom.add(entry.symptomType)
+        }
+        return builtIn to custom
+    }
+
+    // ── Custom symptom library operations ────────────────────────────────────
+
+    /** Observe the full user-defined symptom library, ordered alphabetically. */
+    fun getAllCustomSymptoms(): Flow<List<CustomSymptomEntry>> =
+        customSymptomDao.getAllCustomSymptoms()
+
+    /** Persist a new custom symptom (name is normalised to lowercase). */
+    suspend fun addCustomSymptom(name: String) {
+        customSymptomDao.insertCustomSymptom(CustomSymptomEntry(name = name.lowercase()))
+    }
+
+    // ── Cycle math ───────────────────────────────────────────────────────────
 
     /**
      * Permanently deletes all period and symptom records.

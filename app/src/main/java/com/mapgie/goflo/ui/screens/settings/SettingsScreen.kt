@@ -3,8 +3,7 @@ package com.mapgie.goflo.ui.screens.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,7 +52,7 @@ import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
 import com.mapgie.goflo.ui.theme.AppTheme
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -415,10 +414,10 @@ fun SettingsScreen(
                 Text(
                     text = "GoFlo v${BuildConfig.VERSION_NAME}",
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.combinedClickable(
-                        onClick = {},
-                        onLongClick = { showChangelog = true }
-                    )
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showChangelog = true }
+                        .padding(vertical = 8.dp)
                 )
                 Text("All your data stays on your device — nothing is sent anywhere.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

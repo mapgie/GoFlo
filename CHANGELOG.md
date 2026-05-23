@@ -19,6 +19,23 @@ Rules:
 
 ---
 
+## [0.4.0-beta.1] - 2026-05-23
+
+### Added
+- Custom symptoms: tap the **+ Add** chip in the Symptoms section of Log Period to pick from your
+  saved symptom library or type a new name; new names are saved to the library for reuse
+- Custom symptom names are always stored and displayed in lowercase; the picker is case-insensitive
+  (typing "Nausea" and "nausea" resolve to the same entry)
+- Room DB migration 1 → 2: new `custom_symptoms` table for the user's symptom library
+
+### Changed
+- Settings → About: version label is now a regular tap (was long-press) to open the changelog
+  dialog; the tap target is wider (full card width + vertical padding) for easier tapping
+- Built-in symptom chips now display in lowercase ("cramps", "back pain", …) for visual
+  consistency with custom symptoms
+
+---
+
 ## [0.3.0-beta.3] - 2026-05-23
 
 ### Added

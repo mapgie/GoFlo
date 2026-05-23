@@ -13,7 +13,7 @@ import com.mapgie.goflo.notifications.ReminderScheduler
 class GoFloApplication : Application() {
 
     val database by lazy { GoFloDatabase.getInstance(this) }
-    val repository by lazy { PeriodRepository(database.periodDao(), database.symptomDao()) }
+    val repository by lazy { PeriodRepository(database.periodDao(), database.symptomDao(), database.customSymptomDao()) }
     val preferencesStore by lazy { AppPreferencesStore(this) }
     val securityPreferences by lazy { SecurityPreferences(this) }
 

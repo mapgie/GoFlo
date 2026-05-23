@@ -19,6 +19,23 @@ Rules:
 
 ---
 
+## [0.4.0-beta.1] - 2026-05-23
+
+### Added
+- Custom symptoms: tap the **+ Add** chip in the Symptoms section of Log Period to pick from your
+  saved symptom library or type a new name; new names are saved to the library for reuse
+- Custom symptom names are always stored and displayed in lowercase; the picker is case-insensitive
+  (typing "Nausea" and "nausea" resolve to the same entry)
+- Room DB migration 1 → 2: new `custom_symptoms` table for the user's symptom library
+
+### Changed
+- Settings → About: version label is now a regular tap (was long-press) to open the changelog
+  dialog; the tap target is wider (full card width + vertical padding) for easier tapping
+- Built-in symptom chips now display in lowercase ("cramps", "back pain", …) for visual
+  consistency with custom symptoms
+
+---
+
 ## [0.3.0-beta.3] - 2026-05-23
 
 ### Added
@@ -29,10 +46,11 @@ Rules:
 ## [0.3.0-beta.2] - 2026-05-23
 
 ### Added
-- **Data export** — Settings → Data → Export Data serialises all period logs and symptoms to a JSON file and shares it via the Android share sheet
-- **Delete all data** — Settings → Data → Delete All Data permanently removes all stored records behind a confirmation dialog
-- **Data retention policy** — added to the privacy & medical disclaimer
-- **ProGuard keep rules** for Room DAO interfaces, DataStore internals, and Biometric — prevents release-build crashes
+- **Data export** — Settings → Data → Export Data serialises all period logs and symptoms to a JSON file and shares it via the Android share sheet; mandatory because cloud backup is excluded
+- **Delete all data** — Settings → Data → Delete All Data permanently removes all stored records behind a two-step confirmation dialog
+- **Data retention policy** — added to the privacy & medical disclaimer; data is kept indefinitely until the user deletes it or uninstalls the app
+- **ProGuard keep rules** for Room DAO interfaces and generated implementations, DataStore protobuf internals, and the Biometric library — prevents release-build crashes caused by R8 stripping reflection-heavy code
+- FileProvider declaration in `AndroidManifest.xml` and `res/xml/file_paths.xml` to support secure file URI sharing without broad storage permissions
 
 ---
 
