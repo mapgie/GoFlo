@@ -19,6 +19,22 @@ Rules:
 
 ---
 
+## [0.8.3-beta.1] - 2026-05-23
+
+### Changed
+- **Settings screen reorganised** — sections now collapse/expand with an animated
+  chevron, reducing visual clutter; order changed to priority-first:
+  Reminders → Cycle → Appearance → Security & Privacy → Data → About
+- **Compact theme picker** — replaced the stacked chip rows with a three-segment
+  Light / Dark / Auto mode control and three tappable colour circles
+  (Coral / Teal / Sage); Accessibility themes (High Contrast, Blue & Orange)
+  remain as chips below a divider; palette row hides automatically in Auto mode
+- **Data section** — Export JSON and Export CSV promoted to a side-by-side row;
+  Delete All Data separated from safe actions by a divider
+- **About section** — Privacy Policy and Licences promoted to a side-by-side row
+
+---
+
 ## [0.8.2-beta.1] - 2026-05-23
 
 ### Changed
