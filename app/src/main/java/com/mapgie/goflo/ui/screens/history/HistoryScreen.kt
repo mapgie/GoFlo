@@ -145,7 +145,7 @@ fun HistoryScreen(
                             }
                         },
                         onClick = { onNavigate(Screen.LogPeriod.withId(period.id)) },
-                        modifier = Modifier.animateItem(),
+                        modifier = Modifier.animateItemPlacement(),
                     )
                 }
                 item { Spacer(Modifier.height(4.dp)) }
