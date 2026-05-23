@@ -141,7 +141,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true; restoreState = true
                         } },
-                        icon = { Icon(Icons.Default.Home, null) },
+                        icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                         label = { Text("Home") }
                     )
                     NavigationBarItem(
@@ -150,7 +150,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true; restoreState = true
                         } },
-                        icon = { Icon(Icons.Default.DateRange, null) },
+                        icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
                         label = { Text("History") }
                     )
                     NavigationBarItem(
@@ -159,7 +159,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true; restoreState = true
                         } },
-                        icon = { Icon(Icons.Default.Settings, null) },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                         label = { Text("Settings") }
                     )
                 }
@@ -195,7 +195,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                     onNavigateToPinSetup = { changing ->
                         navController.navigate(if (changing) Screen.PinSetup.changePin else Screen.PinSetup.newPin)
                     },
-                    onNavigateToLicenses = { navController.navigate(Screen.Licenses.route) }
+                    onNavigateToLicenses = { navController.navigate(Screen.Licenses.route) },
+                    onNavigateToPrivacy  = { navController.navigate(Screen.Privacy.route) }
                 )
             }
 
@@ -237,6 +238,12 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
             composable(Screen.Licenses.route) {
                 com.mapgie.goflo.ui.screens.licenses.LicensesScreen(
                     onBack = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.Privacy.route) {
+                com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen(
+                    onAcknowledge = { navController.popBackStack() }
                 )
             }
         }

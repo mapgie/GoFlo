@@ -19,6 +19,21 @@ Rules:
 
 ---
 
+## [0.5.1-beta.1] - 2026-05-23
+
+### Fixed
+- **Accessibility**: bottom navigation bar icons now have content descriptions
+  ("Home", "History", "Settings") so TalkBack announces them correctly
+- **End-date warning**: tapping Save on the Log Period screen without setting an
+  end date now shows a confirmation dialog ("Save as ongoing / Set end date")
+  explaining that ongoing entries are excluded from average cycle calculations
+
+### Added
+- **Privacy Policy** button in Settings → About navigates to the full privacy &
+  medical disclaimer — previously the disclaimer was only shown on install/update
+
+---
+
 ## [0.5.0-beta.1] - 2026-05-23
 
 ### Added

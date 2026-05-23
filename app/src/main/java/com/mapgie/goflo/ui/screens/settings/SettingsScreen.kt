@@ -72,7 +72,8 @@ import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToPinSetup: (changing: Boolean) -> Unit,
-    onNavigateToLicenses: () -> Unit
+    onNavigateToLicenses: () -> Unit,
+    onNavigateToPrivacy: () -> Unit
 ) {
     val context = LocalContext.current
     val prefs by viewModel.prefs.collectAsState()
@@ -443,6 +444,9 @@ fun SettingsScreen(
                 Text("All your data stays on your device — nothing is sent anywhere.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = onNavigateToPrivacy, modifier = Modifier.fillMaxWidth()) {
+                    Text("Privacy Policy")
+                }
                 OutlinedButton(onClick = onNavigateToLicenses, modifier = Modifier.fillMaxWidth()) {
                     Text("Open Source Licences")
                 }
