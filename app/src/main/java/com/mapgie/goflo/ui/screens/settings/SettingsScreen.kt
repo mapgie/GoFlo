@@ -366,17 +366,28 @@ fun SettingsScreen(
                 )
                 if (customEnabled) {
                     Spacer(Modifier.height(4.dp))
+                    // Local slider state — tracks the thumb position during dragging
+                    // without triggering a DataStore write on every pixel of movement.
+                    // The key resets the local value whenever the persisted preference
+                    // changes from outside (e.g. toggling the switch off then on).
+                    var sliderDays by remember(prefs.preferredCycleLength) {
+                        mutableStateOf(prefs.preferredCycleLength.toFloat())
+                    }
                     Column(modifier = Modifier.padding(start = 8.dp)) {
                         Text(
-                            "Cycle length: ${prefs.preferredCycleLength} days",
+                            "Cycle length: ${sliderDays.toInt()} days",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Slider(
-                            value         = prefs.preferredCycleLength.toFloat(),
-                            onValueChange = { viewModel.setPreferredCycleLength(it.toInt()) },
-                            valueRange    = 21f..45f,
+                            value                = sliderDays,
+                            onValueChange        = { sliderDays = it },
+                            // DataStore write happens only when the drag ends — not on every frame.
+                            onValueChangeFinished = {
+                                viewModel.setPreferredCycleLength(sliderDays.toInt())
+                            },
+                            valueRange           = 21f..45f,
                             // steps = 23 gives 25 discrete tick positions (21–45 inclusive)
-                            steps         = 23
+                            steps                = 23
                         )
                         Row(
                             Modifier.fillMaxWidth(),

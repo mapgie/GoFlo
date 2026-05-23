@@ -85,8 +85,18 @@ class AppPreferencesStore(private val context: Context) {
         }
     }
 
-    /** 0 clears the override (reverts to auto-calculated average). */
+    /**
+     * Persists the user's preferred cycle length.
+     *
+     * @param days 0 to clear the override (auto-calculated from history), or a value
+     *             in the range 21–45 for a fixed length. Values outside these bounds
+     *             are rejected with [IllegalArgumentException] to prevent silent
+     *             corruption of cycle predictions.
+     */
     suspend fun setPreferredCycleLength(days: Int) {
+        require(days == 0 || days in 21..45) {
+            "preferredCycleLength must be 0 (auto) or in 21..45, got $days"
+        }
         context.dataStore.edit { it[Keys.PREFERRED_CYCLE_LENGTH] = days }
     }
 }

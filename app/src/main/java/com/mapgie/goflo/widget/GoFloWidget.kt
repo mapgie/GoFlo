@@ -3,6 +3,7 @@ package com.mapgie.goflo.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.view.View
@@ -10,9 +11,11 @@ import android.widget.RemoteViews
 import com.mapgie.goflo.GoFloApplication
 import com.mapgie.goflo.MainActivity
 import com.mapgie.goflo.R
+import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.PeriodRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -20,6 +23,8 @@ import java.time.temporal.ChronoUnit
 
 /**
  * 2×1 home-screen widget showing:
+ *  - If PIN is set: a neutral placeholder ("GoFlo — tap to open") to avoid
+ *    exposing sensitive health data on the lock/home screen without authentication.
  *  - While period is active: "Period · day N"
  *  - Otherwise: "Period in N days" (or "Period due today/tomorrow")
  *  - Secondary line: current cycle day / avg cycle length
@@ -41,7 +46,7 @@ class GoFloWidget : AppWidgetProvider() {
         // blocking the others (in practice they all share the same data).
         appWidgetIds.forEach { widgetId ->
             val pendingResult = goAsync()
-            CoroutineScope(Dispatchers.IO).launch {
+            widgetScope.launch {
                 try {
                     pushUpdate(context, appWidgetManager, widgetId)
                 } finally {
@@ -54,16 +59,21 @@ class GoFloWidget : AppWidgetProvider() {
     companion object {
 
         /**
+         * Module-level scope retained for the lifetime of the process.
+         * Using a dedicated scope (rather than a fresh CoroutineScope per call) prevents
+         * accumulating orphaned coroutines when [updateAllWidgets] is called repeatedly.
+         */
+        private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+        /**
          * Pushes a fresh data snapshot to every GoFlo widget on the home screen.
-         * Safe to call from any coroutine; runs the DB read on [Dispatchers.IO].
+         * Safe to call from any coroutine; runs on [widgetScope] ([Dispatchers.IO]).
          */
         fun updateAllWidgets(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(
-                android.content.ComponentName(context, GoFloWidget::class.java)
-            )
+            val ids     = manager.getAppWidgetIds(ComponentName(context, GoFloWidget::class.java))
             if (ids.isEmpty()) return
-            CoroutineScope(Dispatchers.IO).launch {
+            widgetScope.launch {
                 ids.forEach { id -> pushUpdate(context, manager, id) }
             }
         }
@@ -75,11 +85,25 @@ class GoFloWidget : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             widgetId: Int,
         ) {
-            val app        = context.applicationContext as GoFloApplication
-            val repository = app.repository
-            val periods    = repository.getAllPeriods().first()
+            val app = context.applicationContext as GoFloApplication
 
-            val avg          = PeriodRepository.calculateAvgCycleLength(periods)
+            // ── Issue 1: PIN guard ────────────────────────────────────────────
+            // If the user has enabled PIN protection, do not display sensitive
+            // health data on the home screen — anyone can see the home screen
+            // without unlocking the app. Show a neutral placeholder instead.
+            val security = app.securityPreferences.settings.first()
+            if (security.hasPinSet) {
+                pushLockedPlaceholder(context, appWidgetManager, widgetId)
+                return
+            }
+
+            // ── Issue 3: honour custom cycle-length preference ────────────────
+            val prefs      = app.preferencesStore.preferences.first()
+            val customCycle = prefs.preferredCycleLength.takeIf { it > 0 }
+
+            val repository   = app.repository
+            val periods      = repository.getAllPeriods().first()
+            val avg          = customCycle ?: PeriodRepository.calculateAvgCycleLength(periods)
             val activePeriod = PeriodRepository.activePeriod(periods)
             val cycleDay     = PeriodRepository.cycleDay(periods)
             val nextStart    = PeriodRepository.predictNextStart(periods, avg)
@@ -92,6 +116,28 @@ class GoFloWidget : AppWidgetProvider() {
                 nextStart    = nextStart,
             )
 
+            pushViews(context, appWidgetManager, widgetId, status, subtitle)
+        }
+
+        /**
+         * Shows a privacy-preserving placeholder when PIN lock is active.
+         * The tap-to-open intent is still set so the user can unlock from the widget.
+         */
+        private fun pushLockedPlaceholder(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            widgetId: Int,
+        ) {
+            pushViews(context, appWidgetManager, widgetId, status = "GoFlo", subtitle = "Tap to open")
+        }
+
+        private fun pushViews(
+            context: Context,
+            appWidgetManager: AppWidgetManager,
+            widgetId: Int,
+            status: String,
+            subtitle: String,
+        ) {
             val views = RemoteViews(context.packageName, R.layout.widget_goflo).apply {
                 setTextViewText(R.id.widget_status, status)
                 setTextViewText(R.id.widget_subtitle, subtitle)
@@ -111,7 +157,6 @@ class GoFloWidget : AppWidgetProvider() {
                 )
                 setOnClickPendingIntent(R.id.widget_root, pendingIntent)
             }
-
             appWidgetManager.updateAppWidget(widgetId, views)
         }
 

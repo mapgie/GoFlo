@@ -167,13 +167,32 @@ class PeriodRepository(
             val start = LocalDate.parse(period.startDate)
             val end   = period.endDate?.let { LocalDate.parse(it) }
             val duration = if (end != null) (ChronoUnit.DAYS.between(start, end) + 1).toString() else ""
-            val symptoms = symptomsByPeriod[period.id]
-                ?.joinToString(";") { it.symptomType }?.replace("\"", "\"\"")
-                ?: ""
-            val notes = period.notes.replace("\"", "\"\"")
+            // Double-quote escaping (RFC 4180) then formula-injection sanitisation.
+            val symptoms = sanitizeCsvField(
+                symptomsByPeriod[period.id]
+                    ?.joinToString(";") { it.symptomType }?.replace("\"", "\"\"")
+                    ?: ""
+            )
+            val notes = sanitizeCsvField(period.notes.replace("\"", "\"\""))
             sb.appendLine("${period.startDate},${period.endDate ?: ""},${duration},${period.flowLevel},\"${symptoms}\",\"${notes}\"")
         }
         return sb.toString()
+    }
+
+    /**
+     * Defends against CSV formula injection (a.k.a. DDE injection).
+     *
+     * Spreadsheet apps (Excel, LibreOffice, Google Sheets) interpret cells whose
+     * first character is `=`, `+`, `-`, `@`, `\t`, or `\r` as formulas. A malicious
+     * (or simply unusual) period note could otherwise trigger arbitrary formula
+     * execution when a user opens the CSV export.
+     *
+     * Fix: prefix any such value with a tab character so the cell is treated as
+     * plain text. The tab is invisible in most apps but prevents formula parsing.
+     */
+    private fun sanitizeCsvField(value: String): String {
+        val dangerChars = setOf('=', '+', '-', '@', '\t', '\r')
+        return if (value.isNotEmpty() && value[0] in dangerChars) "\t$value" else value
     }
 
     /**

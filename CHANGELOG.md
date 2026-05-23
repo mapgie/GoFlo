@@ -19,6 +19,37 @@ Rules:
 
 ---
 
+## [0.8.1-beta.1] - 2026-05-23
+
+### Fixed
+- **Security — widget PIN bypass**: the home screen widget now shows a neutral
+  placeholder ("GoFlo — tap to open") instead of cycle data when PIN lock is
+  enabled; sensitive health data is no longer visible on the home screen without
+  authentication (regression introduced in 0.8.0-beta.1)
+- **Security — CSV formula injection**: `exportAsCsv()` now prefixes any
+  free-text field (notes, custom symptoms) whose first character is `=`, `+`,
+  `-`, `@`, `\t`, or `\r` with a tab so spreadsheet apps never interpret the
+  content as a formula (DDE/CSV injection defence)
+- **Widget — custom cycle length ignored**: the widget now reads
+  `AppPreferencesStore.preferredCycleLength` and uses the user-set override
+  instead of always falling back to the auto-calculated average
+- **"Set end date" button**: tapping "Set end date" in the no-end-date
+  confirmation dialog now immediately opens the end-date picker; previously it
+  only dismissed the dialog, leaving the user to manually find the picker
+- **Cycle slider — DataStore write on every drag frame**: the cycle-length
+  slider now uses a local `Float` state while dragging and writes to DataStore
+  only in `onValueChangeFinished`; eliminates dozens of disk writes per second
+  during drag
+- **Unmanaged CoroutineScope in widget**: `GoFloWidget.updateAllWidgets()` now
+  uses a module-level `CoroutineScope(SupervisorJob() + Dispatchers.IO)` instead
+  of creating a new orphaned scope on every call
+- **No validation guard on `setPreferredCycleLength`**: the DataStore setter now
+  `require`s that the value is either 0 (auto) or within 21–45, throwing
+  `IllegalArgumentException` on out-of-range input to prevent silent prediction
+  corruption
+
+---
+
 ## [0.8.0-beta.1] - 2026-05-23
 
 ### Added

@@ -122,7 +122,11 @@ fun LogPeriodScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showOngoingConfirm = false }) { Text("Set end date") }
+                // Dismiss the dialog AND immediately open the end-date picker so
+                // the button label matches the action ("Set end date" → date picker opens).
+                TextButton(onClick = { showOngoingConfirm = false; showEndPicker = true }) {
+                    Text("Set end date")
+                }
             }
         )
     }
