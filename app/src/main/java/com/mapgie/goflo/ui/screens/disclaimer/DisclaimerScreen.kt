@@ -71,6 +71,14 @@ fun DisclaimerScreen(onAcknowledge: () -> Unit) {
                         "There are no accounts, no cloud sync, and no analytics of any kind."
             )
 
+            DisclaimerSection(
+                heading = "Data Retention",
+                body = "Your data is kept on your device indefinitely until you explicitly delete it " +
+                        "via Settings → Data → Delete All Data, or uninstall the app.\n\n" +
+                        "GoFlo does not automatically prune or expire any records. You can also " +
+                        "export a copy of all your data at any time via Settings → Data → Export Data."
+            )
+
             HorizontalDivider()
 
             Text(

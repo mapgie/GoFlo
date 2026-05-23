@@ -6,6 +6,9 @@ import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.model.SymptomType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import org.json.JSONArray
+import org.json.JSONObject
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -38,6 +41,56 @@ class PeriodRepository(
 
     suspend fun getSymptomsOnce(periodId: Long): List<SymptomEntry> =
         symptomDao.getSymptomsForPeriodOnce(periodId)
+
+    /**
+     * Permanently deletes all period and symptom records.
+     * Symptoms are deleted first to satisfy the foreign-key relationship,
+     * even though the schema uses CASCADE — belt-and-suspenders for clarity.
+     */
+    suspend fun deleteAllData() {
+        symptomDao.deleteAllSymptoms()
+        periodDao.deleteAllPeriods()
+    }
+
+    /**
+     * Serialises all periods and their associated symptoms to a JSON string.
+     *
+     * Format:
+     * [
+     *   {
+     *     "id": 1,
+     *     "startDate": "2024-01-15",
+     *     "endDate": "2024-01-19",        // null if ongoing
+     *     "flowLevel": "MEDIUM",
+     *     "notes": "...",
+     *     "symptoms": ["CRAMPS", "FATIGUE"]
+     *   },
+     *   ...
+     * ]
+     */
+    suspend fun exportData(): String {
+        val periods = periodDao.getAllPeriods().first()
+        val allSymptoms = symptomDao.getAllSymptoms()
+        val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+
+        val root = JSONArray()
+        periods.sortedBy { it.startDate }.forEach { period ->
+            val obj = JSONObject().apply {
+                put("id", period.id)
+                put("startDate", period.startDate)
+                put("endDate", if (period.endDate != null) period.endDate else JSONObject.NULL)
+                put("flowLevel", period.flowLevel)
+                put("notes", period.notes)
+                val symptoms = JSONArray()
+                symptomsByPeriod[period.id]?.forEach { symptom ->
+                    symptoms.put(symptom.symptomType)
+                }
+                put("symptoms", symptoms)
+            }
+            root.put(obj)
+        }
+        return root.toString(2) // pretty-printed with 2-space indent
+    }
 
     companion object {
         fun calculateAvgCycleLength(periods: List<PeriodEntry>): Int {

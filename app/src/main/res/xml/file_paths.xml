@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Exposes files from context.cacheDir/exports/ for data export sharing -->
+    <cache-path name="exports" path="exports/" />
+</paths>

@@ -37,12 +37,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
-import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,6 +53,7 @@ fun SettingsScreen(
     onNavigateToPinSetup: (changing: Boolean) -> Unit,
     onNavigateToLicenses: () -> Unit
 ) {
+    val context = LocalContext.current
     val prefs by viewModel.prefs.collectAsState()
     val security by viewModel.securitySettings.collectAsState()
     val reminder = prefs.reminder
@@ -60,6 +62,7 @@ fun SettingsScreen(
     var showTimePicker by rememberSaveable { mutableStateOf(false) }
     var showRemovePinDialog by rememberSaveable { mutableStateOf(false) }
     var showDisclaimer by rememberSaveable { mutableStateOf(false) }
+    var showDeleteAllDialog by rememberSaveable { mutableStateOf(false) }
     var removePinInput by rememberSaveable { mutableStateOf("") }
     var removePinError by rememberSaveable { mutableStateOf(false) }
 
@@ -124,6 +127,31 @@ fun SettingsScreen(
                 TextButton(onClick = { showRemovePinDialog = false; removePinInput = ""; removePinError = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    if (showDeleteAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllDialog = false },
+            title = { Text("Delete all data?") },
+            text = {
+                Text(
+                    "This will permanently remove all period logs, symptoms, and notes. " +
+                    "This cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteAllDialog = false
+                        viewModel.deleteAllData {}
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Delete Everything") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAllDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -236,6 +264,32 @@ fun SettingsScreen(
 
                 OutlinedButton(onClick = { showDisclaimer = true }, modifier = Modifier.fillMaxWidth()) {
                     Text("View Privacy & Medical Disclaimer")
+                }
+            }
+
+            HorizontalDivider()
+
+            // ── Data ───────────────────────────────────────────────────────────────
+            SettingSection(title = "Data") {
+                Text(
+                    "Export a copy of all your data or permanently delete everything stored on this device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { viewModel.exportData { intent -> context.startActivity(intent) } },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Export Data")
+                }
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { showDeleteAllDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete All Data")
                 }
             }
 

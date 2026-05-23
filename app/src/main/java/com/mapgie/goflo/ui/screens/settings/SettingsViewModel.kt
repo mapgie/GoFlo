@@ -1,10 +1,12 @@
 package com.mapgie.goflo.ui.screens.settings
 
 import android.content.Context
+import android.content.Intent
 import androidx.biometric.BiometricManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mapgie.goflo.data.export.DataExporter
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.preferences.AppPreferences
 import com.mapgie.goflo.data.preferences.SecurityPreferences
@@ -80,6 +82,32 @@ class SettingsViewModel(
         // Guard: biometric requires PIN; if PIN is gone, silently ignore.
         val settings = securityPreferences.settings.first()
         if (settings.hasPinSet) securityPreferences.setBiometricEnabled(enabled)
+    }
+
+    // ── Data lifecycle ────────────────────────────────────────────────────────
+
+    /**
+     * Serialises all periods and symptoms to JSON and delivers a share-sheet
+     * Intent back to the caller. The Intent is ready for startActivity().
+     */
+    fun exportData(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val json = repository.exportData()
+            val intent = DataExporter.buildShareIntent(context, json)
+            onReady(intent)
+        }
+    }
+
+    /**
+     * Permanently deletes all stored periods and symptoms, then reschedules
+     * reminders (which will cancel predictive alarms now that data is gone).
+     */
+    fun deleteAllData(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            repository.deleteAllData()
+            reschedule()
+            onComplete()
+        }
     }
 
     // ── Private ───────────────────────────────────────────────────────────────
