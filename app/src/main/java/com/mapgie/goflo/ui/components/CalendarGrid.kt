@@ -30,10 +30,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -145,6 +148,8 @@ private fun CalendarDays(
     }
 }
 
+private val accessibilityDateFormat = DateTimeFormatter.ofPattern("MMMM d")
+
 @Composable
 private fun DayCell(
     date: LocalDate,
@@ -156,12 +161,28 @@ private fun DayCell(
     modifier: Modifier = Modifier
 ) {
     val primary = MaterialTheme.colorScheme.primary
-    val primaryContainer = MaterialTheme.colorScheme.primaryContainer
-    val outline = MaterialTheme.colorScheme.outline
+
+    // Build a human-readable description for screen readers so users know the
+    // date state without relying on colour or shape alone.
+    val cellDescription = buildString {
+        append(date.format(accessibilityDateFormat))
+        if (isToday) append(", today")
+        when {
+            isPeriod    -> append(", period day")
+            isPredicted -> append(", predicted period")
+        }
+        if (isOvulation) append(", ovulation window")
+    }
 
     Box(
         modifier = modifier
             .aspectRatio(1f)
+            // Full cell is the touch target (≥48 dp on typical phones) so users
+            // don't have to hit the 36 dp inner circle precisely.
+            .clickable(onClick = onClick)
+            // clearAndSetSemantics replaces all child semantics so TalkBack reads
+            // only this description, not the raw day-number Text inside the Box.
+            .clearAndSetSemantics { contentDescription = cellDescription }
             .padding(2.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -170,18 +191,17 @@ private fun DayCell(
             .clip(CircleShape)
             .then(
                 when {
-                    isPeriod -> Modifier.background(primary)
+                    isPeriod    -> Modifier.background(primary)
                     isPredicted -> Modifier.border(1.5.dp, primary.copy(alpha = 0.5f), CircleShape)
-                    else -> Modifier
+                    else        -> Modifier
                 }
             )
-            .clickable(onClick = onClick)
 
         Box(circleModifier, contentAlignment = Alignment.Center) {
             val textColor = when {
                 isPeriod -> MaterialTheme.colorScheme.onPrimary
-                isToday -> primary
-                else -> MaterialTheme.colorScheme.onSurface
+                isToday  -> primary
+                else     -> MaterialTheme.colorScheme.onSurface
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -190,9 +210,11 @@ private fun DayCell(
                     color = textColor
                 )
                 if (isOvulation) {
+                    // 6 dp keeps the dot subtle while remaining perceptible at
+                    // small sizes; white on period days, primary elsewhere.
                     Box(
                         Modifier
-                            .size(4.dp)
+                            .size(6.dp)
                             .clip(CircleShape)
                             .background(if (isPeriod) Color.White else primary)
                     )
@@ -200,7 +222,7 @@ private fun DayCell(
             }
         }
 
-        // Underline for today
+        // Underline for today — shape-based cue that doesn't rely on colour alone.
         if (isToday && !isPeriod) {
             Box(
                 Modifier

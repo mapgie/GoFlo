@@ -43,6 +43,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.BuildConfig
@@ -411,14 +414,24 @@ fun SettingsScreen(
 
             // ── About ──────────────────────────────────────────────────────────
             SettingSection(title = "About") {
-                Text(
-                    text = "GoFlo v${BuildConfig.VERSION_NAME}",
-                    style = MaterialTheme.typography.bodyMedium,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { showChangelog = true }
-                        .padding(vertical = 8.dp)
-                )
+                        .semantics { role = Role.Button }
+                        .padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "GoFlo v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Tap to see changelog",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text("All your data stays on your device — nothing is sent anywhere.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))

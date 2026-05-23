@@ -8,13 +8,13 @@ Standards every project must meet before shipping. Work through each section top
 
 ### Documentation
 
-- [ ] **`README.md`** at the repo root covering at minimum: what the project is, how to build and run it, minimum OS / runtime version, and a link to developer contact
-- [ ] **`CHANGELOG.md`** at the repo root, following the versioning policy below
-- [ ] **`LESSONS.md`** — principle-focused notes on non-obvious decisions and hard-won fixes; entries ordered by risk to a new project if forgotten
-- [ ] **Developer contact** — defined in `README.md` or repo description:
+- [x] **`README.md`** at the repo root covering at minimum: what the project is, how to build and run it, minimum OS / runtime version, and a link to developer contact
+- [x] **`CHANGELOG.md`** at the repo root, following the versioning policy below
+- [x] **`LESSONS.md`** — principle-focused notes on non-obvious decisions and hard-won fixes; entries ordered by risk to a new project if forgotten
+- [x] **Developer contact** — defined in `README.md` or repo description:
   - Public repo → GitHub Issues enabled; link in README
   - Private repo → determined per-project (Slack channel, email, internal tracker); documented in README
-- [ ] **Minimum supported OS / runtime version** — documented in `README.md` with a rationale (hardware coverage target, API dependency, etc.); any decision to raise the minimum is a MINOR version bump and requires a changelog entry
+- [x] **Minimum supported OS / runtime version** — documented in `README.md` with a rationale (hardware coverage target, API dependency, etc.); any decision to raise the minimum is a MINOR version bump and requires a changelog entry
 
 ### Versioning policy
 
@@ -41,17 +41,17 @@ Rules:
 
 ### Accessibility
 
-- [ ] All interactive elements have a minimum touch / click target of **48×48dp** (Android) or **44×44pt** (iOS)
-- [ ] Every icon-only control has a **content description** (or equivalent accessible label) — buttons, icon buttons, image-only elements
+- [x] All interactive elements have a minimum touch / click target of **48×48dp** (Android) or **44×44pt** (iOS)
+- [x] Every icon-only control has a **content description** (or equivalent accessible label) — buttons, icon buttons, image-only elements
 - [ ] Text and interactive elements meet **WCAG AA contrast ratios**: 4.5:1 for body text, 3:1 for large text and UI components
-- [ ] The app is navigable without colour alone — selection state, errors, and status are also communicated via shape, label, or icon
+- [x] The app is navigable without colour alone — selection state, errors, and status are also communicated via shape, label, or icon
 
 ### Error states
 
-- [ ] Every screen that loads data has an **empty state** — a clear message when there is nothing to show (not a blank screen)
-- [ ] Errors shown to users are **generic and actionable** — no raw exception messages, stack traces, or internal identifiers; errors include a suggested next step where possible
-- [ ] Network or I/O failures offer a **retry affordance** where retrying is meaningful
-- [ ] Destructive or irreversible actions require **explicit confirmation** (dialog or multi-step) before executing
+- [x] Every screen that loads data has an **empty state** — a clear message when there is nothing to show (not a blank screen)
+- [x] Errors shown to users are **generic and actionable** — no raw exception messages, stack traces, or internal identifiers; errors include a suggested next step where possible
+- [x] Network or I/O failures offer a **retry affordance** where retrying is meaningful (app is local-only; I/O errors shown as user-facing dialogs)
+- [x] Destructive or irreversible actions require **explicit confirmation** (dialog or multi-step) before executing
 
 ---
 
@@ -59,22 +59,22 @@ Rules:
 
 ### Build & signing
 
-- [ ] **Debug keystore committed to the repo** (`debug.keystore`, standard `android`/`android` credentials)
+- [x] **Debug keystore committed to the repo** (`debug.keystore`, standard `android`/`android` credentials)
   - Prevents CI from generating a fresh keystore per runner, which blocks OTA updates with a "conflicting package" error
   - Wire into `signingConfigs.debug` in `app/build.gradle.kts`
   - Add `*.jks` and `release.keystore` (not `debug.keystore`) to `.gitignore`
-- [ ] **`gradle.properties`** committed with at minimum:
+- [x] **`gradle.properties`** committed with at minimum:
   ```
   android.useAndroidX=true
   android.nonTransitiveRClass=true
   org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
   ```
 - [x] **`proguard-rules.pro` reviewed** whenever a new library is added
-- [ ] **`lint-baseline.xml` committed** — generated once with `./gradlew lintDebug --write-lint-baseline` to snapshot existing issues; subsequent CI runs report only new ones; `lint { baseline = file("lint-baseline.xml"); abortOnError = true }` in `app/build.gradle.kts` — Room, DataStore, Retrofit, and most reflection-heavy libraries require explicit keep rules; crashes that appear only in release builds and not debug builds are almost always a missing ProGuard rule
+- [x] **`lint-baseline.xml` committed** — generated once with `./gradlew lintDebug --write-lint-baseline` to snapshot existing issues; subsequent CI runs report only new ones; `lint { baseline = file("lint-baseline.xml"); abortOnError = true }` in `app/build.gradle.kts` — Room, DataStore, Retrofit, and most reflection-heavy libraries require explicit keep rules; crashes that appear only in release builds and not debug builds are almost always a missing ProGuard rule
 
 ### CI workflows
 
-- [ ] **PR build check** (`.github/workflows/build.yml` or equivalent):
+- [x] **PR build check** (`.github/workflows/build.yml` or equivalent):
   - Triggers on `pull_request` targeting the default branch
   - Triggers on `workflow_dispatch` for on-demand releases
   - No `push` trigger — avoids duplicate builds on merge
@@ -84,14 +84,14 @@ Rules:
   - **`./gradlew lintDebug`** step after tests — lint runs against a committed `lint-baseline.xml` so only new issues surface
   - APK rename and release creation gated on `github.event_name == 'workflow_dispatch'` — PR builds verify compilation only; no artifact is produced or published
 
-- [ ] **Licence screen sync check** (`.github/workflows/license-sync.yml` or equivalent):
+- [x] **Licence screen sync check** (`.github/workflows/license-sync.yml` or equivalent):
   - Triggers only when `gradle/libs.versions.toml` changes in a PR
   - Fails if the licences screen source file was not also modified in the same PR
   - **Caveat:** this is a touch-gate, not a correctness check — it only verifies the file was modified, not that the content is accurate; content correctness is a code review responsibility
 
 ### Open source licences
 
-- [ ] **Licences screen** in the app (Settings → About → Open Source Licences):
+- [x] **Licences screen** in the app (Settings → About → Open Source Licences):
   - Lists every runtime dependency (not build-only tools) with its licence and copyright holder
   - Grouped by licence type
   - A maintainer comment in the file reminding contributors to update it when `libs.versions.toml` changes
@@ -99,16 +99,16 @@ Rules:
 
 ### Notifications
 
-- [ ] Any reminder or alert that must be heard uses the **alarm audio stream**:
+- [x] Any reminder or alert that must be heard uses the **alarm audio stream**:
   - Create the notification channel with `AudioAttributes(usage = USAGE_ALARM)` so it plays at alarm volume and bypasses Do Not Disturb
   - Channel properties are written once and are immutable — changing the stream type requires a new channel ID
   - Use `AlarmManager.setExactAndAllowWhileIdle` for time-critical triggers
 
 ### UI
 
-- [ ] Use `FlowRow` (not `LazyRow`) for chip groups in forms — `LazyRow` clips silently and hides required input
-- [ ] Selected chip state must pass the "readable in 100ms" bar — override `FilterChipDefaults` with a high-contrast fill; the default Material3 selected treatment (subtle border change) is not sufficient
-- [ ] No colours hardcoded in `TextStyle` / typography — omit `color` and let the theme propagate it
+- [x] Use `FlowRow` (not `LazyRow`) for chip groups in forms — `LazyRow` clips silently and hides required input
+- [x] Selected chip state must pass the "readable in 100ms" bar — override `FilterChipDefaults` with a high-contrast fill; the default Material3 selected treatment (subtle border change) is not sufficient
+- [x] No colours hardcoded in `TextStyle` / typography — omit `color` and let the theme propagate it
 
 ### Pre-release smoke test
 
@@ -130,19 +130,19 @@ Applies whenever the app stores information that could identify or characterise 
 
 ### Authentication
 
-- [ ] **Optional PIN lock** with:
+- [x] **Optional PIN lock** with:
   - PBKDF2-HMAC-SHA256, minimum 100,000 iterations, 16-byte `SecureRandom` salt
   - Constant-time comparison (`MessageDigest.isEqual`) — never `==` or `String.equals`
   - PIN cleared from memory in a `finally` block after hashing
-- [ ] **Optional biometric unlock** (fingerprint / face) — only available when a PIN is set; biometric is disabled automatically if the PIN is removed
-- [ ] App locks when sent to background (`ProcessLifecycleOwner.onStop`) and re-evaluates lock state on `Activity.onStart`
-- [ ] Auth state transitions guarded at the data layer, not only in the UI — biometric cannot be enabled without a PIN; removing a PIN clears biometric
+- [x] **Optional biometric unlock** (fingerprint / face) — only available when a PIN is set; biometric is disabled automatically if the PIN is removed
+- [x] App locks when sent to background (`ProcessLifecycleOwner.onStop`) and re-evaluates lock state on `Activity.onStart`
+- [x] Auth state transitions guarded at the data layer, not only in the UI — biometric cannot be enabled without a PIN; removing a PIN clears biometric
 
 ### Privacy
 
-- [ ] **Privacy & medical disclaimer** shown on first install and on every app update (keyed to `BuildConfig.VERSION_CODE`); must be acknowledged before the app is usable; also accessible from Settings at any time
-- [ ] **Backup & transfer exclusions** in `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml`: exclude the database, WAL/SHM files, and all DataStore preference files from both cloud backup and device transfer
-- [ ] No network requests, no third-party analytics, no crash reporting SDK that transmits data off-device — or, if any of these are present, explicitly disclosed in the privacy disclaimer and justified in the PR that introduces them
+- [x] **Privacy & medical disclaimer** shown on first install and on every app update (keyed to `BuildConfig.VERSION_CODE`); must be acknowledged before the app is usable; also accessible from Settings at any time
+- [x] **Backup & transfer exclusions** in `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml`: exclude the database, WAL/SHM files, and all DataStore preference files from both cloud backup and device transfer
+- [x] No network requests, no third-party analytics, no crash reporting SDK that transmits data off-device — or, if any of these are present, explicitly disclosed in the privacy disclaimer and justified in the PR that introduces them
 
 ### Data lifecycle
 

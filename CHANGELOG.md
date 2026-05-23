@@ -19,6 +19,28 @@ Rules:
 
 ---
 
+## [0.4.1-beta.1] - 2026-05-23
+
+### Fixed
+- **Accessibility — touch targets**: calendar day cells now use the full grid cell as the tap target
+  (≥48 dp on typical phones) instead of the inner 36 dp circle, matching Android's minimum
+- **Accessibility — screen reader labels**: each calendar day now announces its full state to
+  TalkBack, e.g. "May 23, today, period day" or "May 25, predicted period, ovulation window" —
+  no longer relies on colour or shape alone
+- **Accessibility — version row**: Settings → About version row now exposes itself as a button to
+  TalkBack and shows a "Tap to see changelog" subtitle for sighted users
+- **Accessibility — ovulation dot**: dot enlarged from 4 dp to 6 dp for improved visibility at
+  small calendar cell sizes
+
+### Changed
+- `README.md`: documented rationale for API 26 minimum (NotificationChannel, introduced in
+  Android 8.0, is required for the alarm-stream reminder channel)
+- `template_requirements.md`: checked off all items that were implemented but still marked `[ ]`
+  (README, CHANGELOG, LESSONS, CI workflows, build/signing, licences screen, notifications,
+  authentication, privacy — one remaining open item: WCAG AA contrast ratio verification)
+
+---
+
 ## [0.4.0-beta.1] - 2026-05-23
 
 ### Added

@@ -8,7 +8,11 @@ All data is stored on-device. GoFlo makes no network requests, has no accounts, 
 
 ## Requirements
 
-- Android 8.0 (API 26) or higher
+- Android 8.0 (API 26) or higher — minimum is set at API 26 because
+  `NotificationChannel` (introduced in Android 8.0) is required to create the
+  alarm-stream notification channel that lets period reminders bypass Do Not
+  Disturb. Raising this minimum further is a MINOR version bump and needs a
+  changelog entry.
 - JDK 17 for building
 
 ## Building
