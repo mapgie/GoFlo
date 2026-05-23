@@ -6,8 +6,17 @@ import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.model.SymptomType
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import org.json.JSONArray
+import org.json.JSONObject
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+
+/** Result of a data import operation. */
+sealed class ImportResult {
+    data class Success(val imported: Int, val skipped: Int) : ImportResult()
+    data class Failure(val message: String) : ImportResult()
+}
 
 class PeriodRepository(
     private val periodDao: PeriodDao,
@@ -38,6 +47,120 @@ class PeriodRepository(
 
     suspend fun getSymptomsOnce(periodId: Long): List<SymptomEntry> =
         symptomDao.getSymptomsForPeriodOnce(periodId)
+
+    /**
+     * Permanently deletes all period and symptom records.
+     * Symptoms are deleted first to satisfy the foreign-key relationship,
+     * even though the schema uses CASCADE — belt-and-suspenders for clarity.
+     */
+    suspend fun deleteAllData() {
+        symptomDao.deleteAllSymptoms()
+        periodDao.deleteAllPeriods()
+    }
+
+    /**
+     * Serialises all periods and their associated symptoms to a JSON string.
+     *
+     * Format:
+     * [
+     *   {
+     *     "id": 1,
+     *     "startDate": "2024-01-15",
+     *     "endDate": "2024-01-19",        // null if ongoing
+     *     "flowLevel": "MEDIUM",
+     *     "notes": "...",
+     *     "symptoms": ["CRAMPS", "FATIGUE"]
+     *   },
+     *   ...
+     * ]
+     */
+    suspend fun exportData(): String {
+        val periods = periodDao.getAllPeriods().first()
+        val allSymptoms = symptomDao.getAllSymptoms()
+        val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+
+        val root = JSONArray()
+        periods.sortedBy { it.startDate }.forEach { period ->
+            val obj = JSONObject().apply {
+                put("id", period.id)
+                put("startDate", period.startDate)
+                put("endDate", if (period.endDate != null) period.endDate else JSONObject.NULL)
+                put("flowLevel", period.flowLevel)
+                put("notes", period.notes)
+                val symptoms = JSONArray()
+                symptomsByPeriod[period.id]?.forEach { symptom ->
+                    symptoms.put(symptom.symptomType)
+                }
+                put("symptoms", symptoms)
+            }
+            root.put(obj)
+        }
+        return root.toString(2) // pretty-printed with 2-space indent
+    }
+
+    /**
+     * Imports periods from a JSON string produced by [exportData].
+     *
+     * @param json   The raw JSON text from the export file.
+     * @param replace If true, all existing data is deleted before importing.
+     *                If false, periods whose [PeriodEntry.startDate] already exists
+     *                in the database are skipped (safe to run on a non-empty device).
+     *
+     * Unknown symptom type strings are silently dropped so that old exports are
+     * forward-compatible even if the symptom list grows or shrinks.
+     */
+    suspend fun importData(json: String, replace: Boolean): ImportResult {
+        return try {
+            val array = JSONArray(json)
+
+            if (replace) deleteAllData()
+
+            val existingStartDates: Set<String> = if (replace) {
+                emptySet()
+            } else {
+                periodDao.getAllPeriods().first().map { it.startDate }.toSet()
+            }
+
+            var imported = 0
+            var skipped = 0
+
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val startDate = obj.getString("startDate")
+
+                if (startDate in existingStartDates) {
+                    skipped++
+                    continue
+                }
+
+                val entry = PeriodEntry(
+                    // id intentionally omitted — let Room auto-generate a fresh one
+                    startDate = startDate,
+                    endDate = if (obj.isNull("endDate")) null else obj.optString("endDate"),
+                    flowLevel = obj.optString("flowLevel", "MEDIUM"),
+                    notes = obj.optString("notes", "")
+                )
+                val newId = periodDao.insertPeriod(entry)
+
+                val symptomsArray = obj.optJSONArray("symptoms")
+                if (symptomsArray != null) {
+                    for (j in 0 until symptomsArray.length()) {
+                        val typeName = symptomsArray.getString(j)
+                        // Ignore unrecognised symptom strings — keeps old exports importable
+                        runCatching { SymptomType.valueOf(typeName) }.onSuccess {
+                            symptomDao.insertSymptom(SymptomEntry(periodId = newId, symptomType = typeName))
+                        }
+                    }
+                }
+
+                imported++
+            }
+
+            ImportResult.Success(imported, skipped)
+        } catch (e: Exception) {
+            ImportResult.Failure(e.message ?: "Could not parse import file")
+        }
+    }
 
     companion object {
         fun calculateAvgCycleLength(periods: List<PeriodEntry>): Int {

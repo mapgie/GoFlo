@@ -25,4 +25,10 @@ interface PeriodDao {
 
     @Delete
     suspend fun deletePeriod(period: PeriodEntry)
+
+    @Query("DELETE FROM periods")
+    suspend fun deleteAllPeriods()
+
+    @Query("SELECT COUNT(*) FROM periods")
+    suspend fun countPeriods(): Int
 }

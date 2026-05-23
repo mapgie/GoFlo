@@ -69,7 +69,7 @@ Rules:
   android.nonTransitiveRClass=true
   org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
   ```
-- [ ] **`proguard-rules.pro` reviewed** whenever a new library is added
+- [x] **`proguard-rules.pro` reviewed** whenever a new library is added
 - [ ] **`lint-baseline.xml` committed** — generated once with `./gradlew lintDebug --write-lint-baseline` to snapshot existing issues; subsequent CI runs report only new ones; `lint { baseline = file("lint-baseline.xml"); abortOnError = true }` in `app/build.gradle.kts` — Room, DataStore, Retrofit, and most reflection-heavy libraries require explicit keep rules; crashes that appear only in release builds and not debug builds are almost always a missing ProGuard rule
 
 ### CI workflows
@@ -146,8 +146,8 @@ Applies whenever the app stores information that could identify or characterise 
 
 ### Data lifecycle
 
-- [ ] **Data export** — user can export all their data in a portable format (CSV or JSON); especially mandatory when system backup is excluded (see above); export via the platform share sheet so users can save to Files, email, or a third-party app
-- [ ] **Data deletion** — explicit "Delete all data" action in Settings, behind a confirmation dialog; distinct from uninstall (users may not know uninstall deletes data)
-- [ ] **Retention policy** documented in the privacy disclaimer:
+- [x] **Data export** — user can export all their data in a portable format (CSV or JSON); especially mandatory when system backup is excluded (see above); export via the platform share sheet so users can save to Files, email, or a third-party app
+- [x] **Data deletion** — explicit "Delete all data" action in Settings, behind a confirmation dialog; distinct from uninstall (users may not know uninstall deletes data)
+- [x] **Retention policy** documented in the privacy disclaimer:
   - Default: data kept indefinitely until the user explicitly deletes it or uninstalls the app
   - If automatic pruning is implemented (e.g. rolling 24-month window), the policy and threshold must be disclosed in the disclaimer and configurable or opt-out in Settings

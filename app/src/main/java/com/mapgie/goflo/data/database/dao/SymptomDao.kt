@@ -20,4 +20,10 @@ interface SymptomDao {
 
     @Query("DELETE FROM symptoms WHERE periodId = :periodId")
     suspend fun deleteSymptomsByPeriodId(periodId: Long)
+
+    @Query("DELETE FROM symptoms")
+    suspend fun deleteAllSymptoms()
+
+    @Query("SELECT * FROM symptoms")
+    suspend fun getAllSymptoms(): List<SymptomEntry>
 }

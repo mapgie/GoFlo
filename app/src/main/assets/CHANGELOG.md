@@ -19,6 +19,23 @@ Rules:
 
 ---
 
+## [0.3.0-beta.3] - 2026-05-23
+
+### Added
+- **Data import** — Settings → Data → Import Data opens a file picker for a GoFlo JSON export; choose Merge (skips periods whose start date already exists) or Replace (clears all existing data first); designed for migrating to a new phone
+
+---
+
+## [0.3.0-beta.2] - 2026-05-23
+
+### Added
+- **Data export** — Settings → Data → Export Data serialises all period logs and symptoms to a JSON file and shares it via the Android share sheet
+- **Delete all data** — Settings → Data → Delete All Data permanently removes all stored records behind a confirmation dialog
+- **Data retention policy** — added to the privacy & medical disclaimer
+- **ProGuard keep rules** for Room DAO interfaces, DataStore internals, and Biometric — prevents release-build crashes
+
+---
+
 ## [0.3.0-beta.1] - 2026-05-23
 
 ### Added
