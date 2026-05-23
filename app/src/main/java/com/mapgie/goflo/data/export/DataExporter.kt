@@ -35,4 +35,28 @@ object DataExporter {
         }
         return Intent.createChooser(send, "Export GoFlo data")
     }
+
+    /**
+     * Writes [csv] to a temporary cache file and returns an ACTION_SEND intent
+     * pointing at it via FileProvider, ready for Context.startActivity().
+     */
+    fun buildCsvShareIntent(context: Context, csv: String): Intent {
+        val dir  = File(context.cacheDir, "exports").also { it.mkdirs() }
+        val file = File(dir, "goflo_export_${LocalDate.now()}.csv")
+        file.writeText(csv, Charsets.UTF_8)
+
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "GoFlo data export (CSV)")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        return Intent.createChooser(send, "Export GoFlo data as CSV")
+    }
 }

@@ -450,7 +450,14 @@ fun SettingsScreen(
                     onClick = { viewModel.exportData { intent -> context.startActivity(intent) } },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Export Data")
+                    Text("Export Data (JSON)")
+                }
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { viewModel.exportCsv { intent -> context.startActivity(intent) } },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Export Data (CSV)")
                 }
                 Spacer(Modifier.height(4.dp))
                 OutlinedButton(

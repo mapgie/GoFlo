@@ -108,6 +108,18 @@ class SettingsViewModel(
     }
 
     /**
+     * Serialises all periods to CSV (RFC 4180) and delivers a share-sheet
+     * Intent back to the caller. The Intent is ready for startActivity().
+     */
+    fun exportCsv(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val csv    = repository.exportAsCsv()
+            val intent = DataExporter.buildCsvShareIntent(context, csv)
+            onReady(intent)
+        }
+    }
+
+    /**
      * Reads the JSON file at [uri] (from a share-sheet / Files app pick) and
      * imports the periods it contains. Runs on the ViewModel coroutine scope so
      * the UI stays responsive; calls [onResult] back on the main thread.

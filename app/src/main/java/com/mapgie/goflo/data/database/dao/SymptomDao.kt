@@ -26,4 +26,7 @@ interface SymptomDao {
 
     @Query("SELECT * FROM symptoms")
     suspend fun getAllSymptoms(): List<SymptomEntry>
+
+    @Query("SELECT * FROM symptoms")
+    fun getAllSymptomsFlow(): Flow<List<SymptomEntry>>
 }

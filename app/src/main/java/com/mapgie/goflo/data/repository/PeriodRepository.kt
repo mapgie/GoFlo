@@ -32,6 +32,9 @@ class PeriodRepository(
     fun getSymptomsForPeriod(periodId: Long): Flow<List<SymptomEntry>> =
         symptomDao.getSymptomsForPeriod(periodId)
 
+    /** Reactive stream of every symptom row — used for symptom-trend analytics. */
+    fun getAllSymptomsFlow(): Flow<List<SymptomEntry>> = symptomDao.getAllSymptomsFlow()
+
     // ── Period write operations ───────────────────────────────────────────────
 
     suspend fun insertPeriod(
@@ -144,6 +147,33 @@ class PeriodRepository(
             root.put(obj)
         }
         return root.toString(2) // pretty-printed with 2-space indent
+    }
+
+    /**
+     * Exports all periods as a CSV string (RFC 4180).
+     *
+     * Columns: start_date, end_date, duration_days, flow_level, symptoms, notes
+     * Symptoms are joined with ";" inside a quoted field.
+     * Any double-quotes inside notes/symptoms are escaped as "".
+     */
+    suspend fun exportAsCsv(): String {
+        val periods = periodDao.getAllPeriods().first().sortedBy { it.startDate }
+        val allSymptoms = symptomDao.getAllSymptoms()
+        val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+
+        val sb = StringBuilder()
+        sb.appendLine("start_date,end_date,duration_days,flow_level,symptoms,notes")
+        periods.forEach { period ->
+            val start = LocalDate.parse(period.startDate)
+            val end   = period.endDate?.let { LocalDate.parse(it) }
+            val duration = if (end != null) (ChronoUnit.DAYS.between(start, end) + 1).toString() else ""
+            val symptoms = symptomsByPeriod[period.id]
+                ?.joinToString(";") { it.symptomType }?.replace("\"", "\"\"")
+                ?: ""
+            val notes = period.notes.replace("\"", "\"\"")
+            sb.appendLine("${period.startDate},${period.endDate ?: ""},${duration},${period.flowLevel},\"${symptoms}\",\"${notes}\"")
+        }
+        return sb.toString()
     }
 
     /**

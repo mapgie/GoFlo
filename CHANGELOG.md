@@ -19,6 +19,24 @@ Rules:
 
 ---
 
+## [0.7.0-beta.1] - 2026-05-23
+
+### Added
+- **CSV export** — Settings → Data → Export Data (CSV) serialises all period logs
+  to a standard CSV file (RFC 4180) with columns: start_date, end_date,
+  duration_days, flow_level, symptoms (semicolon-separated), notes; shared via the
+  Android share sheet using the existing FileProvider; compatible with spreadsheet
+  apps and data analysis tools
+- **Swipe-to-delete in History** — swipe any period card right-to-left to reveal a
+  red trash background; releasing past the threshold shows a confirmation dialog
+  ("Delete / Cancel"); the card always snaps back so no accidental deletes occur
+- **Symptom trends** — a "Symptom Trends" card appears at the top of the History
+  screen once ≥3 periods are logged; shows up to 5 most-common symptoms with their
+  occurrence count, percentage-of-periods, and a thin progress bar for quick
+  visual comparison
+
+---
+
 ## [0.6.0-beta.1] - 2026-05-23
 
 ### Added
