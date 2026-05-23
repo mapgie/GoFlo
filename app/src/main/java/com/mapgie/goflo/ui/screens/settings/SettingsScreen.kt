@@ -1,5 +1,7 @@
 package com.mapgie.goflo.ui.screens.settings
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -46,7 +48,7 @@ import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
 import com.mapgie.goflo.ui.theme.AppTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -63,6 +65,7 @@ fun SettingsScreen(
     var showRemovePinDialog by rememberSaveable { mutableStateOf(false) }
     var showDisclaimer by rememberSaveable { mutableStateOf(false) }
     var showDeleteAllDialog by rememberSaveable { mutableStateOf(false) }
+    var showChangelog by rememberSaveable { mutableStateOf(false) }
     var removePinInput by rememberSaveable { mutableStateOf("") }
     var removePinError by rememberSaveable { mutableStateOf(false) }
 
@@ -74,6 +77,10 @@ fun SettingsScreen(
     if (showDisclaimer) {
         DisclaimerScreen(onAcknowledge = { showDisclaimer = false })
         return
+    }
+
+    if (showChangelog) {
+        ChangelogDialog(onDismiss = { showChangelog = false })
     }
 
     if (showTimePicker) {
@@ -297,7 +304,14 @@ fun SettingsScreen(
 
             // ── About ──────────────────────────────────────────────────────────
             SettingSection(title = "About") {
-                Text("GoFlo v${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = "GoFlo v${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.combinedClickable(
+                        onClick = {},
+                        onLongClick = { showChangelog = true }
+                    )
+                )
                 Text("All your data stays on your device — nothing is sent anywhere.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
