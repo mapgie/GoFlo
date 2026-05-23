@@ -3,8 +3,11 @@ package com.mapgie.goflo.ui.screens.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -20,6 +27,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,6 +44,10 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import com.mapgie.goflo.ui.theme.AppTheme
+import com.mapgie.goflo.ui.theme.ThemeGroup
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,7 +66,6 @@ import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
 import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
-import com.mapgie.goflo.ui.theme.AppTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -285,13 +297,9 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // ── Theme ──────────────────────────────────────────────────────────
-            SettingSection(title = "Theme") {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SelectableChip("Coral", currentTheme == AppTheme.CORAL) { viewModel.setTheme(AppTheme.CORAL.name) }
-                    SelectableChip("Turquoise", currentTheme == AppTheme.TURQUOISE) { viewModel.setTheme(AppTheme.TURQUOISE.name) }
-                    SelectableChip("Green", currentTheme == AppTheme.GREEN) { viewModel.setTheme(AppTheme.GREEN.name) }
-                }
+            // ── Appearance ────────────────────────────────────────────────────
+            SettingSection(title = "Appearance") {
+                ThemePickerSection(current = currentTheme, onSelect = { viewModel.setTheme(it.name) })
             }
 
             HorizontalDivider()
@@ -441,6 +449,76 @@ fun SettingsScreen(
             }
         }
     }
+}
+
+// ── Theme picker ──────────────────────────────────────────────────────────────
+
+/**
+ * Grouped theme picker. Themes are bucketed by [ThemeGroup] and rendered as
+ * labelled [FlowRow]s so chips wrap naturally on small screens.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ThemePickerSection(current: AppTheme, onSelect: (AppTheme) -> Unit) {
+    // Render groups in a fixed order; SYSTEM has no group label (shown inline).
+    val orderedGroups = listOf(
+        ThemeGroup.SYSTEM,
+        ThemeGroup.LIGHT,
+        ThemeGroup.DARK,
+        ThemeGroup.HIGH_CONTRAST,
+        ThemeGroup.COLOR_BLIND,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        for (group in orderedGroups) {
+            val themes = AppTheme.entries.filter { it.group == group }
+            if (themes.isEmpty()) continue
+            if (group.label.isNotEmpty()) {
+                Text(
+                    text  = group.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                themes.forEach { theme ->
+                    ThemeChip(
+                        theme    = theme,
+                        selected = theme == current,
+                        onClick  = { onSelect(theme) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A [FilterChip] with a small colour-swatch circle showing [AppTheme.previewArgb]
+ * so users can preview the theme hue before selecting it.
+ */
+@Composable
+private fun ThemeChip(theme: AppTheme, selected: Boolean, onClick: () -> Unit) {
+    val previewColor = Color(theme.previewArgb)
+    FilterChip(
+        selected    = selected,
+        onClick     = onClick,
+        label       = { Text(theme.displayName) },
+        leadingIcon = {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .clip(CircleShape)
+                    .background(previewColor)
+                    // thin ring so a white/black swatch is still visible on any bg
+                    .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), CircleShape)
+            )
+        },
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primary,
+            selectedLabelColor     = MaterialTheme.colorScheme.onPrimary,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+        ),
+    )
 }
 
 @Composable

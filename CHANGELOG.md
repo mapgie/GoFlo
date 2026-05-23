@@ -19,6 +19,32 @@ Rules:
 
 ---
 
+## [0.5.0-beta.1] - 2026-05-23
+
+### Added
+- **10 themes** — Settings → Appearance now shows a grouped theme picker with a
+  colour-swatch dot on each chip so you can preview the hue before selecting:
+  - **Light** — Coral, Teal (was "Turquoise"), Sage (was "Green")
+  - **Dark** — Coral, Teal, Sage; each is a Material3 dark colour scheme with
+    light primary tones on deep backgrounds; status-bar icons automatically flip
+    to light when a dark theme is active
+  - **Follow system** — adopts the Teal palette in light or dark based on your
+    device's system-wide dark-mode preference
+  - **High Contrast** — Light (near-black on pure white) and Dark (pure white on
+    pure black); every contrast pair exceeds 15:1
+  - **Blue & Orange** — deuteranopia- and protanopia-safe palette; uses blue as
+    the primary colour instead of red, safe for the ~9 % of users with red-green
+    colour vision deficiency; period days render as blue circles
+- Existing "Turquoise" and "Green" preferences stored in DataStore continue to
+  resolve correctly — no data migration needed
+
+### Changed
+- All 10 themes (110 measured colour pairs) verified against WCAG AA before
+  shipping; three dark-theme outline colours bumped by 2 RGB points to clear
+  the 3.0:1 UI-component threshold on dark surfaceVariant backgrounds
+
+---
+
 ## [0.4.2-beta.1] - 2026-05-23
 
 ### Fixed
