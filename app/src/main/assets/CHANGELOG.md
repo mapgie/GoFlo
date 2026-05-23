@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.3.0-beta.3] - 2026-05-23
+
+### Added
+- **Data import** — Settings → Data → Import Data opens a file picker for a GoFlo JSON export; choose Merge (skips periods whose start date already exists) or Replace (clears all existing data first); designed for migrating to a new phone
+
+---
+
 ## [0.3.0-beta.2] - 2026-05-23
 
 ### Added

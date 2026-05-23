@@ -2,12 +2,14 @@ package com.mapgie.goflo.ui.screens.settings
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.biometric.BiometricManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.export.DataExporter
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
+import com.mapgie.goflo.data.repository.ImportResult
 import com.mapgie.goflo.data.preferences.AppPreferences
 import com.mapgie.goflo.data.preferences.SecurityPreferences
 import com.mapgie.goflo.data.preferences.SecuritySettings
@@ -95,6 +97,30 @@ class SettingsViewModel(
             val json = repository.exportData()
             val intent = DataExporter.buildShareIntent(context, json)
             onReady(intent)
+        }
+    }
+
+    /**
+     * Reads the JSON file at [uri] (from a share-sheet / Files app pick) and
+     * imports the periods it contains. Runs on the ViewModel coroutine scope so
+     * the UI stays responsive; calls [onResult] back on the main thread.
+     */
+    fun importData(uri: Uri, replace: Boolean, onResult: (ImportResult) -> Unit) {
+        viewModelScope.launch {
+            val json = runCatching {
+                context.contentResolver.openInputStream(uri)
+                    ?.bufferedReader()
+                    ?.readText()
+            }.getOrNull()
+
+            if (json == null) {
+                onResult(ImportResult.Failure("Could not read the selected file."))
+                return@launch
+            }
+
+            val result = repository.importData(json, replace)
+            if (result is ImportResult.Success) reschedule()
+            onResult(result)
         }
     }
 

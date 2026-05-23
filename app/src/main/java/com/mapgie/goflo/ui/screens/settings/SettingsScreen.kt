@@ -1,5 +1,8 @@
 package com.mapgie.goflo.ui.screens.settings
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,6 +48,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
+import com.mapgie.goflo.data.repository.ImportResult
 import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
 import com.mapgie.goflo.ui.theme.AppTheme
@@ -66,8 +71,21 @@ fun SettingsScreen(
     var showDisclaimer by rememberSaveable { mutableStateOf(false) }
     var showDeleteAllDialog by rememberSaveable { mutableStateOf(false) }
     var showChangelog by rememberSaveable { mutableStateOf(false) }
+    // Import state
+    var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
+    var showImportOptionsDialog by rememberSaveable { mutableStateOf(false) }
+    var importResult by remember { mutableStateOf<ImportResult?>(null) }
     var removePinInput by rememberSaveable { mutableStateOf("") }
     var removePinError by rememberSaveable { mutableStateOf(false) }
+
+    val importFilePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            pendingImportUri = uri
+            showImportOptionsDialog = true
+        }
+    }
 
     val timeState = rememberTimePickerState(
         initialHour = reminder.reminderHour,
@@ -134,6 +152,89 @@ fun SettingsScreen(
                 TextButton(onClick = { showRemovePinDialog = false; removePinInput = ""; removePinError = false }) {
                     Text("Cancel")
                 }
+            }
+        )
+    }
+
+    if (showImportOptionsDialog && pendingImportUri != null) {
+        val uri = pendingImportUri!!
+        AlertDialog(
+            onDismissRequest = { showImportOptionsDialog = false; pendingImportUri = null },
+            title = { Text("Import data") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "How should the imported data be handled?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Merge — adds new periods; skips any whose start date already exists. " +
+                        "Safe if you have already logged some entries on this device.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        "Replace — deletes everything on this device first, then imports. " +
+                        "Use when moving all data from your old phone.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                // Replace — primary action for phone-migration use case
+                Button(
+                    onClick = {
+                        showImportOptionsDialog = false
+                        viewModel.importData(uri, replace = true) { result ->
+                            pendingImportUri = null
+                            importResult = result
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Replace") }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { showImportOptionsDialog = false; pendingImportUri = null }) {
+                        Text("Cancel")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            showImportOptionsDialog = false
+                            viewModel.importData(uri, replace = false) { result ->
+                                pendingImportUri = null
+                                importResult = result
+                            }
+                        }
+                    ) { Text("Merge") }
+                }
+            }
+        )
+    }
+
+    importResult?.let { result ->
+        AlertDialog(
+            onDismissRequest = { importResult = null },
+            title = {
+                Text(if (result is ImportResult.Success) "Import complete" else "Import failed")
+            },
+            text = {
+                Text(
+                    when (result) {
+                        is ImportResult.Success -> buildString {
+                            append("${result.imported} period(s) imported.")
+                            if (result.skipped > 0) append("\n${result.skipped} skipped (already existed).")
+                        }
+                        is ImportResult.Failure -> result.message
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { importResult = null }) { Text("OK") }
             }
         )
     }
@@ -279,7 +380,7 @@ fun SettingsScreen(
             // ── Data ───────────────────────────────────────────────────────────────
             SettingSection(title = "Data") {
                 Text(
-                    "Export a copy of all your data or permanently delete everything stored on this device.",
+                    "Export or import all your data, or permanently delete everything stored on this device.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -289,6 +390,13 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Export Data")
+                }
+                Spacer(Modifier.height(4.dp))
+                OutlinedButton(
+                    onClick = { importFilePicker.launch("application/json") },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Import Data")
                 }
                 Spacer(Modifier.height(4.dp))
                 OutlinedButton(
