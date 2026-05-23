@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Home-screen widget layout for GoFlo.
+    Displayed as a 2×1 cell widget (≈180×40 dp minimum).
+    Uses only RemoteViews-compatible view types (LinearLayout + TextView).
+    All colours are hardcoded — RemoteViews cannot resolve theme attributes.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="12dp"
+    android:gravity="center_vertical">
+
+    <!-- Small "GOFLO" label — distinguishes the widget from system widgets -->
+    <TextView
+        android:id="@+id/widget_app_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="GOFLO"
+        android:textSize="8sp"
+        android:letterSpacing="0.12"
+        android:textColor="#99FFFFFF"
+        android:layout_marginBottom="2dp" />
+
+    <!-- Primary status line: "Period in 3 days", "Period · day 2", etc. -->
+    <TextView
+        android:id="@+id/widget_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Loading…"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFFFF"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <!-- Secondary line: "Day 12 of ~28", "Avg cycle: 28 days", etc. -->
+    <TextView
+        android:id="@+id/widget_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="10sp"
+        android:textColor="#BDFFFFFF"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:layout_marginTop="1dp"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -19,6 +19,24 @@ Rules:
 
 ---
 
+## [0.8.0-beta.1] - 2026-05-23
+
+### Added
+- **Home screen widget** — a 2×1 cell AppWidget showing cycle status at a glance:
+  - While a period is active: "Period · day N" + "Avg cycle: N days"
+  - Otherwise: "Period in N days" / "Period due today" / "Period due tomorrow" +
+    "Day N of ~N"
+  - No data logged yet: "Tap to get started"
+  - Tapping the widget opens the app
+  - Updated every 30 minutes by the OS (the system minimum); data is read from
+    Room on `Dispatchers.IO` via `goAsync()` so the main thread is never blocked
+  - Registered in AndroidManifest as `.widget.GoFloWidget` with
+    `@xml/widget_info` (minWidth 180 dp, targetCellWidth 2, minSdk 26 compat)
+  - Background: dark semi-transparent rounded rectangle (`widget_background.xml`)
+    visible on both dark and light launcher wallpapers
+
+---
+
 ## [0.7.0-beta.1] - 2026-05-23
 
 ### Added

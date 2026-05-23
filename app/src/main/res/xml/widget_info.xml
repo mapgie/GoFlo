@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AppWidgetProviderInfo for the GoFlo home-screen widget.
+    - 2×1 cell (180 × 40 dp minimum) — fits on every launcher grid.
+    - updatePeriodMillis = 1 800 000 ms (30 min, the minimum the OS will honour).
+      More frequent data refreshes happen when the app is foregrounded or data changes.
+    - targetCellWidth/Height (API 31+) are used by Android 12+ launchers for snapping;
+      minWidth/minHeight provide the fallback for older versions.
+-->
+<appwidget-provider
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:updatePeriodMillis="1800000"
+    android:initialLayout="@layout/widget_goflo"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_description" />
