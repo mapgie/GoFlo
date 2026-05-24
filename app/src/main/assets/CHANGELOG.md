@@ -19,6 +19,36 @@ Rules:
 
 ---
 
+## [0.9.0-beta.1] - 2026-05-24
+
+### Added
+- **Custom tracking categories** — create any category (Mood, Discharge, Weather…) with
+  user-defined value options; log entries per day via the FAB or long-pressing a calendar day
+- **Flow & Symptoms as system categories** — pre-seeded with their existing values; editable
+  but not deletable; the start of a unified per-day tracking model
+- **Manage Categories screen** (Settings → Tracking Categories) — add, rename, and delete
+  categories and their values; system categories show a lock icon
+- **Value rename dialog** — choose "Fix everywhere" (updates all past log entries) or
+  "Rename option only" (leaves historical entries unchanged); ideal for typo corrections
+- **Day Log bottom sheet** — tap any calendar day with data to see a summary of the period
+  entry and all tracking logs for that date; Edit buttons for each section
+- **"Log more…" button** inside the Day Log sheet — opens the log-type picker for that day
+- **Quick Log setting** (Settings) — choose whether the FAB short-press opens Log Period
+  or any custom tracking category
+- **Calendar tracking dots** — days with tracking entries (but no period) show a
+  secondary-colour dot for at-a-glance visibility
+
+### Changed
+- **FAB redesigned** — pill-shaped "Log…" button; short-press = Quick Log,
+  long-press = menu listing Log Period + each tracking category
+- **Calendar tap behaviour** — tapping a day that already has data opens the Day Log
+  summary sheet instead of jumping straight to the log form
+- **Calendar long-press** — long-pressing any day now runs Quick Log for that specific date
+- **DB bumped to version 3** — migration creates four new tracking tables; existing data
+  is untouched; fresh installs seed Flow and Symptoms system categories automatically
+
+---
+
 ## [0.8.3-beta.1] - 2026-05-23
 
 ### Changed
