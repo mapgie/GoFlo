@@ -19,6 +19,31 @@ Rules:
 
 ---
 
+## [0.9.1-beta.1] - 2026-05-24
+
+### Fixed
+- **Crash on theme change** — changing the colour theme no longer crashes.  The
+  root cause was `PackageManager.setComponentEnabledSetting()` being called
+  five times in rapid succession inside a `LaunchedEffect(currentTheme)` every
+  time the user tapped a new palette, which could destabilise the launcher on
+  some devices.  The app icon is now managed entirely separately from the
+  colour theme.
+
+### Added
+- **App icon picker** (Settings → Appearance) — choose your launcher icon
+  independently of the colour theme:
+  - *Drop icons* — five colour-tinted variants (Coral, Teal, Sage, Dark, Blue)
+  - *Discreet icons* — **Leaf**, **Moon**, and **Star** shapes that give no
+    hint the app is a period tracker; ideal for privacy on a shared or
+    visible home screen
+  - *Your own icon* — pick any image from the gallery; GoFlo creates a
+    pinned home-screen shortcut with a 512 × 512 px crop of that image as
+    the icon, which can then replace the original in the launcher's app
+    drawer.  On-screen instructions cover image format (PNG or JPEG),
+    recommended size (512 × 512 px), and how to hide the original icon.
+
+---
+
 ## [0.9.0-beta.1] - 2026-05-24
 
 ### Added
