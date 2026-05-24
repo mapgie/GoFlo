@@ -20,6 +20,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -84,6 +85,12 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
 
             val appPrefs by app.preferencesStore.preferences.collectAsState(initial = initialPrefs)
             val currentTheme = runCatching { AppTheme.valueOf(appPrefs.theme) }.getOrDefault(AppTheme.CORAL)
+
+            // Keep the launcher icon in sync with the selected theme.
+            // Runs on first composition and re-runs whenever currentTheme changes.
+            LaunchedEffect(currentTheme) {
+                AppIconManager.applyIcon(applicationContext, currentTheme)
+            }
 
             GoFloTheme(appTheme = currentTheme) {
                 when (appState) {
