@@ -67,8 +67,10 @@ enum class AppTheme(
     COLOUR_HAPPY("Colour Me Happy",         ThemeGroup.LIGHT, 0xFFC13A00L),
     COLOUR_HAPPY_DARK("Colour Me Happy",    ThemeGroup.DARK,  0xFFFFB59AL, isDark = true),
 
-    // ── System auto (Teal palette, follows device light/dark preference) ──────
-    SYSTEM("Follow system",   ThemeGroup.SYSTEM,     0xFF9E9E9EL),
+    // ── System auto (palette-matched, follows device light/dark preference) ───
+    SYSTEM("Follow system",       ThemeGroup.SYSTEM, 0xFF80D5DBL),
+    CORAL_SYSTEM("Follow system", ThemeGroup.SYSTEM, 0xFFFFB4A8L),
+    GREEN_SYSTEM("Follow system", ThemeGroup.SYSTEM, 0xFF9DD679L),
 
     // ── Accessibility ─────────────────────────────────────────────────────────
     HIGH_CONTRAST_LIGHT("Light",  ThemeGroup.HIGH_CONTRAST, 0xFF1A1A1AL),
@@ -648,7 +650,8 @@ fun colorSchemeFor(theme: AppTheme, systemIsDark: Boolean = false): ColorScheme 
     AppTheme.COLOUR_HAPPY_DARK  -> ColourHappyDark
     // System
     AppTheme.SYSTEM             -> if (systemIsDark) TurquoiseDark else TurquoiseLight
-    // Accessibility
+    AppTheme.CORAL_SYSTEM       -> if (systemIsDark) CoralDark else CoralLight
+    AppTheme.GREEN_SYSTEM       -> if (systemIsDark) GreenDark else GreenLight
     AppTheme.HIGH_CONTRAST_LIGHT -> HighContrastLight
     AppTheme.HIGH_CONTRAST_DARK  -> HighContrastDark
     AppTheme.BLUE_ORANGE         -> BlueOrange

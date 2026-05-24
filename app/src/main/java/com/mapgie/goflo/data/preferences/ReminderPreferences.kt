@@ -41,6 +41,10 @@ data class AppPreferences(
      * and opens LogCategoryScreen for that category.
      */
     val quickLogCategoryId: Long = -1L,
+    /** Whether to show predicted future period days on the calendar. */
+    val showPeriodPrediction: Boolean = true,
+    /** Whether to show ovulation day and fertility-window markers on the calendar. */
+    val showOvulationMarkers: Boolean = true,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -56,6 +60,8 @@ class AppPreferencesStore(private val context: Context) {
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
         val PREFERRED_CYCLE_LENGTH = intPreferencesKey("preferred_cycle_length")
         val QUICK_LOG_CATEGORY_ID = longPreferencesKey("quick_log_category_id")
+        val SHOW_PERIOD_PREDICTION = booleanPreferencesKey("show_period_prediction")
+        val SHOW_OVULATION_MARKERS = booleanPreferencesKey("show_ovulation_markers")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -64,6 +70,8 @@ class AppPreferencesStore(private val context: Context) {
             iconChoice = prefs[Keys.ICON_CHOICE] ?: "DROP_CORAL",
             preferredCycleLength = prefs[Keys.PREFERRED_CYCLE_LENGTH] ?: 0,
             quickLogCategoryId = prefs[Keys.QUICK_LOG_CATEGORY_ID] ?: -1L,
+            showPeriodPrediction = prefs[Keys.SHOW_PERIOD_PREDICTION] ?: true,
+            showOvulationMarkers = prefs[Keys.SHOW_OVULATION_MARKERS] ?: true,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -114,6 +122,14 @@ class AppPreferencesStore(private val context: Context) {
      *             are rejected with [IllegalArgumentException] to prevent silent
      *             corruption of cycle predictions.
      */
+    suspend fun setShowPeriodPrediction(show: Boolean) {
+        context.dataStore.edit { it[Keys.SHOW_PERIOD_PREDICTION] = show }
+    }
+
+    suspend fun setShowOvulationMarkers(show: Boolean) {
+        context.dataStore.edit { it[Keys.SHOW_OVULATION_MARKERS] = show }
+    }
+
     suspend fun setPreferredCycleLength(days: Int) {
         require(days == 0 || days in 21..45) {
             "preferredCycleLength must be 0 (auto) or in 21..45, got $days"
