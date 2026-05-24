@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,12 @@ data class AppPreferences(
      * 0 means "auto" — the app calculates the average from logged history.
      */
     val preferredCycleLength: Int = 0,
+    /**
+     * The tracking category ID to open when the user taps the FAB (Quick Log).
+     * -1L means "Log Period" (the default). Any other value is a TrackingCategory.id
+     * and opens LogCategoryScreen for that category.
+     */
+    val quickLogCategoryId: Long = -1L,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -41,12 +48,14 @@ class AppPreferencesStore(private val context: Context) {
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
         val PREFERRED_CYCLE_LENGTH = intPreferencesKey("preferred_cycle_length")
+        val QUICK_LOG_CATEGORY_ID = longPreferencesKey("quick_log_category_id")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
         AppPreferences(
             theme = prefs[Keys.THEME] ?: "CORAL",
             preferredCycleLength = prefs[Keys.PREFERRED_CYCLE_LENGTH] ?: 0,
+            quickLogCategoryId = prefs[Keys.QUICK_LOG_CATEGORY_ID] ?: -1L,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -98,5 +107,13 @@ class AppPreferencesStore(private val context: Context) {
             "preferredCycleLength must be 0 (auto) or in 21..45, got $days"
         }
         context.dataStore.edit { it[Keys.PREFERRED_CYCLE_LENGTH] = days }
+    }
+
+    /**
+     * Sets the default Quick Log target.
+     * @param categoryId -1L for "Log Period"; any other value is a TrackingCategory.id.
+     */
+    suspend fun setQuickLogCategoryId(categoryId: Long) {
+        context.dataStore.edit { it[Keys.QUICK_LOG_CATEGORY_ID] = categoryId }
     }
 }

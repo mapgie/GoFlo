@@ -1,8 +1,9 @@
 package com.mapgie.goflo.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,9 +37,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun CalendarGrid(
@@ -47,8 +48,13 @@ fun CalendarGrid(
     ovulationDay: LocalDate?,
     /** Full ±2-day fertility window; each date in this set gets a small indicator dot. */
     ovulationWindow: Set<LocalDate> = emptySet(),
+    /** Dates that have at least one tracking category log entry (non-period). */
+    daysWithTrackingLogs: Set<LocalDate> = emptySet(),
     today: LocalDate = LocalDate.now(),
+    /** Called on a normal tap. */
     onDayClick: (LocalDate) -> Unit,
+    /** Called on a long-press. Opens Quick Log for that day. */
+    onDayLongClick: (LocalDate) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var displayMonth by rememberSaveable { mutableStateOf(YearMonth.now()) }
@@ -68,8 +74,10 @@ fun CalendarGrid(
             predictedDays = predictedDays,
             ovulationDay = ovulationDay,
             ovulationWindow = ovulationWindow,
+            daysWithTrackingLogs = daysWithTrackingLogs,
             today = today,
             onDayClick = onDayClick,
+            onDayLongClick = onDayLongClick,
         )
     }
 }
@@ -117,8 +125,10 @@ private fun CalendarDays(
     predictedDays: Set<LocalDate>,
     ovulationDay: LocalDate?,
     ovulationWindow: Set<LocalDate>,
+    daysWithTrackingLogs: Set<LocalDate>,
     today: LocalDate,
     onDayClick: (LocalDate) -> Unit,
+    onDayLongClick: (LocalDate) -> Unit,
 ) {
     val firstDayOfMonth = month.atDay(1)
     val startOffset = firstDayOfMonth.dayOfWeek.value % 7
@@ -140,8 +150,10 @@ private fun CalendarDays(
                             isPredicted = date in predictedDays,
                             isOvulation = date == ovulationDay,
                             isOvulationWindow = date in ovulationWindow && date != ovulationDay,
+                            hasTrackingLog = date in daysWithTrackingLogs && date !in periodDays,
                             isToday     = date == today,
                             onClick     = { onDayClick(date) },
+                            onLongClick = { onDayLongClick(date) },
                             modifier    = Modifier.weight(1f),
                         )
                     } else {
@@ -155,6 +167,7 @@ private fun CalendarDays(
 
 private val accessibilityDateFormat = DateTimeFormatter.ofPattern("MMMM d")
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun DayCell(
     date: LocalDate,
@@ -163,8 +176,11 @@ private fun DayCell(
     isOvulation: Boolean,
     /** True for the ±2 days surrounding the peak ovulation day. */
     isOvulationWindow: Boolean,
+    /** True when the day has a tracking log entry but is not a period day. */
+    hasTrackingLog: Boolean,
     isToday: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val primary = MaterialTheme.colorScheme.primary
@@ -182,6 +198,7 @@ private fun DayCell(
             isOvulation       -> append(", ovulation day")
             isOvulationWindow -> append(", fertility window")
         }
+        if (hasTrackingLog) append(", has tracking entry")
     }
 
     Box(
@@ -189,7 +206,10 @@ private fun DayCell(
             .aspectRatio(1f)
             // Full cell is the touch target (≥48 dp on typical phones) so users
             // don't have to hit the 36 dp inner circle precisely.
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             // clearAndSetSemantics replaces all child semantics so TalkBack reads
             // only this description, not the raw day-number Text inside the Box.
             .clearAndSetSemantics { contentDescription = cellDescription }
@@ -226,6 +246,9 @@ private fun DayCell(
                     isOvulationWindow -> // 4 dp softer dot for surrounding window days
                         Box(Modifier.size(4.dp).clip(CircleShape)
                             .background((if (isPeriod) Color.White else primary).copy(alpha = 0.5f)))
+                    hasTrackingLog -> // 4 dp secondary-coloured dot for tracking entries
+                        Box(Modifier.size(4.dp).clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.secondary))
                 }
             }
         }
