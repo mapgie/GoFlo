@@ -3,6 +3,7 @@ package com.mapgie.goflo.ui.screens.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.mapgie.goflo.AppIconChoice
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -34,7 +35,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
@@ -87,7 +92,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Tune
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
@@ -196,8 +202,13 @@ fun SettingsScreen(
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
 
+    val currentIconChoice = runCatching {
+        AppIconChoice.valueOf(prefs.iconChoice)
+    }.getOrDefault(AppIconChoice.DROP_CORAL)
+
     var showTimePicker        by rememberSaveable { mutableStateOf(false) }
     var showRemovePinDialog   by rememberSaveable { mutableStateOf(false) }
+    var customIconError       by remember { mutableStateOf<String?>(null) }
     var showDisclaimer        by rememberSaveable { mutableStateOf(false) }
     var showDeleteAllDialog   by rememberSaveable { mutableStateOf(false) }
     var showChangelog         by rememberSaveable { mutableStateOf(false) }
@@ -211,6 +222,14 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) { pendingImportUri = uri; showImportOptionsDialog = true }
+    }
+
+    val customIconPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.createCustomIconShortcut(uri) { error -> customIconError = error }
+        }
     }
 
     val timeState = rememberTimePickerState(
@@ -381,6 +400,15 @@ fun SettingsScreen(
         )
     }
 
+    customIconError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { customIconError = null },
+            title            = { Text("Couldn't create shortcut") },
+            text             = { Text(message) },
+            confirmButton    = { TextButton(onClick = { customIconError = null }) { Text("OK") } }
+        )
+    }
+
     // ── Computed summaries for collapsed headers ───────────────────────────────
 
     val activeReminderCount = listOf(
@@ -419,7 +447,110 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
-            // ── 1. Reminders ──────────────────────────────────────────────────
+            // ═══════════════════════════════════════════════════════════════════
+            // TRACKING
+            // Core tracking configuration — most users visit this group first
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Tracking")
+
+            // Cycle ────────────────────────────────────────────────────────────
+            CollapsibleSection(
+                title   = "Cycle",
+                icon    = Icons.Outlined.Autorenew,
+                summary = cycleSummary
+            ) {
+                val customEnabled = prefs.preferredCycleLength > 0
+                SwitchRow(
+                    label    = "Custom cycle length",
+                    subtitle = if (customEnabled)
+                        "Using ${prefs.preferredCycleLength} days"
+                    else
+                        "Auto — calculated from your history",
+                    checked        = customEnabled,
+                    onCheckedChange = { on ->
+                        viewModel.setPreferredCycleLength(
+                            if (on) prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
+                            else 0
+                        )
+                    }
+                )
+                if (customEnabled) {
+                    var sliderDays by remember(prefs.preferredCycleLength) {
+                        mutableStateOf(prefs.preferredCycleLength.toFloat())
+                    }
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(
+                            "Cycle length: ${sliderDays.toInt()} days",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value                = sliderDays,
+                            onValueChange        = { sliderDays = it },
+                            onValueChangeFinished = { viewModel.setPreferredCycleLength(sliderDays.toInt()) },
+                            valueRange           = 21f..45f,
+                            steps                = 23
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("21 days", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("45 days", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            // What You Track — nav card (high-value feature, given prominent nav treatment) ──
+            SettingsNavCard(
+                title    = "What You Track",
+                subtitle = "Customise the symptoms & metrics you log",
+                icon     = Icons.Outlined.Tune,
+                onClick  = onNavigateToManageCategories
+            )
+
+            // One-Tap Quick Log ────────────────────────────────────────────────
+            CollapsibleSection(
+                title   = "One-Tap Quick Log",
+                icon    = Icons.Outlined.TouchApp,
+                summary = if (prefs.quickLogCategoryId == -1L) "Tap → Period"
+                          else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
+                              ?.let { "Tap → $it" } ?: "Tap → Period"
+            ) {
+                Text(
+                    "When you tap the quick-add button, it logs:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                // Log Period option
+                FilterChip(
+                    selected = prefs.quickLogCategoryId == -1L,
+                    onClick  = { viewModel.setQuickLogCategory(-1L) },
+                    label    = { Text("Period") },
+                    leadingIcon = if (prefs.quickLogCategoryId == -1L) {
+                        { Icon(Icons.Default.Check, contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else null
+                )
+                // One chip per tracking category
+                categories.forEach { cat ->
+                    FilterChip(
+                        selected = prefs.quickLogCategoryId == cat.id,
+                        onClick  = { viewModel.setQuickLogCategory(cat.id) },
+                        label    = { Text(cat.name) },
+                        leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
+                            { Icon(Icons.Default.Check, contentDescription = null,
+                                modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                        } else null
+                    )
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // NOTIFICATIONS
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Notifications")
+
             CollapsibleSection(
                 title   = "Reminders",
                 icon    = Icons.Outlined.NotificationsNone,
@@ -482,54 +613,11 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 2. Cycle ──────────────────────────────────────────────────────
-            CollapsibleSection(
-                title   = "Cycle",
-                icon    = Icons.Outlined.Autorenew,
-                summary = cycleSummary
-            ) {
-                val customEnabled = prefs.preferredCycleLength > 0
-                SwitchRow(
-                    label    = "Custom cycle length",
-                    subtitle = if (customEnabled)
-                        "Using ${prefs.preferredCycleLength} days"
-                    else
-                        "Auto — calculated from your history",
-                    checked        = customEnabled,
-                    onCheckedChange = { on ->
-                        viewModel.setPreferredCycleLength(
-                            if (on) prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
-                            else 0
-                        )
-                    }
-                )
-                if (customEnabled) {
-                    var sliderDays by remember(prefs.preferredCycleLength) {
-                        mutableStateOf(prefs.preferredCycleLength.toFloat())
-                    }
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(
-                            "Cycle length: ${sliderDays.toInt()} days",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Slider(
-                            value                = sliderDays,
-                            onValueChange        = { sliderDays = it },
-                            onValueChangeFinished = { viewModel.setPreferredCycleLength(sliderDays.toInt()) },
-                            valueRange           = 21f..45f,
-                            steps                = 23
-                        )
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("21 days", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("45 days", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
+            // ═══════════════════════════════════════════════════════════════════
+            // PERSONALISATION
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Personalisation")
 
-            // ── 3. Appearance ─────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "Appearance",
                 icon    = Icons.Outlined.Palette,
@@ -539,13 +627,31 @@ fun SettingsScreen(
                     current  = currentTheme,
                     onSelect = { viewModel.setTheme(it.name) }
                 )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color    = MaterialTheme.colorScheme.outlineVariant
+                )
+
+                AppIconPicker(
+                    currentChoice       = currentIconChoice,
+                    onSelect            = { viewModel.setIconChoice(it) },
+                    onPickCustomImage   = { customIconPicker.launch("image/*") }
+                )
             }
 
-            // ── 4. Security & Privacy ─────────────────────────────────────────
+            // ═══════════════════════════════════════════════════════════════════
+            // PRIVACY & DATA
+            // Security first — then data management
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Privacy & Data")
+
+            // Security & Privacy — icon tint shifts to error colour when unprotected
             CollapsibleSection(
-                title   = "Security & Privacy",
-                icon    = Icons.Outlined.Lock,
-                summary = securitySummary
+                title    = "Security & Privacy",
+                icon     = Icons.Outlined.Lock,
+                summary  = securitySummary,
+                iconTint = if (!security.hasPinSet) MaterialTheme.colorScheme.error else null
             ) {
                 if (!security.hasPinSet) {
                     Text(
@@ -588,20 +694,11 @@ fun SettingsScreen(
                         )
                     }
                 }
-
-                Spacer(Modifier.height(4.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(Modifier.height(4.dp))
-
-                OutlinedButton(
-                    onClick  = { showDisclaimer = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("View Privacy & Medical Disclaimer") }
             }
 
-            // ── 5. Data ───────────────────────────────────────────────────────
+            // Data & Backup (renamed from "Data" — title alone was too vague)
             CollapsibleSection(
-                title   = "Data",
+                title   = "Data & Backup",
                 icon    = Icons.Outlined.Storage,
                 summary = "Export, import & manage your data"
             ) {
@@ -646,74 +743,11 @@ fun SettingsScreen(
                 ) { Text("Delete All Data") }
             }
 
-            // ── Tracking Categories nav card ──────────────────────────────────
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                onClick  = onNavigateToManageCategories,
-                colors   = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Row(
-                    modifier             = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment    = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(Icons.Outlined.Category, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Tracking Categories",
-                            style = MaterialTheme.typography.bodyMedium)
-                        Text("Manage what you track each day",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Icon(Icons.Default.ChevronRight, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+            // ═══════════════════════════════════════════════════════════════════
+            // ABOUT
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("About")
 
-            // ── Quick Log ─────────────────────────────────────────────────────
-            CollapsibleSection(
-                title   = "Quick Log",
-                icon    = Icons.Outlined.Category,
-                summary = if (prefs.quickLogCategoryId == -1L) "Log Period"
-                          else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
-                              ?.let { "Log $it" } ?: "Log Period"
-            ) {
-                Text(
-                    "FAB short-press logs:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(4.dp))
-                // Log Period option
-                FilterChip(
-                    selected = prefs.quickLogCategoryId == -1L,
-                    onClick  = { viewModel.setQuickLogCategory(-1L) },
-                    label    = { Text("Log Period") },
-                    leadingIcon = if (prefs.quickLogCategoryId == -1L) {
-                        { Icon(Icons.Default.Check, contentDescription = null,
-                            modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                    } else null
-                )
-                // One chip per tracking category
-                categories.forEach { cat ->
-                    FilterChip(
-                        selected = prefs.quickLogCategoryId == cat.id,
-                        onClick  = { viewModel.setQuickLogCategory(cat.id) },
-                        label    = { Text("Log ${cat.name}") },
-                        leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
-                            { Icon(Icons.Default.Check, contentDescription = null,
-                                modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                        } else null
-                    )
-                }
-            }
-
-            // ── 6. About ──────────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "About",
                 icon    = Icons.Outlined.Info,
@@ -760,6 +794,22 @@ fun SettingsScreen(
                 }
             }
 
+            // Medical disclaimer — always visible at the very bottom, never buried
+            OutlinedButton(
+                onClick  = { showDisclaimer = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+            ) {
+                Icon(
+                    imageVector        = Icons.Outlined.Info,
+                    contentDescription = null,
+                    modifier           = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Medical Disclaimer")
+            }
+
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -769,10 +819,11 @@ fun SettingsScreen(
 
 @Composable
 private fun CollapsibleSection(
-    title:   String,
-    icon:    ImageVector,
-    summary: String,
-    content: @Composable () -> Unit
+    title:    String,
+    icon:     ImageVector,
+    summary:  String,
+    iconTint: Color? = null,
+    content:  @Composable () -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val chevronAngle by animateFloatAsState(
@@ -806,7 +857,7 @@ private fun CollapsibleSection(
                     Icon(
                         imageVector        = icon,
                         contentDescription = null,
-                        tint               = MaterialTheme.colorScheme.primary,
+                        tint               = iconTint ?: MaterialTheme.colorScheme.primary,
                         modifier           = Modifier.size(22.dp)
                     )
                     Column {
@@ -847,6 +898,68 @@ private fun CollapsibleSection(
                     content()
                 }
             }
+        }
+    }
+}
+
+// ── Section header label ──────────────────────────────────────────────────────
+
+/** Subtle uppercase label that visually separates semantic groups. */
+@Composable
+private fun SettingsSectionHeader(title: String) {
+    Text(
+        text     = title.uppercase(),
+        style    = MaterialTheme.typography.labelMedium,
+        color    = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp)
+    )
+}
+
+// ── Navigation card (forward-chevron rows) ─────────────────────────────────────
+
+/**
+ * A tappable card that navigates to another screen.
+ * Visually distinct from [CollapsibleSection] — uses a ChevronRight instead of
+ * the animated expand/collapse arrow, signalling "go somewhere" not "open here".
+ */
+@Composable
+private fun SettingsNavCard(
+    title:   String,
+    subtitle: String,
+    icon:    ImageVector,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick  = onClick,
+        colors   = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector        = icon,
+                contentDescription = null,
+                tint               = MaterialTheme.colorScheme.primary,
+                modifier           = Modifier.size(22.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title,    style = MaterialTheme.typography.titleSmall)
+                Text(subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(
+                imageVector        = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint               = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -1053,6 +1166,182 @@ private fun ThemeChip(theme: AppTheme, selected: Boolean, onClick: () -> Unit) {
             selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
         )
     )
+}
+
+// ── App icon picker ───────────────────────────────────────────────────────────
+
+/** Preview background colour for each icon choice (matches the adaptive-icon background). */
+private val AppIconChoice.previewBg: Color get() = when (this) {
+    AppIconChoice.DROP_CORAL    -> Color(0xFFFFD5CBL)
+    AppIconChoice.DROP_TEAL     -> Color(0xFF9CF0F5L)
+    AppIconChoice.DROP_GREEN    -> Color(0xFFB7F397L)
+    AppIconChoice.DROP_CONTRAST -> Color(0xFFFFFFFFL)
+    AppIconChoice.DROP_BLUE     -> Color(0xFFD3E3FFL)
+    AppIconChoice.LEAF          -> Color(0xFFC8E6C9L)
+    AppIconChoice.MOON          -> Color(0xFFC5CAE9L)
+    AppIconChoice.STAR          -> Color(0xFFFFF9C4L)
+}
+
+/** Icon foreground / tint colour for each choice. */
+private val AppIconChoice.previewFg: Color get() = when (this) {
+    AppIconChoice.DROP_CORAL    -> Color(0xFFC15542L)
+    AppIconChoice.DROP_TEAL     -> Color(0xFF00696FL)
+    AppIconChoice.DROP_GREEN    -> Color(0xFF386A20L)
+    AppIconChoice.DROP_CONTRAST -> Color(0xFF000000L)
+    AppIconChoice.DROP_BLUE     -> Color(0xFF005FADL)
+    AppIconChoice.LEAF          -> Color(0xFF2E7D32L)
+    AppIconChoice.MOON          -> Color(0xFF3949ABL)
+    AppIconChoice.STAR          -> Color(0xFFF57C00L)
+}
+
+private val AppIconChoice.previewIcon: androidx.compose.ui.graphics.vector.ImageVector get() = when (this) {
+    AppIconChoice.DROP_CORAL,
+    AppIconChoice.DROP_TEAL,
+    AppIconChoice.DROP_GREEN,
+    AppIconChoice.DROP_CONTRAST,
+    AppIconChoice.DROP_BLUE    -> Icons.Filled.WaterDrop
+    AppIconChoice.LEAF         -> Icons.Filled.Eco
+    AppIconChoice.MOON         -> Icons.Filled.NightsStay
+    AppIconChoice.STAR         -> Icons.Filled.Star
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppIconPicker(
+    currentChoice:     AppIconChoice,
+    onSelect:          (AppIconChoice) -> Unit,
+    onPickCustomImage: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+        // ── Drop icons ────────────────────────────────────────────────────────
+        Text(
+            "Drop icons",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            AppIconChoice.entries
+                .filter { it.name.startsWith("DROP_") }
+                .forEach { choice ->
+                    IconChoiceCell(
+                        choice   = choice,
+                        selected = choice == currentChoice,
+                        onClick  = { onSelect(choice) }
+                    )
+                }
+        }
+
+        // ── Discreet icons ────────────────────────────────────────────────────
+        Text(
+            "Discreet icons",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            "These don't look like a period app, so GoFlo stays private on your home screen.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            listOf(AppIconChoice.LEAF, AppIconChoice.MOON, AppIconChoice.STAR).forEach { choice ->
+                IconChoiceCell(
+                    choice   = choice,
+                    selected = choice == currentChoice,
+                    onClick  = { onSelect(choice) }
+                )
+            }
+        }
+
+        // ── Custom icon ───────────────────────────────────────────────────────
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Text(
+            "Your own icon",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            "Pick any image and GoFlo will create a home-screen shortcut that uses it as the icon. " +
+            "The shortcut opens the app normally — you can then hide the original app icon in your launcher's settings.\n\n" +
+            "Image requirements: PNG or JPEG · square · 512 × 512 px recommended · transparent background optional.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedButton(
+            onClick  = onPickCustomImage,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Create shortcut with custom image…")
+        }
+    }
+}
+
+@Composable
+private fun IconChoiceCell(
+    choice:   AppIconChoice,
+    selected: Boolean,
+    onClick:  () -> Unit,
+) {
+    val bg     = choice.previewBg
+    val fg     = choice.previewFg
+    val icon   = choice.previewIcon
+    val border = if (selected) MaterialTheme.colorScheme.primary
+                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    val borderWidth = if (selected) 2.5.dp else 1.dp
+
+    Column(
+        modifier            = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(bg)
+                .border(borderWidth, border, RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector        = icon,
+                contentDescription = choice.displayName,
+                tint               = fg,
+                modifier           = Modifier.size(28.dp)
+            )
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector        = Icons.Default.Check,
+                        contentDescription = null,
+                        tint               = MaterialTheme.colorScheme.onPrimary,
+                        modifier           = Modifier.size(10.dp)
+                    )
+                }
+            }
+        }
+        Text(
+            text  = choice.displayName,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 // ── Switch row ────────────────────────────────────────────────────────────────

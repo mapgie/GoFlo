@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Leaf body: lens shape with two pointed ends -->
+    <path
+        android:fillColor="#2E7D32"
+        android:pathData="M54,12 Q82,30 82,54 Q82,78 54,96 Q26,78 26,54 Q26,30 54,12 Z" />
+    <!-- Center vein -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#1B5E20"
+        android:strokeWidth="3"
+        android:pathData="M54,14 L54,94" />
+    <!-- Lateral veins -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#1B5E20"
+        android:strokeWidth="2"
+        android:pathData="M54,36 Q66,42 76,48 M54,36 Q42,42 32,48 M54,58 Q68,62 78,64 M54,58 Q40,62 30,64" />
+</vector>
