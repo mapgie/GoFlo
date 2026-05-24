@@ -92,7 +92,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.TouchApp
+import androidx.compose.material.icons.outlined.Tune
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
@@ -446,7 +447,110 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
-            // ── 1. Reminders ──────────────────────────────────────────────────
+            // ═══════════════════════════════════════════════════════════════════
+            // TRACKING
+            // Core tracking configuration — most users visit this group first
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Tracking")
+
+            // Cycle ────────────────────────────────────────────────────────────
+            CollapsibleSection(
+                title   = "Cycle",
+                icon    = Icons.Outlined.Autorenew,
+                summary = cycleSummary
+            ) {
+                val customEnabled = prefs.preferredCycleLength > 0
+                SwitchRow(
+                    label    = "Custom cycle length",
+                    subtitle = if (customEnabled)
+                        "Using ${prefs.preferredCycleLength} days"
+                    else
+                        "Auto — calculated from your history",
+                    checked        = customEnabled,
+                    onCheckedChange = { on ->
+                        viewModel.setPreferredCycleLength(
+                            if (on) prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
+                            else 0
+                        )
+                    }
+                )
+                if (customEnabled) {
+                    var sliderDays by remember(prefs.preferredCycleLength) {
+                        mutableStateOf(prefs.preferredCycleLength.toFloat())
+                    }
+                    Column(modifier = Modifier.padding(start = 8.dp)) {
+                        Text(
+                            "Cycle length: ${sliderDays.toInt()} days",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Slider(
+                            value                = sliderDays,
+                            onValueChange        = { sliderDays = it },
+                            onValueChangeFinished = { viewModel.setPreferredCycleLength(sliderDays.toInt()) },
+                            valueRange           = 21f..45f,
+                            steps                = 23
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("21 days", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("45 days", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            // What You Track — nav card (high-value feature, given prominent nav treatment) ──
+            SettingsNavCard(
+                title    = "What You Track",
+                subtitle = "Customise the symptoms & metrics you log",
+                icon     = Icons.Outlined.Tune,
+                onClick  = onNavigateToManageCategories
+            )
+
+            // One-Tap Quick Log ────────────────────────────────────────────────
+            CollapsibleSection(
+                title   = "One-Tap Quick Log",
+                icon    = Icons.Outlined.TouchApp,
+                summary = if (prefs.quickLogCategoryId == -1L) "Tap → Period"
+                          else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
+                              ?.let { "Tap → $it" } ?: "Tap → Period"
+            ) {
+                Text(
+                    "When you tap the quick-add button, it logs:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                // Log Period option
+                FilterChip(
+                    selected = prefs.quickLogCategoryId == -1L,
+                    onClick  = { viewModel.setQuickLogCategory(-1L) },
+                    label    = { Text("Period") },
+                    leadingIcon = if (prefs.quickLogCategoryId == -1L) {
+                        { Icon(Icons.Default.Check, contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else null
+                )
+                // One chip per tracking category
+                categories.forEach { cat ->
+                    FilterChip(
+                        selected = prefs.quickLogCategoryId == cat.id,
+                        onClick  = { viewModel.setQuickLogCategory(cat.id) },
+                        label    = { Text(cat.name) },
+                        leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
+                            { Icon(Icons.Default.Check, contentDescription = null,
+                                modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                        } else null
+                    )
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // NOTIFICATIONS
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Notifications")
+
             CollapsibleSection(
                 title   = "Reminders",
                 icon    = Icons.Outlined.NotificationsNone,
@@ -509,54 +613,11 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 2. Cycle ──────────────────────────────────────────────────────
-            CollapsibleSection(
-                title   = "Cycle",
-                icon    = Icons.Outlined.Autorenew,
-                summary = cycleSummary
-            ) {
-                val customEnabled = prefs.preferredCycleLength > 0
-                SwitchRow(
-                    label    = "Custom cycle length",
-                    subtitle = if (customEnabled)
-                        "Using ${prefs.preferredCycleLength} days"
-                    else
-                        "Auto — calculated from your history",
-                    checked        = customEnabled,
-                    onCheckedChange = { on ->
-                        viewModel.setPreferredCycleLength(
-                            if (on) prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
-                            else 0
-                        )
-                    }
-                )
-                if (customEnabled) {
-                    var sliderDays by remember(prefs.preferredCycleLength) {
-                        mutableStateOf(prefs.preferredCycleLength.toFloat())
-                    }
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(
-                            "Cycle length: ${sliderDays.toInt()} days",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Slider(
-                            value                = sliderDays,
-                            onValueChange        = { sliderDays = it },
-                            onValueChangeFinished = { viewModel.setPreferredCycleLength(sliderDays.toInt()) },
-                            valueRange           = 21f..45f,
-                            steps                = 23
-                        )
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("21 days", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("45 days", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            }
+            // ═══════════════════════════════════════════════════════════════════
+            // PERSONALISATION
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Personalisation")
 
-            // ── 3. Appearance ─────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "Appearance",
                 icon    = Icons.Outlined.Palette,
@@ -579,11 +640,18 @@ fun SettingsScreen(
                 )
             }
 
-            // ── 4. Security & Privacy ─────────────────────────────────────────
+            // ═══════════════════════════════════════════════════════════════════
+            // PRIVACY & DATA
+            // Security first — then data management
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Privacy & Data")
+
+            // Security & Privacy — icon tint shifts to error colour when unprotected
             CollapsibleSection(
-                title   = "Security & Privacy",
-                icon    = Icons.Outlined.Lock,
-                summary = securitySummary
+                title    = "Security & Privacy",
+                icon     = Icons.Outlined.Lock,
+                summary  = securitySummary,
+                iconTint = if (!security.hasPinSet) MaterialTheme.colorScheme.error else null
             ) {
                 if (!security.hasPinSet) {
                     Text(
@@ -626,20 +694,11 @@ fun SettingsScreen(
                         )
                     }
                 }
-
-                Spacer(Modifier.height(4.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(Modifier.height(4.dp))
-
-                OutlinedButton(
-                    onClick  = { showDisclaimer = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("View Privacy & Medical Disclaimer") }
             }
 
-            // ── 5. Data ───────────────────────────────────────────────────────
+            // Data & Backup (renamed from "Data" — title alone was too vague)
             CollapsibleSection(
-                title   = "Data",
+                title   = "Data & Backup",
                 icon    = Icons.Outlined.Storage,
                 summary = "Export, import & manage your data"
             ) {
@@ -684,74 +743,11 @@ fun SettingsScreen(
                 ) { Text("Delete All Data") }
             }
 
-            // ── Tracking Categories nav card ──────────────────────────────────
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                onClick  = onNavigateToManageCategories,
-                colors   = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Row(
-                    modifier             = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment    = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(Icons.Outlined.Category, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Tracking Categories",
-                            style = MaterialTheme.typography.bodyMedium)
-                        Text("Manage what you track each day",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Icon(Icons.Default.ChevronRight, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
+            // ═══════════════════════════════════════════════════════════════════
+            // ABOUT
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("About")
 
-            // ── Quick Log ─────────────────────────────────────────────────────
-            CollapsibleSection(
-                title   = "Quick Log",
-                icon    = Icons.Outlined.Category,
-                summary = if (prefs.quickLogCategoryId == -1L) "Log Period"
-                          else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
-                              ?.let { "Log $it" } ?: "Log Period"
-            ) {
-                Text(
-                    "FAB short-press logs:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(4.dp))
-                // Log Period option
-                FilterChip(
-                    selected = prefs.quickLogCategoryId == -1L,
-                    onClick  = { viewModel.setQuickLogCategory(-1L) },
-                    label    = { Text("Log Period") },
-                    leadingIcon = if (prefs.quickLogCategoryId == -1L) {
-                        { Icon(Icons.Default.Check, contentDescription = null,
-                            modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                    } else null
-                )
-                // One chip per tracking category
-                categories.forEach { cat ->
-                    FilterChip(
-                        selected = prefs.quickLogCategoryId == cat.id,
-                        onClick  = { viewModel.setQuickLogCategory(cat.id) },
-                        label    = { Text("Log ${cat.name}") },
-                        leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
-                            { Icon(Icons.Default.Check, contentDescription = null,
-                                modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                        } else null
-                    )
-                }
-            }
-
-            // ── 6. About ──────────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "About",
                 icon    = Icons.Outlined.Info,
@@ -798,6 +794,22 @@ fun SettingsScreen(
                 }
             }
 
+            // Medical disclaimer — always visible at the very bottom, never buried
+            OutlinedButton(
+                onClick  = { showDisclaimer = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp)
+            ) {
+                Icon(
+                    imageVector        = Icons.Outlined.Info,
+                    contentDescription = null,
+                    modifier           = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Medical Disclaimer")
+            }
+
             Spacer(Modifier.height(8.dp))
         }
     }
@@ -807,10 +819,11 @@ fun SettingsScreen(
 
 @Composable
 private fun CollapsibleSection(
-    title:   String,
-    icon:    ImageVector,
-    summary: String,
-    content: @Composable () -> Unit
+    title:    String,
+    icon:     ImageVector,
+    summary:  String,
+    iconTint: Color? = null,
+    content:  @Composable () -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
     val chevronAngle by animateFloatAsState(
@@ -844,7 +857,7 @@ private fun CollapsibleSection(
                     Icon(
                         imageVector        = icon,
                         contentDescription = null,
-                        tint               = MaterialTheme.colorScheme.primary,
+                        tint               = iconTint ?: MaterialTheme.colorScheme.primary,
                         modifier           = Modifier.size(22.dp)
                     )
                     Column {
@@ -885,6 +898,68 @@ private fun CollapsibleSection(
                     content()
                 }
             }
+        }
+    }
+}
+
+// ── Section header label ──────────────────────────────────────────────────────
+
+/** Subtle uppercase label that visually separates semantic groups. */
+@Composable
+private fun SettingsSectionHeader(title: String) {
+    Text(
+        text     = title.uppercase(),
+        style    = MaterialTheme.typography.labelMedium,
+        color    = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp)
+    )
+}
+
+// ── Navigation card (forward-chevron rows) ─────────────────────────────────────
+
+/**
+ * A tappable card that navigates to another screen.
+ * Visually distinct from [CollapsibleSection] — uses a ChevronRight instead of
+ * the animated expand/collapse arrow, signalling "go somewhere" not "open here".
+ */
+@Composable
+private fun SettingsNavCard(
+    title:   String,
+    subtitle: String,
+    icon:    ImageVector,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick  = onClick,
+        colors   = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector        = icon,
+                contentDescription = null,
+                tint               = MaterialTheme.colorScheme.primary,
+                modifier           = Modifier.size(22.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title,    style = MaterialTheme.typography.titleSmall)
+                Text(subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(
+                imageVector        = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint               = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
