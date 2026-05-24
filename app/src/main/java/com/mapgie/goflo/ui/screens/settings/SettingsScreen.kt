@@ -86,6 +86,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.outlined.Category
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
@@ -184,11 +186,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToPinSetup: (changing: Boolean) -> Unit,
     onNavigateToLicenses: () -> Unit,
-    onNavigateToPrivacy: () -> Unit
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToManageCategories: () -> Unit = {}
 ) {
-    val context  = LocalContext.current
-    val prefs    by viewModel.prefs.collectAsState()
-    val security by viewModel.securitySettings.collectAsState()
+    val context    = LocalContext.current
+    val prefs      by viewModel.prefs.collectAsState()
+    val security   by viewModel.securitySettings.collectAsState()
+    val categories by viewModel.trackingCategories.collectAsState()
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
 
@@ -640,6 +644,73 @@ fun SettingsScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) { Text("Delete All Data") }
+            }
+
+            // ── Tracking Categories nav card ──────────────────────────────────
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                onClick  = onNavigateToManageCategories,
+                colors   = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier             = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment    = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(Icons.Outlined.Category, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Tracking Categories",
+                            style = MaterialTheme.typography.bodyMedium)
+                        Text("Manage what you track each day",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            // ── Quick Log ─────────────────────────────────────────────────────
+            CollapsibleSection(
+                title   = "Quick Log",
+                icon    = Icons.Outlined.Category,
+                summary = if (prefs.quickLogCategoryId == -1L) "Log Period"
+                          else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
+                              ?.let { "Log $it" } ?: "Log Period"
+            ) {
+                Text(
+                    "FAB short-press logs:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(4.dp))
+                // Log Period option
+                FilterChip(
+                    selected = prefs.quickLogCategoryId == -1L,
+                    onClick  = { viewModel.setQuickLogCategory(-1L) },
+                    label    = { Text("Log Period") },
+                    leadingIcon = if (prefs.quickLogCategoryId == -1L) {
+                        { Icon(Icons.Default.Check, contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else null
+                )
+                // One chip per tracking category
+                categories.forEach { cat ->
+                    FilterChip(
+                        selected = prefs.quickLogCategoryId == cat.id,
+                        onClick  = { viewModel.setQuickLogCategory(cat.id) },
+                        label    = { Text("Log ${cat.name}") },
+                        leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
+                            { Icon(Icons.Default.Check, contentDescription = null,
+                                modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                        } else null
+                    )
+                }
             }
 
             // ── 6. About ──────────────────────────────────────────────────────

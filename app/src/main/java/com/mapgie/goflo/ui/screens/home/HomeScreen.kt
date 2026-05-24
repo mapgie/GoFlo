@@ -64,7 +64,7 @@ fun HomeScreen(
     // Date to use when the menu is opened from a long-press on a specific calendar day
     var logMenuTargetDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    val logMenuSheetState = rememberModalBottomSheetState(skipPartialExpansion = true)
+    val logMenuSheetState = rememberModalBottomSheetState()
 
     // ── Quick Log helper ──────────────────────────────────────────────────────
 

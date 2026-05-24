@@ -57,7 +57,7 @@ fun DayLogSheet(
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
     onLogMore: () -> Unit              // Opens the FAB long-press action menu
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartialExpansion = false)
+    val sheetState = rememberModalBottomSheetState()
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
