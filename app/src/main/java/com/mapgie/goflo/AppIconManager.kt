@@ -55,7 +55,12 @@ object AppIconManager {
             } else {
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED
             }
-            pm.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
+            // setComponentEnabledSetting can throw if the alias is missing from the
+            // manifest (e.g., in a test build) or if Android rate-limits rapid calls.
+            // Swallow safely — a stale launcher icon is preferable to a crash.
+            runCatching {
+                pm.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
+            }
         }
     }
 }

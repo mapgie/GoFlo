@@ -127,7 +127,9 @@ private enum class StandardPalette(
 }
 
 private val AppTheme.themeMode: ThemeMode? get() = when (this) {
-    AppTheme.SYSTEM                              -> ThemeMode.SYSTEM
+    AppTheme.SYSTEM,
+    AppTheme.CORAL_SYSTEM,
+    AppTheme.GREEN_SYSTEM                        -> ThemeMode.SYSTEM
     AppTheme.CORAL, AppTheme.TURQUOISE,
     AppTheme.GREEN,
     AppTheme.SUMMER_CANDY, AppTheme.BEACH_VIBES,
@@ -144,9 +146,12 @@ private val AppTheme.themeMode: ThemeMode? get() = when (this) {
 }
 
 private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
-    AppTheme.CORAL,           AppTheme.CORAL_DARK          -> StandardPalette.CORAL
-    AppTheme.TURQUOISE,       AppTheme.TURQUOISE_DARK      -> StandardPalette.TEAL
-    AppTheme.GREEN,           AppTheme.GREEN_DARK          -> StandardPalette.SAGE
+    AppTheme.CORAL,           AppTheme.CORAL_DARK,
+    AppTheme.CORAL_SYSTEM                                  -> StandardPalette.CORAL
+    AppTheme.TURQUOISE,       AppTheme.TURQUOISE_DARK,
+    AppTheme.SYSTEM                                        -> StandardPalette.TEAL
+    AppTheme.GREEN,           AppTheme.GREEN_DARK,
+    AppTheme.GREEN_SYSTEM                                  -> StandardPalette.SAGE
     AppTheme.SUMMER_CANDY,    AppTheme.SUMMER_CANDY_DARK   -> StandardPalette.SUMMER_CANDY
     AppTheme.BEACH_VIBES,     AppTheme.BEACH_VIBES_DARK    -> StandardPalette.BEACH_VIBES
     AppTheme.PEACH_MELBA,     AppTheme.PEACH_MELBA_DARK    -> StandardPalette.PEACH_MELBA
@@ -158,7 +163,9 @@ private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
 }
 
 private val AppTheme.summaryLabel: String get() = when (this) {
-    AppTheme.SYSTEM                -> "Follow system"
+    AppTheme.SYSTEM                -> "Teal · Auto"
+    AppTheme.CORAL_SYSTEM          -> "Coral · Auto"
+    AppTheme.GREEN_SYSTEM          -> "Sage · Auto"
     AppTheme.CORAL                 -> "Coral · Light"
     AppTheme.TURQUOISE             -> "Teal · Light"
     AppTheme.GREEN                 -> "Sage · Light"
@@ -447,6 +454,32 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
+            // ── Medical device disclaimer banner (always visible at top) ─────
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors   = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Row(
+                    modifier              = Modifier.padding(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment     = Alignment.Top
+                ) {
+                    Icon(
+                        imageVector        = Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint               = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier           = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text  = "Not a medical device. GoFlo is for personal tracking only and is not a substitute for professional medical advice.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+
             // ═══════════════════════════════════════════════════════════════════
             // TRACKING
             // Core tracking configuration — most users visit this group first
@@ -498,6 +531,22 @@ fun SettingsScreen(
                         }
                     }
                 }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                SwitchRow(
+                    label           = "Show period predictions",
+                    subtitle        = "Display predicted future period days on the calendar",
+                    checked         = prefs.showPeriodPrediction,
+                    onCheckedChange = { viewModel.setShowPeriodPrediction(it) }
+                )
+
+                SwitchRow(
+                    label           = "Show ovulation markers",
+                    subtitle        = "Display ovulation day and fertility window on the calendar",
+                    checked         = prefs.showOvulationMarkers,
+                    onCheckedChange = { viewModel.setShowOvulationMarkers(it) }
+                )
             }
 
             // What You Track — nav card (high-value feature, given prominent nav treatment) ──
@@ -794,9 +843,9 @@ fun SettingsScreen(
                 }
             }
 
-            // Medical disclaimer — always visible at the very bottom, never buried
+            // Privacy & Disclaimer — always visible at the very bottom, never buried
             OutlinedButton(
-                onClick  = { showDisclaimer = true },
+                onClick  = onNavigateToPrivacy,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp)
@@ -807,7 +856,7 @@ fun SettingsScreen(
                     modifier           = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Medical Disclaimer")
+                Text("Privacy Policy & Medical Disclaimer")
             }
 
             Spacer(Modifier.height(8.dp))
@@ -1005,7 +1054,19 @@ private fun CompactThemePicker(current: AppTheme, onSelect: (AppTheme) -> Unit) 
                         )
                         .clickable {
                             when (mode) {
-                                ThemeMode.SYSTEM -> onSelect(AppTheme.SYSTEM)
+                                ThemeMode.SYSTEM -> {
+                                    // Preserve the current palette so "Auto" uses the
+                                    // user's chosen colour, not the hardcoded teal default.
+                                    val palette = currentPalette ?: StandardPalette.TEAL
+                                    onSelect(
+                                        when (palette) {
+                                            StandardPalette.CORAL -> AppTheme.CORAL_SYSTEM
+                                            StandardPalette.TEAL  -> AppTheme.SYSTEM
+                                            StandardPalette.SAGE  -> AppTheme.GREEN_SYSTEM
+                                            else                  -> AppTheme.SYSTEM
+                                        }
+                                    )
+                                }
                                 ThemeMode.LIGHT  -> {
                                     val palette = currentPalette ?: StandardPalette.CORAL
                                     onSelect(palette.lightTheme)

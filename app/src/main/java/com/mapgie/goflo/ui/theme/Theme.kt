@@ -13,10 +13,12 @@ fun GoFloTheme(appTheme: AppTheme = AppTheme.CORAL, content: @Composable () -> U
     val systemDark = isSystemInDarkTheme()
     val colorScheme = colorSchemeFor(appTheme, systemDark)
 
-    // Derived "is dark" flag accounts for the SYSTEM auto theme.
+    // Derived "is dark" flag accounts for all system-following themes.
     val effectivelyDark = when (appTheme) {
-        AppTheme.SYSTEM -> systemDark
-        else            -> appTheme.isDark
+        AppTheme.SYSTEM,
+        AppTheme.CORAL_SYSTEM,
+        AppTheme.GREEN_SYSTEM -> systemDark
+        else                  -> appTheme.isDark
     }
 
     // Flip status-bar icon contrast so they remain readable on dark surfaces.

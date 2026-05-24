@@ -168,6 +168,14 @@ class SettingsViewModel(
         store.setPreferredCycleLength(days)
     }
 
+    fun setShowPeriodPrediction(show: Boolean) = viewModelScope.launch {
+        store.setShowPeriodPrediction(show)
+    }
+
+    fun setShowOvulationMarkers(show: Boolean) = viewModelScope.launch {
+        store.setShowOvulationMarkers(show)
+    }
+
     // ── Security ──────────────────────────────────────────────────────────────
 
     // Requires the user to have entered the correct current PIN to call this.
