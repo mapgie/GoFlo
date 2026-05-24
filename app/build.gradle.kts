@@ -13,8 +13,8 @@ android {
         applicationId = "com.mapgie.goflo"
         minSdk = 26
         targetSdk = 34
-        versionCode = 17
-        versionName = "0.8.2-beta.1"
+        versionCode = 18
+        versionName = "0.8.3-beta.1"
     }
 
     signingConfigs {
@@ -78,4 +78,17 @@ dependencies {
     implementation(libs.androidx.biometric)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
+}
+
+// ── Keep assets/CHANGELOG.md in sync with the root copy ──────────────────────
+// Runs before every build so the "What's New" dialog always reflects the latest
+// entries without requiring a manual copy step.
+tasks.register<Copy>("syncChangelog") {
+    description = "Copies root CHANGELOG.md into app/src/main/assets before each build."
+    from(rootProject.file("CHANGELOG.md"))
+    into("src/main/assets")
+}
+
+tasks.named("preBuild") {
+    dependsOn("syncChangelog")
 }
