@@ -34,37 +34,19 @@ object AppIconManager {
     /** Maps every [AppTheme] to its matching [IconVariant]. */
     fun variantFor(theme: AppTheme): IconVariant = when (theme) {
         AppTheme.CORAL,
-        AppTheme.CORAL_DARK,
-        // Warm/pink-toned fun themes
-        AppTheme.SUMMER_CANDY,
-        AppTheme.SUMMER_CANDY_DARK,
-        AppTheme.PEACH_MELBA,
-        AppTheme.PEACH_MELBA_DARK,
-        AppTheme.COLOUR_HAPPY,
-        AppTheme.COLOUR_HAPPY_DARK                                   -> IconVariant.CORAL
+        AppTheme.CORAL_DARK                                          -> IconVariant.CORAL
 
         AppTheme.TURQUOISE,
         AppTheme.TURQUOISE_DARK,
-        AppTheme.SYSTEM,
-        // Cool/blue-toned fun themes
-        AppTheme.BEACH_VIBES,
-        AppTheme.BEACH_VIBES_DARK,
-        AppTheme.WHIMSY,
-        AppTheme.WHIMSY_DARK                                         -> IconVariant.TEAL
+        AppTheme.SYSTEM                                              -> IconVariant.TEAL
 
         AppTheme.GREEN,
         AppTheme.GREEN_DARK                                          -> IconVariant.GREEN
 
         AppTheme.HIGH_CONTRAST_LIGHT,
-        AppTheme.HIGH_CONTRAST_DARK,
-        // Dark/neutral fun themes
-        AppTheme.METAL_CHICK,
-        AppTheme.METAL_CHICK_DARK                                    -> IconVariant.CONTRAST
+        AppTheme.HIGH_CONTRAST_DARK                                  -> IconVariant.CONTRAST
 
-        AppTheme.BLUE_ORANGE,
-        // Purple/vibrant fun themes
-        AppTheme.DISCO,
-        AppTheme.DISCO_DARK                                          -> IconVariant.BLUE
+        AppTheme.BLUE_ORANGE                                         -> IconVariant.BLUE
     }
 
     /**
