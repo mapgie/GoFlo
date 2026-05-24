@@ -5,12 +5,22 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <!--
-        5-pointed star, centre (54,54), outer radius 32, inner radius 14.
-        Points listed clockwise starting from the top outer tip,
-        alternating outer / inner.
+        5-pointed star  centre (54, 54)  outer r = 33  inner r = 13
+        Points alternate outer / inner, clockwise from top:
+
+          outer 0  (54,  21)    inner 0  (62, 43)
+          outer 1  (85,  44)    inner 1  (66, 58)
+          outer 2  (73,  81)    inner 2  (54, 67)
+          outer 3  (35,  81)    inner 3  (42, 58)
+          outer 4  (23,  44)    inner 4  (46, 43)
     -->
     <path
         android:fillColor="#F57C00"
-        android:pathData="M54,22 L62.23,42.67 L84.44,44.11 L67.32,58.33 L72.81,79.89
-                          L54,68 L35.19,79.89 L40.68,58.33 L23.56,44.11 L45.77,42.67 Z" />
+        android:pathData="M54,21 L62,43 L85,44 L66,58 L73,81
+                          L54,67 L35,81 L42,58 L23,44 L46,43 Z" />
+
+    <!-- Subtle top-facet highlight -->
+    <path
+        android:fillColor="#40FFFFFF"
+        android:pathData="M54,21 L62,43 L46,43 Z" />
 </vector>
