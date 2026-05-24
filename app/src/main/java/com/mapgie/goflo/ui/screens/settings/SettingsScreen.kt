@@ -33,11 +33,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -68,7 +66,6 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTimePickerState
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -107,38 +104,76 @@ private enum class StandardPalette(
     val darkTheme: AppTheme,
     val previewArgb: Long,
 ) {
-    CORAL("Coral", AppTheme.CORAL,     AppTheme.CORAL_DARK,     0xFFC15542L),
-    TEAL ("Teal",  AppTheme.TURQUOISE, AppTheme.TURQUOISE_DARK, 0xFF00696FL),
-    SAGE ("Sage",  AppTheme.GREEN,     AppTheme.GREEN_DARK,     0xFF386A20L),
+    // Classic
+    CORAL        ("Coral",                  AppTheme.CORAL,             AppTheme.CORAL_DARK,         0xFFC15542L),
+    TEAL         ("Teal",                   AppTheme.TURQUOISE,         AppTheme.TURQUOISE_DARK,     0xFF00696FL),
+    SAGE         ("Sage",                   AppTheme.GREEN,             AppTheme.GREEN_DARK,         0xFF386A20L),
+    // Fun
+    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY,      AppTheme.SUMMER_CANDY_DARK,  0xFFC2185BL),
+    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,       AppTheme.BEACH_VIBES_DARK,   0xFF1565C0L),
+    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,       AppTheme.PEACH_MELBA_DARK,   0xFF9C5119L),
+    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,             AppTheme.DISCO_DARK,         0xFF7B0EA0L),
+    METAL_CHICK  ("Metal Chick",            AppTheme.METAL_CHICK,       AppTheme.METAL_CHICK_DARK,   0xFF4A4A5AL),
+    WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,            AppTheme.WHIMSY_DARK,        0xFF5050A0L),
+    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY,      AppTheme.COLOUR_HAPPY_DARK,  0xFFC13A00L),
 }
 
 private val AppTheme.themeMode: ThemeMode? get() = when (this) {
     AppTheme.SYSTEM                              -> ThemeMode.SYSTEM
     AppTheme.CORAL, AppTheme.TURQUOISE,
-    AppTheme.GREEN                               -> ThemeMode.LIGHT
+    AppTheme.GREEN,
+    AppTheme.SUMMER_CANDY, AppTheme.BEACH_VIBES,
+    AppTheme.PEACH_MELBA, AppTheme.DISCO,
+    AppTheme.METAL_CHICK, AppTheme.WHIMSY,
+    AppTheme.COLOUR_HAPPY                        -> ThemeMode.LIGHT
     AppTheme.CORAL_DARK, AppTheme.TURQUOISE_DARK,
-    AppTheme.GREEN_DARK                          -> ThemeMode.DARK
+    AppTheme.GREEN_DARK,
+    AppTheme.SUMMER_CANDY_DARK, AppTheme.BEACH_VIBES_DARK,
+    AppTheme.PEACH_MELBA_DARK, AppTheme.DISCO_DARK,
+    AppTheme.METAL_CHICK_DARK, AppTheme.WHIMSY_DARK,
+    AppTheme.COLOUR_HAPPY_DARK                   -> ThemeMode.DARK
     else                                         -> null  // accessibility
 }
 
 private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
-    AppTheme.CORAL,     AppTheme.CORAL_DARK     -> StandardPalette.CORAL
-    AppTheme.TURQUOISE, AppTheme.TURQUOISE_DARK -> StandardPalette.TEAL
-    AppTheme.GREEN,     AppTheme.GREEN_DARK     -> StandardPalette.SAGE
-    else                                         -> null
+    AppTheme.CORAL,           AppTheme.CORAL_DARK          -> StandardPalette.CORAL
+    AppTheme.TURQUOISE,       AppTheme.TURQUOISE_DARK      -> StandardPalette.TEAL
+    AppTheme.GREEN,           AppTheme.GREEN_DARK          -> StandardPalette.SAGE
+    AppTheme.SUMMER_CANDY,    AppTheme.SUMMER_CANDY_DARK   -> StandardPalette.SUMMER_CANDY
+    AppTheme.BEACH_VIBES,     AppTheme.BEACH_VIBES_DARK    -> StandardPalette.BEACH_VIBES
+    AppTheme.PEACH_MELBA,     AppTheme.PEACH_MELBA_DARK    -> StandardPalette.PEACH_MELBA
+    AppTheme.DISCO,           AppTheme.DISCO_DARK          -> StandardPalette.DISCO
+    AppTheme.METAL_CHICK,     AppTheme.METAL_CHICK_DARK    -> StandardPalette.METAL_CHICK
+    AppTheme.WHIMSY,          AppTheme.WHIMSY_DARK         -> StandardPalette.WHIMSY
+    AppTheme.COLOUR_HAPPY,    AppTheme.COLOUR_HAPPY_DARK   -> StandardPalette.COLOUR_HAPPY
+    else                                                    -> null
 }
 
 private val AppTheme.summaryLabel: String get() = when (this) {
-    AppTheme.SYSTEM              -> "Follow system"
-    AppTheme.CORAL               -> "Coral · Light"
-    AppTheme.TURQUOISE           -> "Teal · Light"
-    AppTheme.GREEN               -> "Sage · Light"
-    AppTheme.CORAL_DARK          -> "Coral · Dark"
-    AppTheme.TURQUOISE_DARK      -> "Teal · Dark"
-    AppTheme.GREEN_DARK          -> "Sage · Dark"
-    AppTheme.HIGH_CONTRAST_LIGHT -> "High Contrast Light"
-    AppTheme.HIGH_CONTRAST_DARK  -> "High Contrast Dark"
-    AppTheme.BLUE_ORANGE         -> "Blue & Orange"
+    AppTheme.SYSTEM                -> "Follow system"
+    AppTheme.CORAL                 -> "Coral · Light"
+    AppTheme.TURQUOISE             -> "Teal · Light"
+    AppTheme.GREEN                 -> "Sage · Light"
+    AppTheme.CORAL_DARK            -> "Coral · Dark"
+    AppTheme.TURQUOISE_DARK        -> "Teal · Dark"
+    AppTheme.GREEN_DARK            -> "Sage · Dark"
+    AppTheme.SUMMER_CANDY          -> "Summer Candy · Light"
+    AppTheme.SUMMER_CANDY_DARK     -> "Summer Candy · Dark"
+    AppTheme.BEACH_VIBES           -> "Beach Vibes · Light"
+    AppTheme.BEACH_VIBES_DARK      -> "Beach Vibes · Dark"
+    AppTheme.PEACH_MELBA           -> "Peach Melba · Light"
+    AppTheme.PEACH_MELBA_DARK      -> "Peach Melba · Dark"
+    AppTheme.DISCO                 -> "All-Night Disco Party · Light"
+    AppTheme.DISCO_DARK            -> "All-Night Disco Party · Dark"
+    AppTheme.METAL_CHICK           -> "Metal Chick · Light"
+    AppTheme.METAL_CHICK_DARK      -> "Metal Chick · Dark"
+    AppTheme.WHIMSY                -> "Whimsy Whispers · Light"
+    AppTheme.WHIMSY_DARK           -> "Whimsy Whispers · Dark"
+    AppTheme.COLOUR_HAPPY          -> "Colour Me Happy · Light"
+    AppTheme.COLOUR_HAPPY_DARK     -> "Colour Me Happy · Dark"
+    AppTheme.HIGH_CONTRAST_LIGHT   -> "High Contrast Light"
+    AppTheme.HIGH_CONTRAST_DARK    -> "High Contrast Dark"
+    AppTheme.BLUE_ORANGE           -> "Blue & Orange"
 }
 
 // ── Main screen ───────────────────────────────────────────────────────────────
@@ -149,13 +184,11 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToPinSetup: (changing: Boolean) -> Unit,
     onNavigateToLicenses: () -> Unit,
-    onNavigateToPrivacy: () -> Unit,
-    onNavigateToManageCategories: () -> Unit = {}
+    onNavigateToPrivacy: () -> Unit
 ) {
     val context  = LocalContext.current
     val prefs    by viewModel.prefs.collectAsState()
     val security by viewModel.securitySettings.collectAsState()
-    val categories by viewModel.trackingCategories.collectAsState()
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
 
@@ -492,93 +525,7 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 3. Tracking ───────────────────────────────────────────────────
-            Card(
-                onClick = onNavigateToManageCategories,
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Category,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Column {
-                            Text("Tracking Categories", style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                "${categories.size} categor${if (categories.size == 1) "y" else "ies"} · tap to manage",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // ── Quick Log default ─────────────────────────────────────────────
-            CollapsibleSection(
-                title   = "Quick Log",
-                icon    = Icons.Default.Add,
-                summary = run {
-                    val cat = categories.firstOrNull { it.id == prefs.quickLogCategoryId }
-                    if (cat != null) "Opens: Log ${cat.name}" else "Opens: Log Period"
-                }
-            ) {
-                Text(
-                    "When you tap the Log… button, which screen opens?",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-
-                // Log Period option
-                val isPeriodDefault = prefs.quickLogCategoryId == -1L
-                FilterChip(
-                    selected = isPeriodDefault,
-                    onClick = { viewModel.setQuickLogCategory(-1L) },
-                    label = { Text("Log Period") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                )
-
-                // One chip per tracking category
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    categories.forEach { category ->
-                        FilterChip(
-                            selected = prefs.quickLogCategoryId == category.id,
-                            onClick = { viewModel.setQuickLogCategory(category.id) },
-                            label = { Text("Log ${category.name}") },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        )
-                    }
-                }
-            }
-
-            // ── 4. Appearance ─────────────────────────────────────────────────
+            // ── 3. Appearance ─────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "Appearance",
                 icon    = Icons.Outlined.Palette,
@@ -590,7 +537,7 @@ fun SettingsScreen(
                 )
             }
 
-            // ── 5. Security & Privacy ─────────────────────────────────────────
+            // ── 4. Security & Privacy ─────────────────────────────────────────
             CollapsibleSection(
                 title   = "Security & Privacy",
                 icon    = Icons.Outlined.Lock,
@@ -648,7 +595,7 @@ fun SettingsScreen(
                 ) { Text("View Privacy & Medical Disclaimer") }
             }
 
-            // ── 6. Data ───────────────────────────────────────────────────────
+            // ── 5. Data ───────────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "Data",
                 icon    = Icons.Outlined.Storage,
@@ -695,7 +642,7 @@ fun SettingsScreen(
                 ) { Text("Delete All Data") }
             }
 
-            // ── 7. About ──────────────────────────────────────────────────────
+            // ── 6. About ──────────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "About",
                 icon    = Icons.Outlined.Info,
@@ -927,9 +874,10 @@ private fun CompactThemePicker(current: AppTheme, onSelect: (AppTheme) -> Unit) 
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(
+                FlowRow(
                     modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    horizontalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterHorizontally),
+                    maxItemsInEachRow     = 5,
                 ) {
                     StandardPalette.entries.forEach { palette ->
                         val selected = palette == currentPalette
