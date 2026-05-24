@@ -5,14 +5,25 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <!--
-        Crescent moon using the even-odd fill rule.
-        Outer circle: centre (54,54) radius 32  → top (54,22)  bottom (54,86)
-        Inner circle: centre (68,54) radius 26  → top (68,28)  bottom (68,80)
-        Both arcs clockwise; even-odd subtracts the overlap, leaving a left-opening crescent.
+        Crescent built from two circular arcs – no evenOdd tricks.
+        Colour matches the settings-screen preview: #3949AB.
+
+        Unrotated geometry:
+          Outer circle  centre (58, 54)  r = 34
+          Inner circle  centre (44, 54)  r = 25  (d = 14)
+          a = (R²−r²+d²)/2d = (1156−625+196)/28 = 25.96
+          h = √(R²−a²) = √(1156−674) ≈ 21.95
+          I1 ≈ (32, 76)   I2 ≈ (32, 32)
+
+        Rotated 30° clockwise about canvas centre (54, 54):
+          I1' ≈ (46, 84)   I2' ≈ (24, 46)
+
+        Arc 1 – outer convex edge:
+          From I1'  large (≈268°) clockwise arc  r=34  →  I2'
+        Arc 2 – inner concave edge:
+          From I2'  small (≈138°) clockwise arc  r=25  →  I1'
     -->
     <path
         android:fillColor="#3949AB"
-        android:fillType="evenOdd"
-        android:pathData="M54,22 A32,32 0 0,1 54,86 A32,32 0 0,1 54,22 Z
-                          M68,28 A26,26 0 0,1 68,80 A26,26 0 0,1 68,28 Z" />
+        android:pathData="M46,84 A34,34 0 1,1 24,46 A25,25 0 0,1 46,84 Z" />
 </vector>

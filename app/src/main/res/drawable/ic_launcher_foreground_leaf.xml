@@ -4,20 +4,59 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Leaf body: lens shape with two pointed ends -->
+
+    <!--
+        Adaptive-icon safe zone: inner 72dp circle → y/x range 18–90.
+        Leaf body runs y=22–82; stem tip lands exactly at y=90.
+    -->
+
+    <!-- Leaf body -->
     <path
-        android:fillColor="#2E7D32"
-        android:pathData="M54,12 Q82,30 82,54 Q82,78 54,96 Q26,78 26,54 Q26,30 54,12 Z" />
-    <!-- Center vein -->
+        android:fillColor="#388E3C"
+        android:pathData="M54,22
+            C66,22 84,36 84,54
+            C84,70 68,82 54,82
+            C40,82 24,70 24,54
+            C24,36 42,22 54,22 Z" />
+
+    <!-- Top-right sheen -->
+    <path
+        android:fillColor="#30FFFFFF"
+        android:pathData="M54,22 C62,22 78,34 80,48 C72,36 62,26 54,22 Z" />
+
+    <!-- Stem – tip at y=90 (safe-zone boundary) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#2E7D32"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M54,82 Q52,88 50,90" />
+
+    <!-- Centre midrib -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#1B5E20"
-        android:strokeWidth="3"
-        android:pathData="M54,14 L54,94" />
-    <!-- Lateral veins -->
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,25 L54,81" />
+
+    <!-- Lateral veins – right (recalibrated to new body height) -->
     <path
         android:fillColor="#00000000"
         android:strokeColor="#1B5E20"
-        android:strokeWidth="2"
-        android:pathData="M54,36 Q66,42 76,48 M54,36 Q42,42 32,48 M54,58 Q68,62 78,64 M54,58 Q40,62 30,64" />
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,38 Q65,41 74,45
+                          M54,52 Q67,55 76,56
+                          M54,66 Q63,68 71,68" />
+
+    <!-- Lateral veins – left -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#1B5E20"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,38 Q43,41 34,45
+                          M54,52 Q41,55 32,56
+                          M54,66 Q45,68 37,68" />
 </vector>
