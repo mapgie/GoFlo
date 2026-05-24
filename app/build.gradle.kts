@@ -79,3 +79,16 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
 }
+
+// ── Keep assets/CHANGELOG.md in sync with the root copy ──────────────────────
+// Runs before every build so the "What's New" dialog always reflects the latest
+// entries without requiring a manual copy step.
+tasks.register<Copy>("syncChangelog") {
+    description = "Copies root CHANGELOG.md into app/src/main/assets before each build."
+    from(rootProject.file("CHANGELOG.md"))
+    into("src/main/assets")
+}
+
+tasks.named("preBuild") {
+    dependsOn("syncChangelog")
+}
