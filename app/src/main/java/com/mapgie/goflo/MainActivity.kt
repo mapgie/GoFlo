@@ -20,7 +20,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -60,6 +59,8 @@ import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
 import android.annotation.SuppressLint
 import com.mapgie.goflo.ui.theme.AppTheme
 import com.mapgie.goflo.ui.theme.GoFloTheme
+import com.mapgie.goflo.AppIconChoice
+import com.mapgie.goflo.AppIconManager
 
 class MainActivity : ComponentActivity() {
 
@@ -83,6 +84,14 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         val app = application as GoFloApplication
         val initialPrefs = runBlocking { app.preferencesStore.preferences.first() }
 
+        // Apply the user's saved icon choice once on startup (handles reinstalls /
+        // device restores where the manifest resets all aliases to their defaults).
+        // This is NOT re-run on theme change, which was the source of the crash.
+        val savedIconChoice = runCatching {
+            AppIconChoice.valueOf(initialPrefs.iconChoice)
+        }.getOrDefault(AppIconChoice.DROP_CORAL)
+        AppIconManager.applyIcon(this, savedIconChoice)
+
         setContent {
             val mainVm: MainViewModel = viewModel(
                 factory = MainViewModel.Factory(app.securityPreferences, app)
@@ -91,12 +100,6 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
 
             val appPrefs by app.preferencesStore.preferences.collectAsState(initial = initialPrefs)
             val currentTheme = runCatching { AppTheme.valueOf(appPrefs.theme) }.getOrDefault(AppTheme.CORAL)
-
-            // Keep the launcher icon in sync with the selected theme.
-            // Runs on first composition and re-runs whenever currentTheme changes.
-            LaunchedEffect(currentTheme) {
-                AppIconManager.applyIcon(applicationContext, currentTheme)
-            }
 
             GoFloTheme(appTheme = currentTheme) {
                 when (appState) {

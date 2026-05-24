@@ -2,8 +2,17 @@ package com.mapgie.goflo.ui.screens.settings
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.biometric.BiometricManager
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
+import com.mapgie.goflo.AppIconChoice
+import com.mapgie.goflo.AppIconManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -57,6 +66,78 @@ class SettingsViewModel(
     // ── Theme ──────────────────────────────────────────────────────────────────
 
     fun setTheme(theme: String) = viewModelScope.launch { store.setTheme(theme) }
+
+    // ── App icon ───────────────────────────────────────────────────────────────
+
+    /**
+     * Persists [choice] and immediately applies it as the active launcher alias.
+     * Unlike the old behaviour, this is triggered only by an explicit user action —
+     * never automatically on theme change — which eliminates the crash caused by
+     * rapid successive calls to [PackageManager.setComponentEnabledSetting].
+     */
+    fun setIconChoice(choice: AppIconChoice) = viewModelScope.launch {
+        store.setIconChoice(choice.name)
+        AppIconManager.applyIcon(context, choice)
+    }
+
+    /**
+     * Loads the image at [uri], scales it to a square, and asks the launcher to
+     * create a pinned home-screen shortcut with that image as its icon.
+     *
+     * The shortcut launches the app normally.  Users can then hide the regular
+     * app icon in their launcher's app-drawer settings to keep GoFlo discreet.
+     *
+     * [onError] is invoked on the main thread if anything goes wrong.
+     */
+    fun createCustomIconShortcut(uri: Uri, onError: (String) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val bitmap = loadSquareBitmap(uri)
+                val icon   = IconCompat.createWithBitmap(bitmap)
+                val intent = context.packageManager
+                    .getLaunchIntentForPackage(context.packageName)
+                    ?: throw Exception("Could not resolve launch intent")
+
+                val shortcut = ShortcutInfoCompat.Builder(
+                    context,
+                    "goflo_custom_${System.currentTimeMillis()}"
+                )
+                    .setShortLabel("GoFlo")
+                    .setLongLabel("GoFlo")
+                    .setIcon(icon)
+                    .setIntent(intent)
+                    .build()
+
+                withContext(Dispatchers.Main) {
+                    if (!ShortcutManagerCompat.requestPinShortcut(context, shortcut, null)) {
+                        onError("Your launcher doesn't support home-screen shortcuts.")
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onError("Could not load the image. Please try a PNG or JPEG file.")
+                }
+            }
+        }
+    }
+
+    /** Crops to a centred square then scales to 512 × 512 px. */
+    private fun loadSquareBitmap(uri: Uri): Bitmap {
+        val stream   = context.contentResolver.openInputStream(uri)
+            ?: throw Exception("Cannot open image")
+        val original = BitmapFactory.decodeStream(stream).also { stream.close() }
+            ?: throw Exception("Cannot decode image")
+
+        val size    = minOf(original.width, original.height)
+        val cropped = Bitmap.createBitmap(
+            original,
+            (original.width - size) / 2,
+            (original.height - size) / 2,
+            size, size
+        )
+        return if (size <= 512) cropped
+        else Bitmap.createScaledBitmap(cropped, 512, 512, true)
+    }
 
     // ── Reminders ─────────────────────────────────────────────────────────────
 

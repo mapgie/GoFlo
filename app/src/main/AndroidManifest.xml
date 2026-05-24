@@ -106,6 +106,45 @@
             </intent-filter>
         </activity-alias>
 
+        <activity-alias
+            android:name=".MainActivityLeaf"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_leaf"
+            android:roundIcon="@mipmap/ic_launcher_round_leaf">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityMoon"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_moon"
+            android:roundIcon="@mipmap/ic_launcher_round_moon">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityStar"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher_star"
+            android:roundIcon="@mipmap/ic_launcher_round_star">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
         <!--
             ReminderReceiver handles alarm-fired notifications only. It does NOT need
             to be exported — AlarmManager delivers via explicit component PendingIntents

@@ -3,6 +3,7 @@ package com.mapgie.goflo.ui.screens.settings
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.mapgie.goflo.AppIconChoice
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -34,7 +35,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
@@ -196,8 +201,13 @@ fun SettingsScreen(
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
 
+    val currentIconChoice = runCatching {
+        AppIconChoice.valueOf(prefs.iconChoice)
+    }.getOrDefault(AppIconChoice.DROP_CORAL)
+
     var showTimePicker        by rememberSaveable { mutableStateOf(false) }
     var showRemovePinDialog   by rememberSaveable { mutableStateOf(false) }
+    var customIconError       by remember { mutableStateOf<String?>(null) }
     var showDisclaimer        by rememberSaveable { mutableStateOf(false) }
     var showDeleteAllDialog   by rememberSaveable { mutableStateOf(false) }
     var showChangelog         by rememberSaveable { mutableStateOf(false) }
@@ -211,6 +221,14 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) { pendingImportUri = uri; showImportOptionsDialog = true }
+    }
+
+    val customIconPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.createCustomIconShortcut(uri) { error -> customIconError = error }
+        }
     }
 
     val timeState = rememberTimePickerState(
@@ -381,6 +399,15 @@ fun SettingsScreen(
         )
     }
 
+    customIconError?.let { message ->
+        AlertDialog(
+            onDismissRequest = { customIconError = null },
+            title            = { Text("Couldn't create shortcut") },
+            text             = { Text(message) },
+            confirmButton    = { TextButton(onClick = { customIconError = null }) { Text("OK") } }
+        )
+    }
+
     // ── Computed summaries for collapsed headers ───────────────────────────────
 
     val activeReminderCount = listOf(
@@ -538,6 +565,17 @@ fun SettingsScreen(
                 CompactThemePicker(
                     current  = currentTheme,
                     onSelect = { viewModel.setTheme(it.name) }
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color    = MaterialTheme.colorScheme.outlineVariant
+                )
+
+                AppIconPicker(
+                    currentChoice       = currentIconChoice,
+                    onSelect            = { viewModel.setIconChoice(it) },
+                    onPickCustomImage   = { customIconPicker.launch("image/*") }
                 )
             }
 
@@ -1053,6 +1091,182 @@ private fun ThemeChip(theme: AppTheme, selected: Boolean, onClick: () -> Unit) {
             selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
         )
     )
+}
+
+// ── App icon picker ───────────────────────────────────────────────────────────
+
+/** Preview background colour for each icon choice (matches the adaptive-icon background). */
+private val AppIconChoice.previewBg: Color get() = when (this) {
+    AppIconChoice.DROP_CORAL    -> Color(0xFFFFD5CBL)
+    AppIconChoice.DROP_TEAL     -> Color(0xFF9CF0F5L)
+    AppIconChoice.DROP_GREEN    -> Color(0xFFB7F397L)
+    AppIconChoice.DROP_CONTRAST -> Color(0xFFFFFFFFL)
+    AppIconChoice.DROP_BLUE     -> Color(0xFFD3E3FFL)
+    AppIconChoice.LEAF          -> Color(0xFFC8E6C9L)
+    AppIconChoice.MOON          -> Color(0xFFC5CAE9L)
+    AppIconChoice.STAR          -> Color(0xFFFFF9C4L)
+}
+
+/** Icon foreground / tint colour for each choice. */
+private val AppIconChoice.previewFg: Color get() = when (this) {
+    AppIconChoice.DROP_CORAL    -> Color(0xFFC15542L)
+    AppIconChoice.DROP_TEAL     -> Color(0xFF00696FL)
+    AppIconChoice.DROP_GREEN    -> Color(0xFF386A20L)
+    AppIconChoice.DROP_CONTRAST -> Color(0xFF000000L)
+    AppIconChoice.DROP_BLUE     -> Color(0xFF005FADL)
+    AppIconChoice.LEAF          -> Color(0xFF2E7D32L)
+    AppIconChoice.MOON          -> Color(0xFF3949ABL)
+    AppIconChoice.STAR          -> Color(0xFFF57C00L)
+}
+
+private val AppIconChoice.previewIcon: androidx.compose.ui.graphics.vector.ImageVector get() = when (this) {
+    AppIconChoice.DROP_CORAL,
+    AppIconChoice.DROP_TEAL,
+    AppIconChoice.DROP_GREEN,
+    AppIconChoice.DROP_CONTRAST,
+    AppIconChoice.DROP_BLUE    -> Icons.Filled.WaterDrop
+    AppIconChoice.LEAF         -> Icons.Filled.Eco
+    AppIconChoice.MOON         -> Icons.Filled.NightsStay
+    AppIconChoice.STAR         -> Icons.Filled.Star
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppIconPicker(
+    currentChoice:     AppIconChoice,
+    onSelect:          (AppIconChoice) -> Unit,
+    onPickCustomImage: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+
+        // ── Drop icons ────────────────────────────────────────────────────────
+        Text(
+            "Drop icons",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            AppIconChoice.entries
+                .filter { it.name.startsWith("DROP_") }
+                .forEach { choice ->
+                    IconChoiceCell(
+                        choice   = choice,
+                        selected = choice == currentChoice,
+                        onClick  = { onSelect(choice) }
+                    )
+                }
+        }
+
+        // ── Discreet icons ────────────────────────────────────────────────────
+        Text(
+            "Discreet icons",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            "These don't look like a period app, so GoFlo stays private on your home screen.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            listOf(AppIconChoice.LEAF, AppIconChoice.MOON, AppIconChoice.STAR).forEach { choice ->
+                IconChoiceCell(
+                    choice   = choice,
+                    selected = choice == currentChoice,
+                    onClick  = { onSelect(choice) }
+                )
+            }
+        }
+
+        // ── Custom icon ───────────────────────────────────────────────────────
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Text(
+            "Your own icon",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            "Pick any image and GoFlo will create a home-screen shortcut that uses it as the icon. " +
+            "The shortcut opens the app normally — you can then hide the original app icon in your launcher's settings.\n\n" +
+            "Image requirements: PNG or JPEG · square · 512 × 512 px recommended · transparent background optional.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedButton(
+            onClick  = onPickCustomImage,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Create shortcut with custom image…")
+        }
+    }
+}
+
+@Composable
+private fun IconChoiceCell(
+    choice:   AppIconChoice,
+    selected: Boolean,
+    onClick:  () -> Unit,
+) {
+    val bg     = choice.previewBg
+    val fg     = choice.previewFg
+    val icon   = choice.previewIcon
+    val border = if (selected) MaterialTheme.colorScheme.primary
+                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    val borderWidth = if (selected) 2.5.dp else 1.dp
+
+    Column(
+        modifier            = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(bg)
+                .border(borderWidth, border, RoundedCornerShape(14.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector        = icon,
+                contentDescription = choice.displayName,
+                tint               = fg,
+                modifier           = Modifier.size(28.dp)
+            )
+            if (selected) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(4.dp)
+                        .size(16.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector        = Icons.Default.Check,
+                        contentDescription = null,
+                        tint               = MaterialTheme.colorScheme.onPrimary,
+                        modifier           = Modifier.size(10.dp)
+                    )
+                }
+            }
+        }
+        Text(
+            text  = choice.displayName,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 // ── Switch row ────────────────────────────────────────────────────────────────
