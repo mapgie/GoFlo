@@ -17,4 +17,30 @@ sealed class Screen(val route: String) {
     }
     data object Licenses : Screen("licenses")
     data object Privacy  : Screen("privacy")
+
+    // ── Tracking categories management ────────────────────────────────────────
+
+    data object ManageCategories : Screen("manage_categories")
+
+    data object ManageCategoryValues : Screen("manage_category_values/{categoryId}") {
+        fun forCategory(id: Long) = "manage_category_values/$id"
+    }
+
+    // ── Per-day category logging ───────────────────────────────────────────────
+
+    /**
+     * Route for logging or editing a tracking category entry.
+     * - [categoryId] — the TrackingCategory.id to log
+     * - [date] — ISO 8601 date string; omit to default to today
+     * - [logId] — the existing TrackingLog.id when editing; omit for a new entry
+     */
+    data object LogCategory : Screen(
+        "log_category/{categoryId}?date={date}&logId={logId}"
+    ) {
+        fun newEntry(categoryId: Long, date: LocalDate) =
+            "log_category/$categoryId?date=$date"
+
+        fun editEntry(categoryId: Long, logId: Long) =
+            "log_category/$categoryId?logId=$logId"
+    }
 }

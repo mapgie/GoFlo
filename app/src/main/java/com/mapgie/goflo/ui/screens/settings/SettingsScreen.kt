@@ -33,9 +33,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
@@ -66,6 +68,7 @@ import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -146,11 +149,13 @@ fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToPinSetup: (changing: Boolean) -> Unit,
     onNavigateToLicenses: () -> Unit,
-    onNavigateToPrivacy: () -> Unit
+    onNavigateToPrivacy: () -> Unit,
+    onNavigateToManageCategories: () -> Unit = {}
 ) {
     val context  = LocalContext.current
     val prefs    by viewModel.prefs.collectAsState()
     val security by viewModel.securitySettings.collectAsState()
+    val categories by viewModel.trackingCategories.collectAsState()
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
 
@@ -487,7 +492,93 @@ fun SettingsScreen(
                 }
             }
 
-            // ── 3. Appearance ─────────────────────────────────────────────────
+            // ── 3. Tracking ───────────────────────────────────────────────────
+            Card(
+                onClick = onNavigateToManageCategories,
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Category,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Column {
+                            Text("Tracking Categories", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "${categories.size} categor${if (categories.size == 1) "y" else "ies"} · tap to manage",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // ── Quick Log default ─────────────────────────────────────────────
+            CollapsibleSection(
+                title   = "Quick Log",
+                icon    = Icons.Default.Add,
+                summary = run {
+                    val cat = categories.firstOrNull { it.id == prefs.quickLogCategoryId }
+                    if (cat != null) "Opens: Log ${cat.name}" else "Opens: Log Period"
+                }
+            ) {
+                Text(
+                    "When you tap the Log… button, which screen opens?",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // Log Period option
+                val isPeriodDefault = prefs.quickLogCategoryId == -1L
+                FilterChip(
+                    selected = isPeriodDefault,
+                    onClick = { viewModel.setQuickLogCategory(-1L) },
+                    label = { Text("Log Period") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+
+                // One chip per tracking category
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    categories.forEach { category ->
+                        FilterChip(
+                            selected = prefs.quickLogCategoryId == category.id,
+                            onClick = { viewModel.setQuickLogCategory(category.id) },
+                            label = { Text("Log ${category.name}") },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+                    }
+                }
+            }
+
+            // ── 4. Appearance ─────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "Appearance",
                 icon    = Icons.Outlined.Palette,
@@ -499,7 +590,7 @@ fun SettingsScreen(
                 )
             }
 
-            // ── 4. Security & Privacy ─────────────────────────────────────────
+            // ── 5. Security & Privacy ─────────────────────────────────────────
             CollapsibleSection(
                 title   = "Security & Privacy",
                 icon    = Icons.Outlined.Lock,
@@ -557,7 +648,7 @@ fun SettingsScreen(
                 ) { Text("View Privacy & Medical Disclaimer") }
             }
 
-            // ── 5. Data ───────────────────────────────────────────────────────
+            // ── 6. Data ───────────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "Data",
                 icon    = Icons.Outlined.Storage,
@@ -604,7 +695,7 @@ fun SettingsScreen(
                 ) { Text("Delete All Data") }
             }
 
-            // ── 6. About ──────────────────────────────────────────────────────
+            // ── 7. About ──────────────────────────────────────────────────────
             CollapsibleSection(
                 title   = "About",
                 icon    = Icons.Outlined.Info,

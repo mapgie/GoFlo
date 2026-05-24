@@ -7,6 +7,7 @@ import androidx.biometric.BiometricManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.export.DataExporter
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.repository.ImportResult
@@ -15,11 +16,13 @@ import com.mapgie.goflo.data.preferences.SecurityPreferences
 import com.mapgie.goflo.data.preferences.SecuritySettings
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.PeriodRepository
+import com.mapgie.goflo.data.repository.TrackingRepository
 import com.mapgie.goflo.data.security.PinManager
 import com.mapgie.goflo.notifications.ReminderScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -27,6 +30,7 @@ class SettingsViewModel(
     private val store: AppPreferencesStore,
     private val securityPreferences: SecurityPreferences,
     private val repository: PeriodRepository,
+    private val trackingRepository: TrackingRepository,
     private val context: Context
 ) : ViewModel() {
 
@@ -36,10 +40,19 @@ class SettingsViewModel(
     val securitySettings: StateFlow<SecuritySettings> = securityPreferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SecuritySettings())
 
+    val trackingCategories: StateFlow<List<TrackingCategory>> =
+        trackingRepository.getAllCategories()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val isBiometricAvailable: Boolean =
         BiometricManager.from(context)
             .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) ==
                 BiometricManager.BIOMETRIC_SUCCESS
+
+    // ── Tracking ──────────────────────────────────────────────────────────────
+
+    fun setQuickLogCategory(categoryId: Long) =
+        viewModelScope.launch { store.setQuickLogCategoryId(categoryId) }
 
     // ── Theme ──────────────────────────────────────────────────────────────────
 
@@ -167,11 +180,12 @@ class SettingsViewModel(
         private val store: AppPreferencesStore,
         private val securityPreferences: SecurityPreferences,
         private val repository: PeriodRepository,
+        private val trackingRepository: TrackingRepository,
         private val context: Context
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return SettingsViewModel(store, securityPreferences, repository, context) as T
+            return SettingsViewModel(store, securityPreferences, repository, trackingRepository, context) as T
         }
     }
 }

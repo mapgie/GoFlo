@@ -45,10 +45,16 @@ import com.mapgie.goflo.ui.screens.auth.LockViewModel
 import com.mapgie.goflo.ui.screens.auth.PinSetupScreen
 import com.mapgie.goflo.ui.screens.auth.PinSetupViewModel
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
+import com.mapgie.goflo.ui.screens.categories.ManageCategoriesScreen
+import com.mapgie.goflo.ui.screens.categories.ManageCategoriesViewModel
+import com.mapgie.goflo.ui.screens.categories.ManageCategoryValuesScreen
+import com.mapgie.goflo.ui.screens.categories.ManageCategoryValuesViewModel
 import com.mapgie.goflo.ui.screens.history.HistoryScreen
 import com.mapgie.goflo.ui.screens.history.HistoryViewModel
 import com.mapgie.goflo.ui.screens.home.HomeScreen
 import com.mapgie.goflo.ui.screens.home.HomeViewModel
+import com.mapgie.goflo.ui.screens.log.LogCategoryScreen
+import com.mapgie.goflo.ui.screens.log.LogCategoryViewModel
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
 import android.annotation.SuppressLint
@@ -179,7 +185,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) {
-                val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(app.repository, app.preferencesStore))
+                val vm: HomeViewModel = viewModel(factory = HomeViewModel.Factory(app.repository, app.trackingRepository, app.preferencesStore))
                 HomeScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
 
@@ -194,6 +200,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                         store = app.preferencesStore,
                         securityPreferences = app.securityPreferences,
                         repository = app.repository,
+                        trackingRepository = app.trackingRepository,
                         context = app.applicationContext
                     )
                 )
@@ -203,7 +210,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                         navController.navigate(if (changing) Screen.PinSetup.changePin else Screen.PinSetup.newPin)
                     },
                     onNavigateToLicenses = { navController.navigate(Screen.Licenses.route) },
-                    onNavigateToPrivacy  = { navController.navigate(Screen.Privacy.route) }
+                    onNavigateToPrivacy  = { navController.navigate(Screen.Privacy.route) },
+                    onNavigateToManageCategories = { navController.navigate(Screen.ManageCategories.route) }
                 )
             }
 
@@ -251,6 +259,65 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
             composable(Screen.Privacy.route) {
                 com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen(
                     onAcknowledge = { navController.popBackStack() }
+                )
+            }
+
+            // ── Tracking categories management ────────────────────────────────
+
+            composable(Screen.ManageCategories.route) {
+                val vm: ManageCategoriesViewModel = viewModel(
+                    factory = ManageCategoriesViewModel.Factory(app.trackingRepository)
+                )
+                ManageCategoriesScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToCategory = { categoryId ->
+                        navController.navigate(Screen.ManageCategoryValues.forCategory(categoryId))
+                    }
+                )
+            }
+
+            composable(
+                route = Screen.ManageCategoryValues.route,
+                arguments = listOf(navArgument("categoryId") { type = NavType.LongType })
+            ) { backStack ->
+                val categoryId = backStack.arguments?.getLong("categoryId") ?: return@composable
+                val vm: ManageCategoryValuesViewModel = viewModel(
+                    key = "manage_cat_$categoryId",
+                    factory = ManageCategoryValuesViewModel.Factory(categoryId, app.trackingRepository)
+                )
+                ManageCategoryValuesScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // ── Per-day category logging ──────────────────────────────────────
+
+            composable(
+                route = Screen.LogCategory.route,
+                arguments = listOf(
+                    navArgument("categoryId") { type = NavType.LongType },
+                    navArgument("date") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("logId") { type = NavType.LongType; defaultValue = -1L }
+                )
+            ) { backStack ->
+                val categoryId = backStack.arguments?.getLong("categoryId") ?: return@composable
+                val dateStr = backStack.arguments?.getString("date")
+                val logId = backStack.arguments?.getLong("logId")?.takeIf { it != -1L }
+                val prefilledDate = dateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+                val vm: LogCategoryViewModel = viewModel(
+                    key = "log_cat_${categoryId}_${dateStr}_${logId}",
+                    factory = LogCategoryViewModel.Factory(
+                        categoryId = categoryId,
+                        prefilledDate = prefilledDate,
+                        existingLogId = logId,
+                        repository = app.trackingRepository
+                    )
+                )
+                LogCategoryScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
