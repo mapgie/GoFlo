@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.9.2-beta.1] - 2026-05-24
+
+### Changed
+- Version bump
+
+---
+
 ## [0.9.1-beta.1] - 2026-05-24
 
 ### Fixed
