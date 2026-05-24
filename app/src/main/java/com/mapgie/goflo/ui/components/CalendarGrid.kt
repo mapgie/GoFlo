@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,12 +59,15 @@ fun CalendarGrid(
     modifier: Modifier = Modifier,
 ) {
     var displayMonth by rememberSaveable { mutableStateOf(YearMonth.now()) }
+    val currentMonth = YearMonth.now()
 
     Column(modifier = modifier) {
         MonthHeader(
             month = displayMonth,
             onPrev = { displayMonth = displayMonth.minusMonths(1) },
-            onNext = { displayMonth = displayMonth.plusMonths(1) }
+            onNext = { displayMonth = displayMonth.plusMonths(1) },
+            showTodayButton = displayMonth != currentMonth,
+            onJumpToToday = { displayMonth = currentMonth }
         )
         Spacer(Modifier.height(8.dp))
         DayOfWeekRow()
@@ -83,21 +87,42 @@ fun CalendarGrid(
 }
 
 @Composable
-private fun MonthHeader(month: YearMonth, onPrev: () -> Unit, onNext: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onPrev) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous month")
+private fun MonthHeader(
+    month: YearMonth,
+    onPrev: () -> Unit,
+    onNext: () -> Unit,
+    showTodayButton: Boolean,
+    onJumpToToday: () -> Unit,
+) {
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onPrev) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous month")
+            }
+            Text(
+                text = "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
+                style = MaterialTheme.typography.titleMedium
+            )
+            IconButton(onClick = onNext) {
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next month")
+            }
         }
-        Text(
-            text = "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
-            style = MaterialTheme.typography.titleMedium
-        )
-        IconButton(onClick = onNext) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next month")
+        // "Today" button: only visible when browsing away from the current month.
+        if (showTodayButton) {
+            TextButton(
+                onClick = onJumpToToday,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text(
+                    text = "Today",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
@@ -183,7 +208,9 @@ private fun DayCell(
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val primary = MaterialTheme.colorScheme.primary
+    val primary   = MaterialTheme.colorScheme.primary
+    // Ovulation markers use tertiary so they're visually distinct from period circles.
+    val ovulColor = MaterialTheme.colorScheme.tertiary
 
     // Build a human-readable description for screen readers so users know the
     // date state without relying on colour or shape alone.
@@ -240,12 +267,12 @@ private fun DayCell(
                     color = textColor
                 )
                 when {
-                    isOvulation -> // 6 dp peak-day dot
+                    isOvulation -> // 6 dp peak-day dot in tertiary colour
                         Box(Modifier.size(6.dp).clip(CircleShape)
-                            .background(if (isPeriod) Color.White else primary))
+                            .background(if (isPeriod) Color.White else ovulColor))
                     isOvulationWindow -> // 4 dp softer dot for surrounding window days
                         Box(Modifier.size(4.dp).clip(CircleShape)
-                            .background((if (isPeriod) Color.White else primary).copy(alpha = 0.5f)))
+                            .background((if (isPeriod) Color.White else ovulColor).copy(alpha = 0.5f)))
                     hasTrackingLog -> // 4 dp secondary-coloured dot for tracking entries
                         Box(Modifier.size(4.dp).clip(CircleShape)
                             .background(MaterialTheme.colorScheme.secondary))
