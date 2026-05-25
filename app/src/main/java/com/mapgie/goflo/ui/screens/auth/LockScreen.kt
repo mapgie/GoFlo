@@ -31,8 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 
@@ -68,7 +68,7 @@ fun LockScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("GoFlo", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+            Text("GoFlo", style = MaterialTheme.typography.headlineLarge, fontFamily = ComfortaaFamily)
             Spacer(Modifier.height(8.dp))
             Text("Enter your PIN to continue", style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

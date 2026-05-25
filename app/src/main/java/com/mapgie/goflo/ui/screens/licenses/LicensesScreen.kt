@@ -41,12 +41,19 @@ private val apache2Libraries = listOf(
     Library("AndroidX Compose UI", "The Android Open Source Project"),
     Library("AndroidX Compose Material3", "The Android Open Source Project"),
     Library("AndroidX Compose Material Icons Extended", "The Android Open Source Project"),
+    Library("AndroidX Compose UI Text Google Fonts", "The Android Open Source Project"),
     Library("AndroidX Navigation Compose", "The Android Open Source Project"),
     Library("AndroidX Room Runtime", "The Android Open Source Project"),
     Library("AndroidX Room KTX", "The Android Open Source Project"),
     Library("AndroidX DataStore Preferences", "The Android Open Source Project"),
     Library("AndroidX Biometric", "The Android Open Source Project"),
     Library("KotlinX Coroutines Android", "JetBrains s.r.o."),
+)
+
+private data class FontAsset(val name: String, val author: String, val license: String)
+
+private val oflFonts = listOf(
+    FontAsset("Comfortaa", "Johan Aakerlund", "SIL Open Font License 1.1"),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +106,34 @@ fun LicensesScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(8.dp))
             Text(
                 "See: https://www.apache.org/licenses/LICENSE-2.0",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(8.dp))
+            Text("SIL Open Font Licence 1.1", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "The following fonts are included under the SIL Open Font Licence 1.1 (OFL):",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(Modifier.height(4.dp))
+            oflFonts.forEach { font ->
+                Column {
+                    Text("• ${font.name}", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "  Copyright © ${font.author}  •  ${font.license}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "See: https://openfontlicense.org",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

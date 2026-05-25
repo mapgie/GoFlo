@@ -42,7 +42,18 @@ object AppIconManager {
         val pm  = context.packageManager
         val pkg = context.packageName
 
-        AppIconChoice.entries.forEach { c ->
+        // Enable the chosen alias BEFORE disabling the others.
+        // Iterating all entries in a flat loop would briefly leave no active
+        // launcher alias (when the chosen entry isn't first in enum order),
+        // which triggers a crash or a silent no-op on many OEM launchers.
+        // Leading with the enable guarantees at least one alias is always
+        // active throughout the transition.
+        val ordered = buildList {
+            add(choice)
+            addAll(AppIconChoice.entries.filter { it != choice })
+        }
+
+        ordered.forEach { c ->
             val component = ComponentName(pkg, "$pkg.${c.aliasSimpleName}")
             val state = if (c == choice) {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED

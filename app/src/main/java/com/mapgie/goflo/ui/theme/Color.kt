@@ -45,15 +45,15 @@ enum class AppTheme(
     GREEN_DARK("Sage",        ThemeGroup.DARK,       0xFF9DD679L, isDark = true),
 
     // ── Fun palettes ──────────────────────────────────────────────────────────
-    // Summer Candy — bubblegum raspberry, sherbet orange, candy glow
+    // Summer Candy — bubblegum raspberry, neon burnt-orange, neon teal
     SUMMER_CANDY("Summer Candy",            ThemeGroup.LIGHT, 0xFFC2185BL),
-    SUMMER_CANDY_DARK("Summer Candy",       ThemeGroup.DARK,  0xFFFFB1CAL, isDark = true),
-    // Beach Vibes — ocean blue, warm sand, sea-grass green
-    BEACH_VIBES("Beach Vibes",              ThemeGroup.LIGHT, 0xFF1565C0L),
-    BEACH_VIBES_DARK("Beach Vibes",         ThemeGroup.DARK,  0xFF9EC5FFL, isDark = true),
-    // Peach Melba — terra cotta, creamy apricot, olive accent
-    PEACH_MELBA("Peach Melba",              ThemeGroup.LIGHT, 0xFF9C5119L),
-    PEACH_MELBA_DARK("Peach Melba",         ThemeGroup.DARK,  0xFFFFB98AL, isDark = true),
+    SUMMER_CANDY_DARK("Summer Candy",       ThemeGroup.DARK,  0xFFFF80ABL, isDark = true),
+    // Beach Vibes — deep ocean blue, vivid terra cotta, vivid teal
+    BEACH_VIBES("Beach Vibes",              ThemeGroup.LIGHT, 0xFF0D47A1L),
+    BEACH_VIBES_DARK("Beach Vibes",         ThemeGroup.DARK,  0xFF82B1FFL, isDark = true),
+    // Peach Melba — vivid terra cotta, deep rose-crimson, forest green
+    PEACH_MELBA("Peach Melba",              ThemeGroup.LIGHT, 0xFFBF360CL),
+    PEACH_MELBA_DARK("Peach Melba",         ThemeGroup.DARK,  0xFFFF7043L, isDark = true),
     // All-Night Disco Party — deep violet, electric magenta, disco gold
     DISCO("All-Night Disco Party",          ThemeGroup.LIGHT, 0xFF7B0EA0L),
     DISCO_DARK("All-Night Disco Party",     ThemeGroup.DARK,  0xFFE0ABFFL, isDark = true),
@@ -66,18 +66,26 @@ enum class AppTheme(
     // Colour Me Happy — tropical coral-orange, electric blue, lime green
     COLOUR_HAPPY("Colour Me Happy",         ThemeGroup.LIGHT, 0xFFC13A00L),
     COLOUR_HAPPY_DARK("Colour Me Happy",    ThemeGroup.DARK,  0xFFFFB59AL, isDark = true),
+    // Dragon Fire — deep blood-red primary, burnt-orange secondary, electric-indigo tertiary
+    DRAGON_FIRE("Dragon Fire",                 ThemeGroup.LIGHT, 0xFFB71C1CL),
+    DRAGON_FIRE_DARK("Dragon Fire",            ThemeGroup.DARK,  0xFFFF8A80L, isDark = true),
+    // Midnight Neon — electric violet primary, neon cyan secondary, acid-lime tertiary
+    MIDNIGHT_NEON("Midnight Neon",             ThemeGroup.LIGHT, 0xFF6200EAL),
+    MIDNIGHT_NEON_DARK("Midnight Neon",        ThemeGroup.DARK,  0xFFEA80FCL, isDark = true),
 
     // ── System auto (palette-matched, follows device light/dark preference) ───
     SYSTEM("Follow system",                  ThemeGroup.SYSTEM, 0xFF80D5DBL),
     CORAL_SYSTEM("Follow system",            ThemeGroup.SYSTEM, 0xFFFFB4A8L),
     GREEN_SYSTEM("Follow system",            ThemeGroup.SYSTEM, 0xFF9DD679L),
-    SUMMER_CANDY_SYSTEM("Follow system",     ThemeGroup.SYSTEM, 0xFFFFB1CAL),
-    BEACH_VIBES_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFF9EC5FFL),
-    PEACH_MELBA_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFFFB98AL),
+    SUMMER_CANDY_SYSTEM("Follow system",     ThemeGroup.SYSTEM, 0xFFFF80ABL),
+    BEACH_VIBES_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFF82B1FFL),
+    PEACH_MELBA_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFFF7043L),
     DISCO_SYSTEM("Follow system",            ThemeGroup.SYSTEM, 0xFFE0ABFFL),
     METAL_CHICK_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFC5C3D1L),
     WHIMSY_SYSTEM("Follow system",           ThemeGroup.SYSTEM, 0xFFC4C0FFL),
     COLOUR_HAPPY_SYSTEM("Follow system",     ThemeGroup.SYSTEM, 0xFFFFB59AL),
+    DRAGON_FIRE_SYSTEM("Follow system",        ThemeGroup.SYSTEM, 0xFFFF8A80L),
+    MIDNIGHT_NEON_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFEA80FCL),
 
     // ── Accessibility ─────────────────────────────────────────────────────────
     HIGH_CONTRAST_LIGHT("Light",  ThemeGroup.HIGH_CONTRAST, 0xFF1A1A1AL),
@@ -227,74 +235,77 @@ private val GreenDark = darkColorScheme(
 
 // ── Fun light color schemes ───────────────────────────────────────────────────
 
-// Summer Candy — bubblegum raspberry primary (#C2185B ≈ 5.7:1), deep rose secondary,
-// sherbet-orange tertiary (#994F00 ≈ 5.9:1). Warm pink backgrounds.
+// Summer Candy — bubblegum raspberry primary (#C2185B ≈ 5.7:1), vivid burnt-orange
+// secondary (#BF360C ≈ 5.2:1), vivid deep teal tertiary (#006064 ≈ 7.4:1).
+// Near-neutral backgrounds so the bold accent colors pop.
 private val SummerCandyLight = lightColorScheme(
-    primary             = Color(0xFFC2185B),
+    primary             = Color(0xFFC2185B),   // bubblegum raspberry
     onPrimary           = Color(0xFFFFFFFF),
     primaryContainer    = Color(0xFFFFD6E8),
     onPrimaryContainer  = Color(0xFF3E001C),
-    secondary           = Color(0xFFB03070),
+    secondary           = Color(0xFFBF360C),   // vivid burnt-orange
     onSecondary         = Color(0xFFFFFFFF),
-    secondaryContainer  = Color(0xFFFFD8EF),
-    onSecondaryContainer= Color(0xFF3A0028),
-    tertiary            = Color(0xFF994F00),
+    secondaryContainer  = Color(0xFFFFE8D0),
+    onSecondaryContainer= Color(0xFF3A0F00),
+    tertiary            = Color(0xFF006064),   // vivid deep teal
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFDDB8),
-    onTertiaryContainer = Color(0xFF311600),
-    background          = Color(0xFFFFF8FA),
+    tertiaryContainer   = Color(0xFFE0F4F4),
+    onTertiaryContainer = Color(0xFF001A1A),
+    background          = Color(0xFFFFFBFE),   // near-neutral, barely warm
     onBackground        = Color(0xFF201217),
-    surface             = Color(0xFFFFF8FA),
+    surface             = Color(0xFFFFFBFE),
     onSurface           = Color(0xFF201217),
-    surfaceVariant      = Color(0xFFF5DEE7),
+    surfaceVariant      = Color(0xFFF4EEF2),   // barely-tinted neutral
     onSurfaceVariant    = Color(0xFF534349),
     outline             = Color(0xFF856069),
 )
 
-// Beach Vibes — deep ocean blue primary (#1565C0 ≈ 7.8:1), warm amber secondary,
-// sea-grass green tertiary (#3D6B3E ≈ 5.8:1). Coastal light backgrounds.
+// Beach Vibes — deep ocean blue primary (#0D47A1 ≈ 8.7:1), vivid terra-cotta
+// secondary (#BF360C ≈ 5.2:1), vivid deep teal tertiary (#006064 ≈ 7.4:1).
+// Near-neutral barely-blue backgrounds.
 private val BeachVibesLight = lightColorScheme(
-    primary             = Color(0xFF1565C0),
+    primary             = Color(0xFF0D47A1),   // deep ocean blue
     onPrimary           = Color(0xFFFFFFFF),
     primaryContainer    = Color(0xFFD6E4FF),
     onPrimaryContainer  = Color(0xFF001848),
-    secondary           = Color(0xFF7C5500),
+    secondary           = Color(0xFFBF360C),   // vivid terra cotta
     onSecondary         = Color(0xFFFFFFFF),
-    secondaryContainer  = Color(0xFFFFDDB0),
-    onSecondaryContainer= Color(0xFF271800),
-    tertiary            = Color(0xFF3D6B3E),
+    secondaryContainer  = Color(0xFFFFE8D0),
+    onSecondaryContainer= Color(0xFF3A0F00),
+    tertiary            = Color(0xFF006064),   // vivid deep teal
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFBCEBBE),
-    onTertiaryContainer = Color(0xFF002108),
-    background          = Color(0xFFF8FAFF),
+    tertiaryContainer   = Color(0xFFE0F4F4),
+    onTertiaryContainer = Color(0xFF001A1A),
+    background          = Color(0xFFF8FBFF),   // near-neutral, barely blue
     onBackground        = Color(0xFF181C22),
-    surface             = Color(0xFFF8FAFF),
+    surface             = Color(0xFFF8FBFF),
     onSurface           = Color(0xFF181C22),
-    surfaceVariant      = Color(0xFFD8E3F4),
+    surfaceVariant      = Color(0xFFE9F1F8),   // barely-blue tinted
     onSurfaceVariant    = Color(0xFF3C4756),
     outline             = Color(0xFF6C7888),
 )
 
-// Peach Melba — terra-cotta primary (#9C5119 ≈ 5.7:1), warm caramel secondary,
-// olive-green tertiary (#4E6539 ≈ 5.9:1). Creamy warm backgrounds.
+// Peach Melba — vivid deep terra-cotta primary (#BF360C ≈ 5.6:1), vivid deep
+// rose-crimson secondary (#880E4F ≈ 9.4:1), vivid forest green tertiary (#33691E ≈ 6.7:1).
+// Near-neutral barely-warm backgrounds.
 private val PeachMelbaLight = lightColorScheme(
-    primary             = Color(0xFF9C5119),
+    primary             = Color(0xFFBF360C),   // vivid deep terra cotta
     onPrimary           = Color(0xFFFFFFFF),
-    primaryContainer    = Color(0xFFFFDCC7),
-    onPrimaryContainer  = Color(0xFF341200),
-    secondary           = Color(0xFF8A5835),
+    primaryContainer    = Color(0xFFFFE4D4),
+    onPrimaryContainer  = Color(0xFF4A1000),
+    secondary           = Color(0xFF880E4F),   // vivid deep rose-crimson
     onSecondary         = Color(0xFFFFFFFF),
-    secondaryContainer  = Color(0xFFFFDCBE),
-    onSecondaryContainer= Color(0xFF321200),
-    tertiary            = Color(0xFF4E6539),
+    secondaryContainer  = Color(0xFFFFE0EC),
+    onSecondaryContainer= Color(0xFF380018),
+    tertiary            = Color(0xFF33691E),   // vivid forest green
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFD0ECBA),
-    onTertiaryContainer = Color(0xFF0C2000),
-    background          = Color(0xFFFFF8F5),
+    tertiaryContainer   = Color(0xFFDCEDC8),
+    onTertiaryContainer = Color(0xFF1A3500),
+    background          = Color(0xFFFFFAF8),   // near-neutral, barely warm
     onBackground        = Color(0xFF201A16),
-    surface             = Color(0xFFFFF8F5),
+    surface             = Color(0xFFFFFAF8),
     onSurface           = Color(0xFF201A16),
-    surfaceVariant      = Color(0xFFF2DDD4),
+    surfaceVariant      = Color(0xFFF5EDE9),   // barely-peach tinted
     onSurfaceVariant    = Color(0xFF52423C),
     outline             = Color(0xFF85726A),
 )
@@ -398,18 +409,18 @@ private val ColourHappyLight = lightColorScheme(
 // ── Fun dark color schemes ────────────────────────────────────────────────────
 
 private val SummerCandyDark = darkColorScheme(
-    primary             = Color(0xFFFFB1CA),
+    primary             = Color(0xFFFF80AB),   // neon pink ~7.8:1
     onPrimary           = Color(0xFF67003A),
     primaryContainer    = Color(0xFF8C0052),
     onPrimaryContainer  = Color(0xFFFFD6E8),
-    secondary           = Color(0xFFF3B4D2),
-    onSecondary         = Color(0xFF4E0038),
-    secondaryContainer  = Color(0xFF69004E),
-    onSecondaryContainer= Color(0xFFFFD8EF),
-    tertiary            = Color(0xFFFFB878),
-    onTertiary          = Color(0xFF4E2700),
-    tertiaryContainer   = Color(0xFF6E3900),
-    onTertiaryContainer = Color(0xFFFFDDB8),
+    secondary           = Color(0xFFFF6E40),   // neon burnt-orange ~6.7:1
+    onSecondary         = Color(0xFF5C1500),
+    secondaryContainer  = Color(0xFF802400),
+    onSecondaryContainer= Color(0xFFFFE8D0),
+    tertiary            = Color(0xFF80DEEA),   // neon teal ~12.0:1
+    onTertiary          = Color(0xFF003A40),
+    tertiaryContainer   = Color(0xFF005360),
+    onTertiaryContainer = Color(0xFFB0F0F8),
     background          = Color(0xFF201217),
     onBackground        = Color(0xFFEDD9E2),
     surface             = Color(0xFF201217),
@@ -420,18 +431,18 @@ private val SummerCandyDark = darkColorScheme(
 )
 
 private val BeachVibesDark = darkColorScheme(
-    primary             = Color(0xFF9EC5FF),
-    onPrimary           = Color(0xFF003171),
-    primaryContainer    = Color(0xFF004A9D),
+    primary             = Color(0xFF82B1FF),   // vivid electric blue ~8.0:1
+    onPrimary           = Color(0xFF001E5A),
+    primaryContainer    = Color(0xFF003A86),
     onPrimaryContainer  = Color(0xFFD6E4FF),
-    secondary           = Color(0xFFFFBB6E),
-    onSecondary         = Color(0xFF422C00),
-    secondaryContainer  = Color(0xFF5E3F00),
-    onSecondaryContainer= Color(0xFFFFDDB0),
-    tertiary            = Color(0xFF9EDEA0),
-    onTertiary          = Color(0xFF09380F),
-    tertiaryContainer   = Color(0xFF245228),
-    onTertiaryContainer = Color(0xFFBAEBBC),
+    secondary           = Color(0xFFFFAB40),   // vivid amber ~9.2:1
+    onSecondary         = Color(0xFF412000),
+    secondaryContainer  = Color(0xFF893300),
+    onSecondaryContainer= Color(0xFFFFE8D0),
+    tertiary            = Color(0xFF69F0AE),   // vivid sea-foam neon ~12.1:1
+    onTertiary          = Color(0xFF003320),
+    tertiaryContainer   = Color(0xFF006140),
+    onTertiaryContainer = Color(0xFFB0FFD8),
     background          = Color(0xFF181C22),
     onBackground        = Color(0xFFDDE3ED),
     surface             = Color(0xFF181C22),
@@ -442,18 +453,18 @@ private val BeachVibesDark = darkColorScheme(
 )
 
 private val PeachMelbaDark = darkColorScheme(
-    primary             = Color(0xFFFFB98A),
-    onPrimary           = Color(0xFF542400),
-    primaryContainer    = Color(0xFF763400),
-    onPrimaryContainer  = Color(0xFFFFDCC7),
-    secondary           = Color(0xFFFFBB8D),
-    onSecondary         = Color(0xFF4C2800),
-    secondaryContainer  = Color(0xFF6B3B00),
-    onSecondaryContainer= Color(0xFFFFDCBE),
-    tertiary            = Color(0xFFB5CD9A),
-    onTertiary          = Color(0xFF21360B),
-    tertiaryContainer   = Color(0xFF374D1F),
-    onTertiaryContainer = Color(0xFFD1EDBA),
+    primary             = Color(0xFFFF7043),   // vivid coral ~6.4:1
+    onPrimary           = Color(0xFF5C1800),
+    primaryContainer    = Color(0xFF842600),
+    onPrimaryContainer  = Color(0xFFFFE4D4),
+    secondary           = Color(0xFFFF80AB),   // vivid rose-pink ~7.5:1
+    onSecondary         = Color(0xFF680030),
+    secondaryContainer  = Color(0xFF8B0040),
+    onSecondaryContainer= Color(0xFFFFE0EC),
+    tertiary            = Color(0xFFAED581),   // vivid lime-green ~10.6:1
+    onTertiary          = Color(0xFF1E3800),
+    tertiaryContainer   = Color(0xFF3A5600),
+    onTertiaryContainer = Color(0xFFD7F0B4),
     background          = Color(0xFF201A16),
     onBackground        = Color(0xFFEDE0D8),
     surface             = Color(0xFF201A16),
@@ -549,6 +560,104 @@ private val ColourHappyDark = darkColorScheme(
     surfaceVariant      = Color(0xFF514442),
     onSurfaceVariant    = Color(0xFFD5C3C0),
     outline             = Color(0xFFA18F8D), // bumped from #9E8C8A to pass 3:1 on surfaceVariant
+)
+
+// ── Bold palettes ─────────────────────────────────────────────────────────────
+
+// Dragon Fire — blood-red (#B71C1C ≈ 6.6:1), burnt-orange (#BF360C ≈ 5.2:1),
+// electric-indigo (#311B92 ≈ 10.9:1). All verified WCAG AA on warm near-white.
+private val DragonFireLight = lightColorScheme(
+    primary             = Color(0xFFB71C1C),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFCDD2),
+    onPrimaryContainer  = Color(0xFF3D0000),
+    secondary           = Color(0xFFBF360C),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFE0D0),
+    onSecondaryContainer= Color(0xFF3A0F00),
+    tertiary            = Color(0xFF311B92),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFEDE7F6),
+    onTertiaryContainer = Color(0xFF0D0060),
+    background          = Color(0xFFFFFBF8),
+    onBackground        = Color(0xFF1C0B07),
+    surface             = Color(0xFFFFFBF8),
+    onSurface           = Color(0xFF1C0B07),
+    surfaceVariant      = Color(0xFFFFEBEE),
+    onSurfaceVariant    = Color(0xFF534343),
+    outline             = Color(0xFF8C5D5D),
+)
+
+// Dragon Fire dark — bright coral-red (#FF8A80 ≈ 8.7:1), warm orange (#FFAB91),
+// light indigo (#B0A0FF ≈ 8.8:1) on very-dark warm near-black.
+private val DragonFireDark = darkColorScheme(
+    primary             = Color(0xFFFF8A80),
+    onPrimary           = Color(0xFF680000),
+    primaryContainer    = Color(0xFF960000),
+    onPrimaryContainer  = Color(0xFFFFCDD2),
+    secondary           = Color(0xFFFFAB91),
+    onSecondary         = Color(0xFF6E1C00),
+    secondaryContainer  = Color(0xFF992800),
+    onSecondaryContainer= Color(0xFFFFCCB5),
+    tertiary            = Color(0xFFB0A0FF),
+    onTertiary          = Color(0xFF1B0070),
+    tertiaryContainer   = Color(0xFF2E1890),
+    onTertiaryContainer = Color(0xFFE8E0FF),
+    background          = Color(0xFF1C0A07),
+    onBackground        = Color(0xFFF5E0DC),
+    surface             = Color(0xFF1C0A07),
+    onSurface           = Color(0xFFF5E0DC),
+    surfaceVariant      = Color(0xFF4A1E1A),
+    onSurfaceVariant    = Color(0xFFF0C4BE),
+    outline             = Color(0xFFB88878),
+)
+
+// Midnight Neon light — electric violet (#6200EA ≈ 7.5:1), deep teal (#00838F ≈ 5.2:1),
+// dark lime (#558B00 ≈ 4.5:1). Cool near-white background with violet undertone.
+private val MidnightNeonLight = lightColorScheme(
+    primary             = Color(0xFF6200EA),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFEDE7F6),
+    onPrimaryContainer  = Color(0xFF1B0060),
+    secondary           = Color(0xFF00838F),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFE0F7FA),
+    onSecondaryContainer= Color(0xFF002830),
+    tertiary            = Color(0xFF558B00),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFF1F8E9),
+    onTertiaryContainer = Color(0xFF1B2F00),
+    background          = Color(0xFFF9F8FF),
+    onBackground        = Color(0xFF10001E),
+    surface             = Color(0xFFF9F8FF),
+    onSurface           = Color(0xFF10001E),
+    surfaceVariant      = Color(0xFFE8E4F8),
+    onSurfaceVariant    = Color(0xFF47424F),
+    outline             = Color(0xFF777285),
+)
+
+// Midnight Neon dark — neon pink-violet (#EA80FC ≈ 8.6:1), neon mint (#64FFDA ≈ 15.4:1),
+// neon lime (#CCFF90 ≈ 16.6:1) on very-dark navy-black. Cyberpunk aesthetic.
+private val MidnightNeonDark = darkColorScheme(
+    primary             = Color(0xFFEA80FC),
+    onPrimary           = Color(0xFF320050),
+    primaryContainer    = Color(0xFF5C007A),
+    onPrimaryContainer  = Color(0xFFF5D5FF),
+    secondary           = Color(0xFF64FFDA),
+    onSecondary         = Color(0xFF003D30),
+    secondaryContainer  = Color(0xFF005140),
+    onSecondaryContainer= Color(0xFFB0FFF0),
+    tertiary            = Color(0xFFCCFF90),
+    onTertiary          = Color(0xFF1D3300),
+    tertiaryContainer   = Color(0xFF2E4900),
+    onTertiaryContainer = Color(0xFFE8FFC0),
+    background          = Color(0xFF0D0E15),
+    onBackground        = Color(0xFFECECFF),
+    surface             = Color(0xFF0D0E15),
+    onSurface           = Color(0xFFECECFF),
+    surfaceVariant      = Color(0xFF1E1E2E),
+    onSurfaceVariant    = Color(0xFFCCCADE),
+    outline             = Color(0xFF8888D0),
 )
 
 // ── Accessibility: high contrast ──────────────────────────────────────────────
@@ -666,6 +775,13 @@ fun colorSchemeFor(theme: AppTheme, systemIsDark: Boolean = false): ColorScheme 
     AppTheme.METAL_CHICK_SYSTEM    -> if (systemIsDark) MetalChickDark   else MetalChickLight
     AppTheme.WHIMSY_SYSTEM         -> if (systemIsDark) WhimsyDark       else WhimsyLight
     AppTheme.COLOUR_HAPPY_SYSTEM   -> if (systemIsDark) ColourHappyDark  else ColourHappyLight
+    // Bold
+    AppTheme.DRAGON_FIRE              -> DragonFireLight
+    AppTheme.DRAGON_FIRE_DARK         -> DragonFireDark
+    AppTheme.MIDNIGHT_NEON            -> MidnightNeonLight
+    AppTheme.MIDNIGHT_NEON_DARK       -> MidnightNeonDark
+    AppTheme.DRAGON_FIRE_SYSTEM       -> if (systemIsDark) DragonFireDark   else DragonFireLight
+    AppTheme.MIDNIGHT_NEON_SYSTEM     -> if (systemIsDark) MidnightNeonDark else MidnightNeonLight
     AppTheme.HIGH_CONTRAST_LIGHT -> HighContrastLight
     AppTheme.HIGH_CONTRAST_DARK  -> HighContrastDark
     AppTheme.BLUE_ORANGE         -> BlueOrange
