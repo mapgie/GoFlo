@@ -82,8 +82,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -111,20 +116,27 @@ private enum class StandardPalette(
     val lightTheme: AppTheme,
     val darkTheme: AppTheme,
     val systemTheme: AppTheme,
+    /** Primary colour shown in the top-left half of the diagonal swatch. */
     val previewArgb: Long,
+    /**
+     * Accent (tertiary or secondary) colour shown in the bottom-right half of the
+     * diagonal swatch — gives each palette a two-tone preview so the swatches look
+     * vibrant rather than flat single-colour circles.
+     */
+    val accentArgb: Long,
 ) {
     // Classic
-    CORAL        ("Coral",                  AppTheme.CORAL,        AppTheme.CORAL_DARK,        AppTheme.CORAL_SYSTEM,          0xFFC15542L),
-    TEAL         ("Teal",                   AppTheme.TURQUOISE,    AppTheme.TURQUOISE_DARK,    AppTheme.SYSTEM,                0xFF00696FL),
-    SAGE         ("Sage",                   AppTheme.GREEN,        AppTheme.GREEN_DARK,        AppTheme.GREEN_SYSTEM,          0xFF386A20L),
+    CORAL        ("Coral",                  AppTheme.CORAL,        AppTheme.CORAL_DARK,        AppTheme.CORAL_SYSTEM,          0xFFC15542L, 0xFFB85C00L), // coral-red + amber
+    TEAL         ("Teal",                   AppTheme.TURQUOISE,    AppTheme.TURQUOISE_DARK,    AppTheme.SYSTEM,                0xFF00696FL, 0xFF4E6078L), // deep teal + slate-blue
+    SAGE         ("Sage",                   AppTheme.GREEN,        AppTheme.GREEN_DARK,        AppTheme.GREEN_SYSTEM,          0xFF386A20L, 0xFF386669L), // forest-green + teal
     // Fun
-    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY, AppTheme.SUMMER_CANDY_DARK, AppTheme.SUMMER_CANDY_SYSTEM,   0xFFC2185BL),
-    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,  AppTheme.BEACH_VIBES_DARK,  AppTheme.BEACH_VIBES_SYSTEM,    0xFF1565C0L),
-    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,  AppTheme.PEACH_MELBA_DARK,  AppTheme.PEACH_MELBA_SYSTEM,    0xFF9C5119L),
-    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,        AppTheme.DISCO_DARK,        AppTheme.DISCO_SYSTEM,          0xFF7B0EA0L),
-    METAL_CHICK  ("Metal Chick",            AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL),
-    WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,       AppTheme.WHIMSY_DARK,       AppTheme.WHIMSY_SYSTEM,         0xFF5050A0L),
-    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFC13A00L),
+    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY, AppTheme.SUMMER_CANDY_DARK, AppTheme.SUMMER_CANDY_SYSTEM,   0xFFC2185BL, 0xFF994F00L), // raspberry + sherbet-orange
+    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,  AppTheme.BEACH_VIBES_DARK,  AppTheme.BEACH_VIBES_SYSTEM,    0xFF1565C0L, 0xFF3D6B3EL), // ocean-blue + sea-grass
+    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,  AppTheme.PEACH_MELBA_DARK,  AppTheme.PEACH_MELBA_SYSTEM,    0xFF9C5119L, 0xFF4E6539L), // terra-cotta + olive
+    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,        AppTheme.DISCO_DARK,        AppTheme.DISCO_SYSTEM,          0xFF7B0EA0L, 0xFF8B6A00L), // deep-violet + disco-gold
+    METAL_CHICK  ("Metal Chick",            AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL, 0xFF6B2D3EL), // charcoal + burgundy
+    WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,       AppTheme.WHIMSY_DARK,       AppTheme.WHIMSY_SYSTEM,         0xFF5050A0L, 0xFF2D7A6EL), // periwinkle + mint-teal
+    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFC13A00L, 0xFF1B6FA8L), // coral-orange + electric-blue
 }
 
 private val AppTheme.themeMode: ThemeMode? get() = when (this) {
@@ -1187,19 +1199,45 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        val primaryColor  = Color(palette.previewArgb)
+        val accentColor   = Color(palette.accentArgb)
+        val selRingColor  = MaterialTheme.colorScheme.primary
+        val outlineColor  = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+
         Box(
-            modifier         = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Color(palette.previewArgb))
-                .border(
-                    width  = if (selected) 3.dp else 1.dp,
-                    color  = if (selected) MaterialTheme.colorScheme.primary
-                             else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                    shape  = CircleShape
-                ),
+            modifier         = Modifier.size(44.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Diagonal-split circle: upper-left = primary, lower-right = accent.
+            // Shows the palette's two key colours at a glance instead of a flat
+            // single-colour disc.
+            Canvas(modifier = Modifier.size(40.dp)) {
+                val w = size.width
+                val h = size.height
+                val r = w / 2f
+
+                clipPath(Path().apply { addOval(Rect(0f, 0f, w, h)) }) {
+                    // Upper-left triangle — primary (period colour)
+                    drawPath(
+                        path  = Path().apply { moveTo(0f, 0f); lineTo(w, 0f); lineTo(0f, h); close() },
+                        color = primaryColor,
+                    )
+                    // Lower-right triangle — accent (ovulation / tertiary colour)
+                    drawPath(
+                        path  = Path().apply { moveTo(w, 0f); lineTo(w, h); lineTo(0f, h); close() },
+                        color = accentColor,
+                    )
+                }
+
+                // Selection / outline ring drawn over the fill
+                val strokePx = if (selected) 3.dp.toPx() else 1.dp.toPx()
+                drawCircle(
+                    color  = if (selected) selRingColor else outlineColor,
+                    radius = r - strokePx / 2f,
+                    style  = Stroke(width = strokePx),
+                )
+            }
+
             if (selected) {
                 Icon(
                     imageVector        = Icons.Default.Check,
