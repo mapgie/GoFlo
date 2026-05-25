@@ -21,7 +21,12 @@ import androidx.compose.material.icons.outlined.SelfImprovement
 import androidx.compose.material.icons.outlined.Spa
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+
+// ── Icon catalogue ────────────────────────────────────────────────────────────
 
 /**
  * Curated set of Material icons users can assign to a custom tracking category.
@@ -64,25 +69,51 @@ enum class CategoryIcon(
 fun String.toCategoryIcon(): CategoryIcon =
     CategoryIcon.entries.firstOrNull { it.key == this } ?: CategoryIcon.CATEGORY
 
-/**
- * Curated colour palette for category personalisation.
- * Values are fully-opaque ARGB [Int]s (Android @ColorInt convention — signed).
- * Material Design 600/700-range colours chosen for legibility on white icon tints.
- */
-val CATEGORY_COLOR_OPTIONS: List<Int> = listOf(
-    (0xFFE53935L).toInt(),  // Red 600
-    (0xFFD81B60L).toInt(),  // Pink 600
-    (0xFF8E24AAL).toInt(),  // Purple 700
-    (0xFF3949ABL).toInt(),  // Indigo 600
-    (0xFF1E88E5L).toInt(),  // Blue 600
-    (0xFF00ACC1L).toInt(),  // Cyan 600
-    (0xFF00897BL).toInt(),  // Teal 600
-    (0xFF43A047L).toInt(),  // Green 600
-    (0xFFF4511EL).toInt(),  // Deep Orange 600
-    (0xFFE65100L).toInt(),  // Orange 900
-    (0xFF8D6E63L).toInt(),  // Brown 400
-    (0xFF546E7AL).toInt(),  // Blue Grey 600
-)
+// ── Semantic colour tokens ────────────────────────────────────────────────────
 
-/** Default category colour used when no explicit choice has been made. */
-val DEFAULT_CATEGORY_COLOR: Int = (0xFF1976D2L).toInt()  // Blue 700
+/**
+ * Theme-relative colour choices for category bubbles.
+ *
+ * Tokens map to [androidx.compose.material3.ColorScheme] slots at render time,
+ * so the bubble automatically updates whenever the user switches palette or
+ * light/dark mode.  The [key] string is persisted in the database.
+ *
+ * Bubble background  → [resolve]
+ * Icon tint          → [resolveOn]
+ * Both pairs are guaranteed WCAG AA contrast by the Material colour system.
+ */
+enum class CategoryColor(
+    val key: String,
+    val displayName: String,
+) {
+    PRIMARY   ("primary",   "Primary"),
+    SECONDARY ("secondary", "Secondary"),
+    TERTIARY  ("tertiary",  "Accent"),
+    ERROR     ("error",     "Error"),
+}
+
+/** Resolves [this] token to the corresponding bubble background [Color]. */
+@Composable
+fun String.toCategoryColor(): Color {
+    val s = MaterialTheme.colorScheme
+    return when (this) {
+        "primary"   -> s.primary
+        "secondary" -> s.secondary
+        "tertiary"  -> s.tertiary
+        "error"     -> s.error
+        else        -> s.secondary   // safe fallback
+    }
+}
+
+/** Resolves [this] token to the icon tint that passes contrast on [toCategoryColor]. */
+@Composable
+fun String.toCategoryOnColor(): Color {
+    val s = MaterialTheme.colorScheme
+    return when (this) {
+        "primary"   -> s.onPrimary
+        "secondary" -> s.onSecondary
+        "tertiary"  -> s.onTertiary
+        "error"     -> s.onError
+        else        -> s.onSecondary
+    }
+}

@@ -11,8 +11,12 @@ import androidx.room.PrimaryKey
  * layer), but their names, icons, and colours can be edited freely.
  *
  * [iconName] maps to a [com.mapgie.goflo.ui.util.CategoryIcon] key string.
- * [colorArgb] is an Android @ColorInt (fully-opaque ARGB) used for the
- * coloured bubble displayed in the log menu and category list.
+ *
+ * [colorToken] maps to a [com.mapgie.goflo.ui.util.CategoryColor] key string
+ * ("primary", "secondary", "tertiary", "error").  The token is resolved to an
+ * actual [androidx.compose.ui.graphics.Color] at render time via
+ * [com.mapgie.goflo.ui.util.toCategoryColor], so the bubble automatically
+ * follows the user's chosen palette and light/dark mode.
  */
 @Entity(tableName = "tracking_categories")
 data class TrackingCategory(
@@ -23,7 +27,8 @@ data class TrackingCategory(
     val displayOrder: Int = 0,
     /** Key matching a [com.mapgie.goflo.ui.util.CategoryIcon] entry. */
     val iconName: String = "category",
-    /** Fully-opaque ARGB colour int for the category bubble. */
-    val colorArgb: Int = (0xFF1976D2L).toInt(),   // Material Blue 700
+    /** Theme-relative colour token — resolves live from MaterialTheme.colorScheme. */
+    val colorToken: String = "secondary",
 )
+
 

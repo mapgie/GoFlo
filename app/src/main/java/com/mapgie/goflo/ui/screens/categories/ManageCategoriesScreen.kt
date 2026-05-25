@@ -48,7 +48,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -59,10 +58,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.mapgie.goflo.data.database.entities.TrackingCategory
-import com.mapgie.goflo.ui.util.CATEGORY_COLOR_OPTIONS
+import com.mapgie.goflo.ui.util.CategoryColor
 import com.mapgie.goflo.ui.util.CategoryIcon
-import com.mapgie.goflo.ui.util.DEFAULT_CATEGORY_COLOR
+import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
+import com.mapgie.goflo.ui.util.toCategoryOnColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,15 +77,15 @@ fun ManageCategoriesScreen(
     var pendingDelete         by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingEditAppearance by rememberSaveable { mutableStateOf<Long?>(null) }
 
-    val categoryToDelete        = state.categories.firstOrNull { it.id == pendingDelete }
+    val categoryToDelete         = state.categories.firstOrNull { it.id == pendingDelete }
     val categoryToEditAppearance = state.categories.firstOrNull { it.id == pendingEditAppearance }
 
     // ── Add category dialog ───────────────────────────────────────────────────
 
     if (showAddDialog) {
         AddCategoryDialog(
-            onAdd = { name, iconName, colorArgb ->
-                viewModel.addCategory(name, iconName, colorArgb)
+            onAdd = { name, iconName, colorToken ->
+                viewModel.addCategory(name, iconName, colorToken)
                 showAddDialog = false
             },
             onDismiss = { showAddDialog = false }
@@ -97,8 +97,8 @@ fun ManageCategoriesScreen(
     if (categoryToEditAppearance != null) {
         EditAppearanceDialog(
             category = categoryToEditAppearance,
-            onSave = { iconName, colorArgb ->
-                viewModel.updateCategoryAppearance(categoryToEditAppearance.id, iconName, colorArgb)
+            onSave = { iconName, colorToken ->
+                viewModel.updateCategoryAppearance(categoryToEditAppearance.id, iconName, colorToken)
                 pendingEditAppearance = null
             },
             onDismiss = { pendingEditAppearance = null }
@@ -183,10 +183,10 @@ fun ManageCategoriesScreen(
             ) {
                 items(state.categories, key = { it.id }) { category ->
                     CategoryRow(
-                        category          = category,
-                        onClick           = { onNavigateToCategory(category.id) },
-                        onEditAppearance  = { pendingEditAppearance = category.id },
-                        onDelete          = { pendingDelete = category.id }
+                        category         = category,
+                        onClick          = { onNavigateToCategory(category.id) },
+                        onEditAppearance = { pendingEditAppearance = category.id },
+                        onDelete         = { pendingDelete = category.id }
                     )
                 }
             }
@@ -203,6 +203,10 @@ private fun CategoryRow(
     onEditAppearance: () -> Unit,
     onDelete: () -> Unit
 ) {
+    // Resolve theme-relative colours here so Modifier.background can use them
+    val bubbleColor = category.colorToken.toCategoryColor()
+    val iconTint    = category.colorToken.toCategoryOnColor()
+
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -217,18 +221,18 @@ private fun CategoryRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Coloured icon bubble
+            // Coloured icon bubble — resolves from the current theme
             Box(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(category.colorArgb)),
+                    .background(bubbleColor),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector        = category.iconName.toCategoryIcon().vector,
                     contentDescription = null,
-                    tint               = Color.White,
+                    tint               = iconTint,
                     modifier           = Modifier.size(22.dp)
                 )
             }
@@ -248,7 +252,7 @@ private fun CategoryRow(
                 )
             }
 
-            // Edit appearance
+            // Edit appearance (all categories)
             IconButton(onClick = onEditAppearance) {
                 Icon(
                     imageVector        = Icons.Outlined.Palette,
@@ -283,12 +287,12 @@ private fun CategoryRow(
 
 @Composable
 private fun AddCategoryDialog(
-    onAdd: (name: String, iconName: String, colorArgb: Int) -> Unit,
+    onAdd: (name: String, iconName: String, colorToken: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name             by rememberSaveable { mutableStateOf("") }
-    var selectedIconKey  by rememberSaveable { mutableStateOf(CategoryIcon.CATEGORY.key) }
-    var selectedColor    by rememberSaveable { mutableIntStateOf(DEFAULT_CATEGORY_COLOR) }
+    var name            by rememberSaveable { mutableStateOf("") }
+    var selectedIconKey by rememberSaveable { mutableStateOf(CategoryIcon.CATEGORY.key) }
+    var selectedToken   by rememberSaveable { mutableStateOf(CategoryColor.SECONDARY.key) }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -303,7 +307,6 @@ private fun AddCategoryDialog(
             ) {
                 Text("New Category", style = MaterialTheme.typography.headlineSmall)
 
-                // Name
                 OutlinedTextField(
                     value         = name,
                     onValueChange = { name = it },
@@ -313,23 +316,14 @@ private fun AddCategoryDialog(
                     modifier      = Modifier.fillMaxWidth()
                 )
 
-                // Icon picker
                 Text("Icon", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                CategoryIconGrid(
-                    selectedKey = selectedIconKey,
-                    onSelect    = { selectedIconKey = it }
-                )
+                CategoryIconGrid(selectedKey = selectedIconKey, onSelect = { selectedIconKey = it })
 
-                // Colour picker
                 Text("Colour", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                CategoryColorPicker(
-                    selectedArgb = selectedColor,
-                    onSelect     = { selectedColor = it }
-                )
+                CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
-                // Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -338,8 +332,8 @@ private fun AddCategoryDialog(
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
                     Button(
-                        onClick  = { if (name.isNotBlank()) onAdd(name, selectedIconKey, selectedColor) },
-                        enabled  = name.isNotBlank()
+                        onClick = { if (name.isNotBlank()) onAdd(name, selectedIconKey, selectedToken) },
+                        enabled = name.isNotBlank()
                     ) { Text("Add") }
                 }
             }
@@ -352,11 +346,14 @@ private fun AddCategoryDialog(
 @Composable
 private fun EditAppearanceDialog(
     category: TrackingCategory,
-    onSave: (iconName: String, colorArgb: Int) -> Unit,
+    onSave: (iconName: String, colorToken: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedIconKey by rememberSaveable { mutableStateOf(category.iconName) }
-    var selectedColor   by rememberSaveable { mutableIntStateOf(category.colorArgb) }
+    var selectedToken   by rememberSaveable { mutableStateOf(category.colorToken) }
+
+    val previewBubble = selectedToken.toCategoryColor()
+    val previewIcon   = selectedToken.toCategoryOnColor()
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -369,23 +366,23 @@ private fun EditAppearanceDialog(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Preview bubble
+                // Live preview
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(52.dp)
                             .clip(CircleShape)
-                            .background(Color(selectedColor)),
+                            .background(previewBubble),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector        = selectedIconKey.toCategoryIcon().vector,
                             contentDescription = null,
-                            tint               = Color.White,
-                            modifier           = Modifier.size(26.dp)
+                            tint               = previewIcon,
+                            modifier           = Modifier.size(28.dp)
                         )
                     }
                     Column {
@@ -405,17 +402,11 @@ private fun EditAppearanceDialog(
 
                 Text("Icon", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                CategoryIconGrid(
-                    selectedKey = selectedIconKey,
-                    onSelect    = { selectedIconKey = it }
-                )
+                CategoryIconGrid(selectedKey = selectedIconKey, onSelect = { selectedIconKey = it })
 
                 Text("Colour", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                CategoryColorPicker(
-                    selectedArgb = selectedColor,
-                    onSelect     = { selectedColor = it }
-                )
+                CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -424,7 +415,7 @@ private fun EditAppearanceDialog(
                 ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = { onSave(selectedIconKey, selectedColor) }) { Text("Save") }
+                    Button(onClick = { onSave(selectedIconKey, selectedToken) }) { Text("Save") }
                 }
             }
         }
@@ -433,7 +424,7 @@ private fun EditAppearanceDialog(
 
 // ── Shared picker components ──────────────────────────────────────────────────
 
-/** Grid of all available [CategoryIcon] options; highlights the selected one. */
+/** Grid of all [CategoryIcon] options; highlights the currently selected one. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
@@ -467,37 +458,54 @@ private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
     }
 }
 
-/** Row of colour swatches; the selected one gets a white check mark. */
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Row of colour swatches built from the current theme's semantic colour slots.
+ * Because the swatches resolve from [MaterialTheme], they automatically reflect
+ * the user's chosen palette — no hardcoded ARGB values.
+ */
 @Composable
-private fun CategoryColorPicker(selectedArgb: Int, onSelect: (Int) -> Unit) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement   = Arrangement.spacedBy(10.dp),
-        maxItemsInEachRow     = 6,
+private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        CATEGORY_COLOR_OPTIONS.forEach { colorArgb ->
-            val isSelected = colorArgb == selectedArgb
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(Color(colorArgb))
-                    .then(
-                        if (isSelected) Modifier.border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                        else Modifier
-                    )
-                    .clickable { onSelect(colorArgb) },
-                contentAlignment = Alignment.Center
+        CategoryColor.entries.forEach { colorOption ->
+            val isSelected   = colorOption.key == selectedToken
+            val swatchColor  = colorOption.key.toCategoryColor()
+            val onSwatchColor = colorOption.key.toCategoryOnColor()
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                if (isSelected) {
-                    Icon(
-                        imageVector        = Icons.Default.Check,
-                        contentDescription = "Selected",
-                        tint               = Color.White,
-                        modifier           = Modifier.size(18.dp)
-                    )
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(swatchColor)
+                        .then(
+                            if (isSelected)
+                                Modifier.border(3.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                            else Modifier
+                        )
+                        .clickable { onSelect(colorOption.key) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector        = Icons.Default.Check,
+                            contentDescription = "Selected",
+                            tint               = onSwatchColor,
+                            modifier           = Modifier.size(22.dp)
+                        )
+                    }
                 }
+                Text(
+                    text  = colorOption.displayName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

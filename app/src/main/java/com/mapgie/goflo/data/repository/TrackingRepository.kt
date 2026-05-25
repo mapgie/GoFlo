@@ -38,16 +38,16 @@ class TrackingRepository(
     suspend fun addCategory(
         name: String,
         iconName: String = "category",
-        colorArgb: Int = (0xFF1976D2L).toInt(),
+        colorToken: String = "secondary",
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
         return categoryDao.insertCategory(
             TrackingCategory(
-                name        = name.trim(),
+                name         = name.trim(),
                 displayOrder = maxOrder + 1,
-                iconName    = iconName,
-                colorArgb   = colorArgb,
+                iconName     = iconName,
+                colorToken   = colorToken,
             )
         )
     }
@@ -57,10 +57,10 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(name = newName.trim()))
     }
 
-    /** Updates only the icon and colour of an existing category. */
-    suspend fun updateCategoryAppearance(id: Long, iconName: String, colorArgb: Int) {
+    /** Updates only the icon and colour token of an existing category. */
+    suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
-        categoryDao.updateCategory(cat.copy(iconName = iconName, colorArgb = colorArgb))
+        categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
     }
 
     suspend fun deleteCategory(category: TrackingCategory) {

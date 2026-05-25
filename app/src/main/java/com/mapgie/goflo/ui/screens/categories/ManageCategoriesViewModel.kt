@@ -28,13 +28,13 @@ class ManageCategoriesViewModel(
                 initialValue = ManageCategoriesUiState()
             )
 
-    fun addCategory(name: String, iconName: String, colorArgb: Int) {
+    fun addCategory(name: String, iconName: String, colorToken: String) {
         if (name.isBlank()) return
-        viewModelScope.launch { repository.addCategory(name, iconName, colorArgb) }
+        viewModelScope.launch { repository.addCategory(name, iconName, colorToken) }
     }
 
-    fun updateCategoryAppearance(id: Long, iconName: String, colorArgb: Int) {
-        viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorArgb) }
+    fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
+        viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
     }
 
     fun deleteCategory(category: TrackingCategory) {
