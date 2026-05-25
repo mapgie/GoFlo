@@ -29,9 +29,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
+import com.mapgie.goflo.ui.components.BannerTopBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
-import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -164,15 +162,7 @@ fun HomeScreen(
     // ── Main scaffold ─────────────────────────────────────────────────────────
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("GoFlo", style = MaterialTheme.typography.headlineMedium, fontFamily = ComfortaaFamily) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            )
-        },
+        topBar = { BannerTopBar(bannerStyle = state.bannerStyle) },
         floatingActionButton = {
             // Custom FAB using Surface (non-clickable variant) + combinedClickable so that
             // both short-press (Quick Log) and long-press (Log menu) work reliably without

@@ -102,8 +102,10 @@ import androidx.compose.material.icons.outlined.Tune
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
+import com.mapgie.goflo.ui.components.BannerStylePreview
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
 import com.mapgie.goflo.ui.theme.AppTheme
+import com.mapgie.goflo.ui.theme.BannerStyle
 
 // ── Theme mode / palette helpers ──────────────────────────────────────────────
 
@@ -258,6 +260,10 @@ fun SettingsScreen(
     val categories by viewModel.trackingCategories.collectAsState()
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
+
+    val currentBannerStyle = runCatching {
+        BannerStyle.valueOf(prefs.bannerStyle)
+    }.getOrDefault(BannerStyle.PLAIN)
 
     val currentIconChoice = runCatching {
         AppIconChoice.valueOf(prefs.iconChoice)
@@ -736,6 +742,16 @@ fun SettingsScreen(
                     currentChoice       = currentIconChoice,
                     onSelect            = { viewModel.setIconChoice(it) },
                     onPickCustomImage   = { customIconPicker.launch("image/*") }
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color    = MaterialTheme.colorScheme.outlineVariant
+                )
+
+                BannerStylePicker(
+                    current  = currentBannerStyle,
+                    onSelect = { viewModel.setBannerStyle(it.name) }
                 )
             }
 
@@ -1429,6 +1445,84 @@ private fun IconChoiceCell(
             style = MaterialTheme.typography.labelSmall,
             color = if (selected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+// ── Banner style picker ───────────────────────────────────────────────────────
+
+/**
+ * A row of tappable mini-preview tiles, one per [BannerStyle].
+ * Each tile renders a scaled-down canvas preview using live theme colours so the
+ * user can see exactly how their active colour scheme looks with each decoration.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BannerStylePicker(current: BannerStyle, onSelect: (BannerStyle) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            "Banner decoration",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            BannerStyle.entries.forEach { style ->
+                BannerStyleOption(
+                    style    = style,
+                    selected = style == current,
+                    onClick  = { onSelect(style) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BannerStyleOption(
+    style:    BannerStyle,
+    selected: Boolean,
+    onClick:  () -> Unit,
+) {
+    val selRingColor  = MaterialTheme.colorScheme.primary
+    val outlineColor  = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+    val contentColor  = MaterialTheme.colorScheme.onPrimaryContainer
+
+    Column(
+        modifier            = Modifier
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .border(
+                    width = if (selected) 2.5.dp else 1.dp,
+                    color = if (selected) selRingColor else outlineColor,
+                    shape = RoundedCornerShape(8.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            BannerStylePreview(style = style)
+
+            if (selected) {
+                Icon(
+                    imageVector        = Icons.Default.Check,
+                    contentDescription = "Selected",
+                    tint               = contentColor,
+                    modifier           = Modifier.size(20.dp),
+                )
+            }
+        }
+        Text(
+            text  = style.displayName,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
