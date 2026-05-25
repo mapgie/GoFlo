@@ -55,14 +55,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.ui.util.CATEGORY_COLOR_OPTIONS
 import com.mapgie.goflo.ui.util.CategoryColor
 import com.mapgie.goflo.ui.util.CategoryIcon
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
 import com.mapgie.goflo.ui.util.toCategoryOnColor
+import com.mapgie.goflo.ui.util.toHexColorKey
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -459,36 +462,98 @@ private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
 }
 
 /**
- * Row of colour swatches built from the current theme's semantic colour slots.
- * Because the swatches resolve from [MaterialTheme], they automatically reflect
- * the user's chosen palette — no hardcoded ARGB values.
+ * Two-section colour picker:
+ *
+ * 1. **Themed** — four labelled swatches from [MaterialTheme.colorScheme] that
+ *    follow the user's chosen palette and light/dark mode automatically.
+ *
+ * 2. **More colours** — twelve fixed-ARGB swatches for users who track more
+ *    than four things and want distinct colours beyond the theme slots.
+ *
+ * [selectedToken] is either a [CategoryColor] key ("primary", …) or an 8-char
+ * uppercase hex string produced by [Int.toHexColorKey] ("FFE53935", …).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Unit) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        CategoryColor.entries.forEach { colorOption ->
-            val isSelected   = colorOption.key == selectedToken
-            val swatchColor  = colorOption.key.toCategoryColor()
-            val onSwatchColor = colorOption.key.toCategoryOnColor()
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
+        // ── Themed swatches ───────────────────────────────────────────────────
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+        ) {
+            CategoryColor.entries.forEach { colorOption ->
+                val isSelected    = colorOption.key == selectedToken
+                val swatchColor   = colorOption.key.toCategoryColor()
+                val onSwatchColor = colorOption.key.toCategoryOnColor()
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(swatchColor)
+                            .then(
+                                if (isSelected)
+                                    Modifier.border(3.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                else Modifier
+                            )
+                            .clickable { onSelect(colorOption.key) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector        = Icons.Default.Check,
+                                contentDescription = "Selected",
+                                tint               = onSwatchColor,
+                                modifier           = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Text(
+                        text  = colorOption.displayName,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        // ── Extended palette ──────────────────────────────────────────────────
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Text(
+            text  = "More colours",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement   = Arrangement.spacedBy(8.dp),
+            maxItemsInEachRow     = 6,
+        ) {
+            CATEGORY_COLOR_OPTIONS.forEach { argb ->
+                val hexKey        = argb.toHexColorKey()
+                val isSelected    = hexKey == selectedToken
+                val swatchColor   = Color(argb)
+                // Luminance check: choose black or white icon tint without MaterialTheme
+                val onSwatchColor = if (swatchColor.luminance() > 0.35f) Color(0xFF1C1B1F) else Color.White
+
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
                         .background(swatchColor)
                         .then(
                             if (isSelected)
-                                Modifier.border(3.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                Modifier.border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
                             else Modifier
                         )
-                        .clickable { onSelect(colorOption.key) },
+                        .clickable { onSelect(hexKey) },
                     contentAlignment = Alignment.Center
                 ) {
                     if (isSelected) {
@@ -496,16 +561,10 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                             imageVector        = Icons.Default.Check,
                             contentDescription = "Selected",
                             tint               = onSwatchColor,
-                            modifier           = Modifier.size(22.dp)
+                            modifier           = Modifier.size(18.dp)
                         )
                     }
                 }
-                Text(
-                    text  = colorOption.displayName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }

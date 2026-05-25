@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 
 // ── Icon catalogue ────────────────────────────────────────────────────────────
@@ -74,13 +75,14 @@ fun String.toCategoryIcon(): CategoryIcon =
 /**
  * Theme-relative colour choices for category bubbles.
  *
- * Tokens map to [androidx.compose.material3.ColorScheme] slots at render time,
- * so the bubble automatically updates whenever the user switches palette or
- * light/dark mode.  The [key] string is persisted in the database.
+ * [key] is persisted in the database.  Tokens resolve from
+ * [androidx.compose.material3.ColorScheme] at render time, so bubbles
+ * automatically follow the user's palette and light/dark mode.
  *
- * Bubble background  → [resolve]
- * Icon tint          → [resolveOn]
- * Both pairs are guaranteed WCAG AA contrast by the Material colour system.
+ * Custom colours are stored as 8-char uppercase hex strings (AARRGGBB) via
+ * [Int.toHexColorKey].  [toCategoryColor] and [toCategoryOnColor] transparently
+ * handle both token keys and hex strings, so the rest of the UI is unaware of
+ * the distinction.
  */
 enum class CategoryColor(
     val key: String,
@@ -92,7 +94,40 @@ enum class CategoryColor(
     ERROR     ("error",     "Error"),
 }
 
-/** Resolves [this] token to the corresponding bubble background [Color]. */
+/**
+ * Extended colour palette offered in the "More colours" section of the picker.
+ * Values are fully-opaque ARGB ints; convert to a storage key via [toHexColorKey].
+ */
+val CATEGORY_COLOR_OPTIONS: List<Int> = listOf(
+    (0xFFE53935L).toInt(),  // Red 600
+    (0xFFD81B60L).toInt(),  // Pink 600
+    (0xFF8E24AAL).toInt(),  // Purple 700
+    (0xFF3949ABL).toInt(),  // Indigo 600
+    (0xFF1E88E5L).toInt(),  // Blue 600
+    (0xFF00ACC1L).toInt(),  // Cyan 600
+    (0xFF00897BL).toInt(),  // Teal 600
+    (0xFF43A047L).toInt(),  // Green 600
+    (0xFFF4511EL).toInt(),  // Deep Orange 600
+    (0xFFE65100L).toInt(),  // Orange 900
+    (0xFF8D6E63L).toInt(),  // Brown 400
+    (0xFF546E7AL).toInt(),  // Blue Grey 600
+)
+
+/**
+ * Converts an ARGB [Int] to the 8-char uppercase hex key used for storage.
+ *
+ * Example: `(0xFFE53935L).toInt().toHexColorKey()` → `"FFE53935"`
+ */
+fun Int.toHexColorKey(): String =
+    (toLong() and 0xFFFFFFFFL).toString(16).uppercase().padStart(8, '0')
+
+/**
+ * Resolves [this] stored value to the bubble background [Color].
+ *
+ * Handles both semantic token keys ("primary", "secondary", …) and 8-char hex
+ * strings produced by [Int.toHexColorKey].  Falls back to
+ * [androidx.compose.material3.ColorScheme.secondary] for unrecognised values.
+ */
 @Composable
 fun String.toCategoryColor(): Color {
     val s = MaterialTheme.colorScheme
@@ -101,11 +136,19 @@ fun String.toCategoryColor(): Color {
         "secondary" -> s.secondary
         "tertiary"  -> s.tertiary
         "error"     -> s.error
-        else        -> s.secondary   // safe fallback
+        else        -> runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
     }
 }
 
-/** Resolves [this] token to the icon tint that passes contrast on [toCategoryColor]. */
+/**
+ * Resolves [this] stored value to the icon tint that passes contrast on
+ * [toCategoryColor].
+ *
+ * For semantic tokens, the on* counterpart from [MaterialTheme.colorScheme] is
+ * used (WCAG AA guaranteed by the Material spec in both light and dark).
+ * For custom hex colours, luminance is checked: light backgrounds get a
+ * near-black tint; dark backgrounds get white.
+ */
 @Composable
 fun String.toCategoryOnColor(): Color {
     val s = MaterialTheme.colorScheme
@@ -114,6 +157,11 @@ fun String.toCategoryOnColor(): Color {
         "secondary" -> s.onSecondary
         "tertiary"  -> s.onTertiary
         "error"     -> s.onError
-        else        -> s.onSecondary
+        else        -> {
+            val bg = runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
+            // WCAG: contrast ≥ 3:1 for icons. luminance > 0.35 means the background
+            // is light enough that white would fail — use near-black instead.
+            if (bg.luminance() > 0.35f) Color(0xFF1C1B1F) else Color.White
+        }
     }
 }
