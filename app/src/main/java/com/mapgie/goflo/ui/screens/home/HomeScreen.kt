@@ -17,7 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.outlined.Category
+import com.mapgie.goflo.ui.util.toCategoryIcon
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +41,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
@@ -111,11 +112,17 @@ fun HomeScreen(
                     }
                 )
 
-                // One option per tracking category
+                // One option per tracking category — use the category's custom icon + colour
                 state.trackingCategories.forEach { category ->
                     LogMenuOption(
                         label = "Log ${category.name}",
-                        icon = { Icon(Icons.Outlined.Category, contentDescription = null) },
+                        icon  = {
+                            Icon(
+                                imageVector        = category.iconName.toCategoryIcon().vector,
+                                contentDescription = null,
+                                tint               = Color(category.colorArgb),
+                            )
+                        },
                         onClick = {
                             showLogMenu = false
                             logMenuTargetDate = null

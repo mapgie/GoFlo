@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -112,14 +112,49 @@ abstract class GoFloDatabase : RoomDatabase() {
         }
 
         /**
+         * Adds iconName and colorArgb columns to tracking_categories (version 4).
+         *
+         * Column names match the Room entity field names exactly (camelCase):
+         *   iconName  = 'category'   (generic fallback)
+         *   colorArgb = -15108398    (0xFF1976D2 = Material Blue 700)
+         *
+         * Then stamps the two system categories with purpose-appropriate icons/colours:
+         *   Flow     → water icon,   0xFFE53935 (Red 600)    = -1754827
+         *   Symptoms → healing icon, 0xFF8E24AA (Purple 700) = -7461718
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `iconName` TEXT NOT NULL DEFAULT 'category'"
+                )
+                // -15108398 = 0xFF1976D2 = Material Blue 700
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `colorArgb` INTEGER NOT NULL DEFAULT -15108398"
+                )
+                // -1754827 = 0xFFE53935 = Material Red 600 (warm, period-adjacent)
+                database.execSQL(
+                    "UPDATE tracking_categories SET `iconName`='water', `colorArgb`=-1754827 " +
+                    "WHERE isSystem=1 AND name='Flow'"
+                )
+                // -7461718 = 0xFF8E24AA = Material Purple 700 (wellness/healing)
+                database.execSQL(
+                    "UPDATE tracking_categories SET `iconName`='healing', `colorArgb`=-7461718 " +
+                    "WHERE isSystem=1 AND name='Symptoms'"
+                )
+            }
+        }
+
+        /**
          * Inserts the pre-seeded Flow and Symptoms categories and their default values.
          * Called both from MIGRATION_2_3 (for upgrades) and from the onCreate callback
-         * (for fresh installs).
+         * (for fresh installs).  Includes iconName and colorArgb from v4 onwards so
+         * fresh installs always get the styled defaults.
          */
         private fun seedSystemCategories(database: SupportSQLiteDatabase) {
-            // Flow category
+            // Flow category  — water icon, Red 600 (-1754827 = 0xFFE53935)
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder) VALUES ('Flow', 1, 0)"
+                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorArgb`) " +
+                "VALUES ('Flow', 1, 0, 'water', -1754827)"
             )
             val flowIdCursor = database.query("SELECT last_insert_rowid()")
             flowIdCursor.moveToFirst()
@@ -132,9 +167,10 @@ abstract class GoFloDatabase : RoomDatabase() {
                 )
             }
 
-            // Symptoms category
+            // Symptoms category — healing icon, Purple 700 (-7461718 = 0xFF8E24AA)
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder) VALUES ('Symptoms', 1, 1)"
+                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorArgb`) " +
+                "VALUES ('Symptoms', 1, 1, 'healing', -7461718)"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
             symptomIdCursor.moveToFirst()
@@ -156,7 +192,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
