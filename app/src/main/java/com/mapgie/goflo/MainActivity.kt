@@ -89,7 +89,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         // This is NOT re-run on theme change, which was the source of the crash.
         val savedIconChoice = runCatching {
             AppIconChoice.valueOf(initialPrefs.iconChoice)
-        }.getOrDefault(AppIconChoice.DROP_CORAL)
+        }.getOrDefault(AppIconChoice.LEAF)
         AppIconManager.applyIcon(this, savedIconChoice)
 
         setContent {

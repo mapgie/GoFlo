@@ -25,10 +25,9 @@ data class AppPreferences(
     val theme: String = "CORAL",
     /**
      * The name of the [com.mapgie.goflo.AppIconChoice] enum entry the user has
-     * selected.  Defaults to "DROP_CORAL" which matches the default theme and
-     * the manifest's initial enabled alias.
+     * selected.  Defaults to "LEAF" which matches the manifest's initial enabled alias.
      */
-    val iconChoice: String = "DROP_CORAL",
+    val iconChoice: String = "LEAF",
     val reminder: ReminderSettings = ReminderSettings(),
     /**
      * User-preferred cycle length in days (21–45).
@@ -67,7 +66,7 @@ class AppPreferencesStore(private val context: Context) {
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
         AppPreferences(
             theme = prefs[Keys.THEME] ?: "CORAL",
-            iconChoice = prefs[Keys.ICON_CHOICE] ?: "DROP_CORAL",
+            iconChoice = prefs[Keys.ICON_CHOICE] ?: "LEAF",
             preferredCycleLength = prefs[Keys.PREFERRED_CYCLE_LENGTH] ?: 0,
             quickLogCategoryId = prefs[Keys.QUICK_LOG_CATEGORY_ID] ?: -1L,
             showPeriodPrediction = prefs[Keys.SHOW_PERIOD_PREDICTION] ?: true,

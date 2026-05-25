@@ -18,16 +18,10 @@ enum class AppIconChoice(
     /** Short label shown in the icon picker. */
     val displayName: String,
 ) {
-    // ── Drop icons (themed water-drop shape) ──────────────────────────────────
-    DROP_CORAL   ("MainActivityCoral",    "Coral"),
-    DROP_TEAL    ("MainActivityTeal",     "Teal"),
-    DROP_GREEN   ("MainActivityGreen",    "Sage"),
-    DROP_CONTRAST("MainActivityContrast", "Dark"),
-    DROP_BLUE    ("MainActivityBlue",     "Blue"),
     // ── Discreet icons (no period-app association) ────────────────────────────
-    LEAF         ("MainActivityLeaf",     "Leaf"),
-    MOON         ("MainActivityMoon",     "Moon"),
-    STAR         ("MainActivityStar",     "Star"),
+    LEAF("MainActivityLeaf", "Leaf"),
+    MOON("MainActivityMoon", "Moon"),
+    STAR("MainActivityStar", "Star"),
 }
 
 /**
