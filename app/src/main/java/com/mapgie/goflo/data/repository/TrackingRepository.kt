@@ -35,17 +35,32 @@ class TrackingRepository(
     fun getValuesForCategory(categoryId: Long): Flow<List<TrackingValue>> =
         categoryDao.getValuesForCategory(categoryId)
 
-    suspend fun addCategory(name: String): Long {
+    suspend fun addCategory(
+        name: String,
+        iconName: String = "category",
+        colorToken: String = "secondary",
+    ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
         return categoryDao.insertCategory(
-            TrackingCategory(name = name.trim(), displayOrder = maxOrder + 1)
+            TrackingCategory(
+                name         = name.trim(),
+                displayOrder = maxOrder + 1,
+                iconName     = iconName,
+                colorToken   = colorToken,
+            )
         )
     }
 
     suspend fun renameCategory(id: Long, newName: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(cat.copy(name = newName.trim()))
+    }
+
+    /** Updates only the icon and colour token of an existing category. */
+    suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
     }
 
     suspend fun deleteCategory(category: TrackingCategory) {

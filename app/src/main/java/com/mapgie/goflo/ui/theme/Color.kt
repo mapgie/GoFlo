@@ -68,9 +68,16 @@ enum class AppTheme(
     COLOUR_HAPPY_DARK("Colour Me Happy",    ThemeGroup.DARK,  0xFFFFB59AL, isDark = true),
 
     // ── System auto (palette-matched, follows device light/dark preference) ───
-    SYSTEM("Follow system",       ThemeGroup.SYSTEM, 0xFF80D5DBL),
-    CORAL_SYSTEM("Follow system", ThemeGroup.SYSTEM, 0xFFFFB4A8L),
-    GREEN_SYSTEM("Follow system", ThemeGroup.SYSTEM, 0xFF9DD679L),
+    SYSTEM("Follow system",                  ThemeGroup.SYSTEM, 0xFF80D5DBL),
+    CORAL_SYSTEM("Follow system",            ThemeGroup.SYSTEM, 0xFFFFB4A8L),
+    GREEN_SYSTEM("Follow system",            ThemeGroup.SYSTEM, 0xFF9DD679L),
+    SUMMER_CANDY_SYSTEM("Follow system",     ThemeGroup.SYSTEM, 0xFFFFB1CAL),
+    BEACH_VIBES_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFF9EC5FFL),
+    PEACH_MELBA_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFFFB98AL),
+    DISCO_SYSTEM("Follow system",            ThemeGroup.SYSTEM, 0xFFE0ABFFL),
+    METAL_CHICK_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFC5C3D1L),
+    WHIMSY_SYSTEM("Follow system",           ThemeGroup.SYSTEM, 0xFFC4C0FFL),
+    COLOUR_HAPPY_SYSTEM("Follow system",     ThemeGroup.SYSTEM, 0xFFFFB59AL),
 
     // ── Accessibility ─────────────────────────────────────────────────────────
     HIGH_CONTRAST_LIGHT("Light",  ThemeGroup.HIGH_CONTRAST, 0xFF1A1A1AL),
@@ -648,10 +655,17 @@ fun colorSchemeFor(theme: AppTheme, systemIsDark: Boolean = false): ColorScheme 
     AppTheme.WHIMSY_DARK        -> WhimsyDark
     AppTheme.COLOUR_HAPPY       -> ColourHappyLight
     AppTheme.COLOUR_HAPPY_DARK  -> ColourHappyDark
-    // System
-    AppTheme.SYSTEM             -> if (systemIsDark) TurquoiseDark else TurquoiseLight
-    AppTheme.CORAL_SYSTEM       -> if (systemIsDark) CoralDark else CoralLight
-    AppTheme.GREEN_SYSTEM       -> if (systemIsDark) GreenDark else GreenLight
+    // System (each follows light/dark preference using its palette's own schemes)
+    AppTheme.SYSTEM                -> if (systemIsDark) TurquoiseDark    else TurquoiseLight
+    AppTheme.CORAL_SYSTEM          -> if (systemIsDark) CoralDark        else CoralLight
+    AppTheme.GREEN_SYSTEM          -> if (systemIsDark) GreenDark        else GreenLight
+    AppTheme.SUMMER_CANDY_SYSTEM   -> if (systemIsDark) SummerCandyDark  else SummerCandyLight
+    AppTheme.BEACH_VIBES_SYSTEM    -> if (systemIsDark) BeachVibesDark   else BeachVibesLight
+    AppTheme.PEACH_MELBA_SYSTEM    -> if (systemIsDark) PeachMelbaDark   else PeachMelbaLight
+    AppTheme.DISCO_SYSTEM          -> if (systemIsDark) DiscoDark        else DiscoLight
+    AppTheme.METAL_CHICK_SYSTEM    -> if (systemIsDark) MetalChickDark   else MetalChickLight
+    AppTheme.WHIMSY_SYSTEM         -> if (systemIsDark) WhimsyDark       else WhimsyLight
+    AppTheme.COLOUR_HAPPY_SYSTEM   -> if (systemIsDark) ColourHappyDark  else ColourHappyLight
     AppTheme.HIGH_CONTRAST_LIGHT -> HighContrastLight
     AppTheme.HIGH_CONTRAST_DARK  -> HighContrastDark
     AppTheme.BLUE_ORANGE         -> BlueOrange

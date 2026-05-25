@@ -82,8 +82,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.Canvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -110,26 +115,41 @@ private enum class StandardPalette(
     val displayName: String,
     val lightTheme: AppTheme,
     val darkTheme: AppTheme,
+    val systemTheme: AppTheme,
+    /** Primary colour shown in the top-left half of the diagonal swatch. */
     val previewArgb: Long,
+    /**
+     * Accent (tertiary or secondary) colour shown in the bottom-right half of the
+     * diagonal swatch — gives each palette a two-tone preview so the swatches look
+     * vibrant rather than flat single-colour circles.
+     */
+    val accentArgb: Long,
 ) {
     // Classic
-    CORAL        ("Coral",                  AppTheme.CORAL,             AppTheme.CORAL_DARK,         0xFFC15542L),
-    TEAL         ("Teal",                   AppTheme.TURQUOISE,         AppTheme.TURQUOISE_DARK,     0xFF00696FL),
-    SAGE         ("Sage",                   AppTheme.GREEN,             AppTheme.GREEN_DARK,         0xFF386A20L),
+    CORAL        ("Coral",                  AppTheme.CORAL,        AppTheme.CORAL_DARK,        AppTheme.CORAL_SYSTEM,          0xFFC15542L, 0xFFB85C00L), // coral-red + amber
+    TEAL         ("Teal",                   AppTheme.TURQUOISE,    AppTheme.TURQUOISE_DARK,    AppTheme.SYSTEM,                0xFF00696FL, 0xFF4E6078L), // deep teal + slate-blue
+    SAGE         ("Sage",                   AppTheme.GREEN,        AppTheme.GREEN_DARK,        AppTheme.GREEN_SYSTEM,          0xFF386A20L, 0xFF386669L), // forest-green + teal
     // Fun
-    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY,      AppTheme.SUMMER_CANDY_DARK,  0xFFC2185BL),
-    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,       AppTheme.BEACH_VIBES_DARK,   0xFF1565C0L),
-    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,       AppTheme.PEACH_MELBA_DARK,   0xFF9C5119L),
-    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,             AppTheme.DISCO_DARK,         0xFF7B0EA0L),
-    METAL_CHICK  ("Metal Chick",            AppTheme.METAL_CHICK,       AppTheme.METAL_CHICK_DARK,   0xFF4A4A5AL),
-    WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,            AppTheme.WHIMSY_DARK,        0xFF5050A0L),
-    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY,      AppTheme.COLOUR_HAPPY_DARK,  0xFFC13A00L),
+    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY, AppTheme.SUMMER_CANDY_DARK, AppTheme.SUMMER_CANDY_SYSTEM,   0xFFC2185BL, 0xFF994F00L), // raspberry + sherbet-orange
+    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,  AppTheme.BEACH_VIBES_DARK,  AppTheme.BEACH_VIBES_SYSTEM,    0xFF1565C0L, 0xFF3D6B3EL), // ocean-blue + sea-grass
+    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,  AppTheme.PEACH_MELBA_DARK,  AppTheme.PEACH_MELBA_SYSTEM,    0xFF9C5119L, 0xFF4E6539L), // terra-cotta + olive
+    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,        AppTheme.DISCO_DARK,        AppTheme.DISCO_SYSTEM,          0xFF7B0EA0L, 0xFF8B6A00L), // deep-violet + disco-gold
+    METAL_CHICK  ("Metal Chick",            AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL, 0xFF6B2D3EL), // charcoal + burgundy
+    WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,       AppTheme.WHIMSY_DARK,       AppTheme.WHIMSY_SYSTEM,         0xFF5050A0L, 0xFF2D7A6EL), // periwinkle + mint-teal
+    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFC13A00L, 0xFF1B6FA8L), // coral-orange + electric-blue
 }
 
 private val AppTheme.themeMode: ThemeMode? get() = when (this) {
     AppTheme.SYSTEM,
     AppTheme.CORAL_SYSTEM,
-    AppTheme.GREEN_SYSTEM                        -> ThemeMode.SYSTEM
+    AppTheme.GREEN_SYSTEM,
+    AppTheme.SUMMER_CANDY_SYSTEM,
+    AppTheme.BEACH_VIBES_SYSTEM,
+    AppTheme.PEACH_MELBA_SYSTEM,
+    AppTheme.DISCO_SYSTEM,
+    AppTheme.METAL_CHICK_SYSTEM,
+    AppTheme.WHIMSY_SYSTEM,
+    AppTheme.COLOUR_HAPPY_SYSTEM                 -> ThemeMode.SYSTEM
     AppTheme.CORAL, AppTheme.TURQUOISE,
     AppTheme.GREEN,
     AppTheme.SUMMER_CANDY, AppTheme.BEACH_VIBES,
@@ -147,18 +167,25 @@ private val AppTheme.themeMode: ThemeMode? get() = when (this) {
 
 private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
     AppTheme.CORAL,           AppTheme.CORAL_DARK,
-    AppTheme.CORAL_SYSTEM                                  -> StandardPalette.CORAL
+    AppTheme.CORAL_SYSTEM                                          -> StandardPalette.CORAL
     AppTheme.TURQUOISE,       AppTheme.TURQUOISE_DARK,
-    AppTheme.SYSTEM                                        -> StandardPalette.TEAL
+    AppTheme.SYSTEM                                                -> StandardPalette.TEAL
     AppTheme.GREEN,           AppTheme.GREEN_DARK,
-    AppTheme.GREEN_SYSTEM                                  -> StandardPalette.SAGE
-    AppTheme.SUMMER_CANDY,    AppTheme.SUMMER_CANDY_DARK   -> StandardPalette.SUMMER_CANDY
-    AppTheme.BEACH_VIBES,     AppTheme.BEACH_VIBES_DARK    -> StandardPalette.BEACH_VIBES
-    AppTheme.PEACH_MELBA,     AppTheme.PEACH_MELBA_DARK    -> StandardPalette.PEACH_MELBA
-    AppTheme.DISCO,           AppTheme.DISCO_DARK          -> StandardPalette.DISCO
-    AppTheme.METAL_CHICK,     AppTheme.METAL_CHICK_DARK    -> StandardPalette.METAL_CHICK
-    AppTheme.WHIMSY,          AppTheme.WHIMSY_DARK         -> StandardPalette.WHIMSY
-    AppTheme.COLOUR_HAPPY,    AppTheme.COLOUR_HAPPY_DARK   -> StandardPalette.COLOUR_HAPPY
+    AppTheme.GREEN_SYSTEM                                          -> StandardPalette.SAGE
+    AppTheme.SUMMER_CANDY,    AppTheme.SUMMER_CANDY_DARK,
+    AppTheme.SUMMER_CANDY_SYSTEM                                   -> StandardPalette.SUMMER_CANDY
+    AppTheme.BEACH_VIBES,     AppTheme.BEACH_VIBES_DARK,
+    AppTheme.BEACH_VIBES_SYSTEM                                    -> StandardPalette.BEACH_VIBES
+    AppTheme.PEACH_MELBA,     AppTheme.PEACH_MELBA_DARK,
+    AppTheme.PEACH_MELBA_SYSTEM                                    -> StandardPalette.PEACH_MELBA
+    AppTheme.DISCO,           AppTheme.DISCO_DARK,
+    AppTheme.DISCO_SYSTEM                                          -> StandardPalette.DISCO
+    AppTheme.METAL_CHICK,     AppTheme.METAL_CHICK_DARK,
+    AppTheme.METAL_CHICK_SYSTEM                                    -> StandardPalette.METAL_CHICK
+    AppTheme.WHIMSY,          AppTheme.WHIMSY_DARK,
+    AppTheme.WHIMSY_SYSTEM                                         -> StandardPalette.WHIMSY
+    AppTheme.COLOUR_HAPPY,    AppTheme.COLOUR_HAPPY_DARK,
+    AppTheme.COLOUR_HAPPY_SYSTEM                                   -> StandardPalette.COLOUR_HAPPY
     else                                                    -> null
 }
 
@@ -166,6 +193,13 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.SYSTEM                -> "Teal · Auto"
     AppTheme.CORAL_SYSTEM          -> "Coral · Auto"
     AppTheme.GREEN_SYSTEM          -> "Sage · Auto"
+    AppTheme.SUMMER_CANDY_SYSTEM   -> "Summer Candy · Auto"
+    AppTheme.BEACH_VIBES_SYSTEM    -> "Beach Vibes · Auto"
+    AppTheme.PEACH_MELBA_SYSTEM    -> "Peach Melba · Auto"
+    AppTheme.DISCO_SYSTEM          -> "All-Night Disco Party · Auto"
+    AppTheme.METAL_CHICK_SYSTEM    -> "Metal Chick · Auto"
+    AppTheme.WHIMSY_SYSTEM         -> "Whimsy Whispers · Auto"
+    AppTheme.COLOUR_HAPPY_SYSTEM   -> "Colour Me Happy · Auto"
     AppTheme.CORAL                 -> "Coral · Light"
     AppTheme.TURQUOISE             -> "Teal · Light"
     AppTheme.GREEN                 -> "Sage · Light"
@@ -211,7 +245,7 @@ fun SettingsScreen(
 
     val currentIconChoice = runCatching {
         AppIconChoice.valueOf(prefs.iconChoice)
-    }.getOrDefault(AppIconChoice.DROP_CORAL)
+    }.getOrDefault(AppIconChoice.LEAF)
 
     var showTimePicker        by rememberSaveable { mutableStateOf(false) }
     var showRemovePinDialog   by rememberSaveable { mutableStateOf(false) }
@@ -1058,14 +1092,7 @@ private fun CompactThemePicker(current: AppTheme, onSelect: (AppTheme) -> Unit) 
                                     // Preserve the current palette so "Auto" uses the
                                     // user's chosen colour, not the hardcoded teal default.
                                     val palette = currentPalette ?: StandardPalette.TEAL
-                                    onSelect(
-                                        when (palette) {
-                                            StandardPalette.CORAL -> AppTheme.CORAL_SYSTEM
-                                            StandardPalette.TEAL  -> AppTheme.SYSTEM
-                                            StandardPalette.SAGE  -> AppTheme.GREEN_SYSTEM
-                                            else                  -> AppTheme.SYSTEM
-                                        }
-                                    )
+                                    onSelect(palette.systemTheme)
                                 }
                                 ThemeMode.LIGHT  -> {
                                     val palette = currentPalette ?: StandardPalette.CORAL
@@ -1172,19 +1199,45 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
+        val primaryColor  = Color(palette.previewArgb)
+        val accentColor   = Color(palette.accentArgb)
+        val selRingColor  = MaterialTheme.colorScheme.primary
+        val outlineColor  = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+
         Box(
-            modifier         = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Color(palette.previewArgb))
-                .border(
-                    width  = if (selected) 3.dp else 1.dp,
-                    color  = if (selected) MaterialTheme.colorScheme.primary
-                             else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                    shape  = CircleShape
-                ),
+            modifier         = Modifier.size(44.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Diagonal-split circle: upper-left = primary, lower-right = accent.
+            // Shows the palette's two key colours at a glance instead of a flat
+            // single-colour disc.
+            Canvas(modifier = Modifier.size(40.dp)) {
+                val w = size.width
+                val h = size.height
+                val r = w / 2f
+
+                clipPath(Path().apply { addOval(Rect(0f, 0f, w, h)) }) {
+                    // Upper-left triangle — primary (period colour)
+                    drawPath(
+                        path  = Path().apply { moveTo(0f, 0f); lineTo(w, 0f); lineTo(0f, h); close() },
+                        color = primaryColor,
+                    )
+                    // Lower-right triangle — accent (ovulation / tertiary colour)
+                    drawPath(
+                        path  = Path().apply { moveTo(w, 0f); lineTo(w, h); lineTo(0f, h); close() },
+                        color = accentColor,
+                    )
+                }
+
+                // Selection / outline ring drawn over the fill
+                val strokePx = if (selected) 3.dp.toPx() else 1.dp.toPx()
+                drawCircle(
+                    color  = if (selected) selRingColor else outlineColor,
+                    radius = r - strokePx / 2f,
+                    style  = Stroke(width = strokePx),
+                )
+            }
+
             if (selected) {
                 Icon(
                     imageVector        = Icons.Default.Check,
@@ -1233,37 +1286,22 @@ private fun ThemeChip(theme: AppTheme, selected: Boolean, onClick: () -> Unit) {
 
 /** Preview background colour for each icon choice (matches the adaptive-icon background). */
 private val AppIconChoice.previewBg: Color get() = when (this) {
-    AppIconChoice.DROP_CORAL    -> Color(0xFFFFD5CBL)
-    AppIconChoice.DROP_TEAL     -> Color(0xFF9CF0F5L)
-    AppIconChoice.DROP_GREEN    -> Color(0xFFB7F397L)
-    AppIconChoice.DROP_CONTRAST -> Color(0xFFFFFFFFL)
-    AppIconChoice.DROP_BLUE     -> Color(0xFFD3E3FFL)
-    AppIconChoice.LEAF          -> Color(0xFFC8E6C9L)
-    AppIconChoice.MOON          -> Color(0xFFC5CAE9L)
-    AppIconChoice.STAR          -> Color(0xFFFFF9C4L)
+    AppIconChoice.LEAF -> Color(0xFFC8E6C9L)
+    AppIconChoice.MOON -> Color(0xFFC5CAE9L)
+    AppIconChoice.STAR -> Color(0xFFFFF9C4L)
 }
 
 /** Icon foreground / tint colour for each choice. */
 private val AppIconChoice.previewFg: Color get() = when (this) {
-    AppIconChoice.DROP_CORAL    -> Color(0xFFC15542L)
-    AppIconChoice.DROP_TEAL     -> Color(0xFF00696FL)
-    AppIconChoice.DROP_GREEN    -> Color(0xFF386A20L)
-    AppIconChoice.DROP_CONTRAST -> Color(0xFF000000L)
-    AppIconChoice.DROP_BLUE     -> Color(0xFF005FADL)
-    AppIconChoice.LEAF          -> Color(0xFF2E7D32L)
-    AppIconChoice.MOON          -> Color(0xFF3949ABL)
-    AppIconChoice.STAR          -> Color(0xFFF57C00L)
+    AppIconChoice.LEAF -> Color(0xFF2E7D32L)
+    AppIconChoice.MOON -> Color(0xFF3949ABL)
+    AppIconChoice.STAR -> Color(0xFFF57C00L)
 }
 
 private val AppIconChoice.previewIcon: androidx.compose.ui.graphics.vector.ImageVector get() = when (this) {
-    AppIconChoice.DROP_CORAL,
-    AppIconChoice.DROP_TEAL,
-    AppIconChoice.DROP_GREEN,
-    AppIconChoice.DROP_CONTRAST,
-    AppIconChoice.DROP_BLUE    -> Icons.Filled.WaterDrop
-    AppIconChoice.LEAF         -> Icons.Filled.Eco
-    AppIconChoice.MOON         -> Icons.Filled.NightsStay
-    AppIconChoice.STAR         -> Icons.Filled.Star
+    AppIconChoice.LEAF -> Icons.Filled.Eco
+    AppIconChoice.MOON -> Icons.Filled.NightsStay
+    AppIconChoice.STAR -> Icons.Filled.Star
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1275,33 +1313,7 @@ private fun AppIconPicker(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-        // ── Drop icons ────────────────────────────────────────────────────────
-        Text(
-            "Drop icons",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        FlowRow(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            AppIconChoice.entries
-                .filter { it.name.startsWith("DROP_") }
-                .forEach { choice ->
-                    IconChoiceCell(
-                        choice   = choice,
-                        selected = choice == currentChoice,
-                        onClick  = { onSelect(choice) }
-                    )
-                }
-        }
-
-        // ── Discreet icons ────────────────────────────────────────────────────
-        Text(
-            "Discreet icons",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // ── Shape icons ───────────────────────────────────────────────────────
         Text(
             "These don't look like a period app, so GoFlo stays private on your home screen.",
             style = MaterialTheme.typography.bodySmall,
@@ -1311,7 +1323,7 @@ private fun AppIconPicker(
             modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            listOf(AppIconChoice.LEAF, AppIconChoice.MOON, AppIconChoice.STAR).forEach { choice ->
+            AppIconChoice.entries.forEach { choice ->
                 IconChoiceCell(
                     choice   = choice,
                     selected = choice == currentChoice,

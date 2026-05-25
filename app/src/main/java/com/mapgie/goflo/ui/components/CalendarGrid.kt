@@ -248,17 +248,24 @@ private fun DayCell(
             .clip(CircleShape)
             .then(
                 when {
-                    isPeriod    -> Modifier.background(primary)
-                    isPredicted -> Modifier.border(1.5.dp, primary.copy(alpha = 0.5f), CircleShape)
-                    else        -> Modifier
+                    // Period and predicted-period take highest priority
+                    isPeriod          -> Modifier.background(primary)
+                    isPredicted       -> Modifier.border(1.5.dp, primary.copy(alpha = 0.5f), CircleShape)
+                    // Ovulation peak: full filled circle in tertiary so it's as prominent
+                    // as a period day but clearly a different colour
+                    isOvulation       -> Modifier.background(ovulColor)
+                    // Fertility window: subtle tint — same hue, very low alpha
+                    isOvulationWindow -> Modifier.background(ovulColor.copy(alpha = 0.18f))
+                    else              -> Modifier
                 }
             )
 
         Box(circleModifier, contentAlignment = Alignment.Center) {
             val textColor = when {
-                isPeriod -> MaterialTheme.colorScheme.onPrimary
-                isToday  -> primary
-                else     -> MaterialTheme.colorScheme.onSurface
+                isPeriod    -> MaterialTheme.colorScheme.onPrimary
+                isOvulation -> MaterialTheme.colorScheme.onTertiary
+                isToday     -> primary
+                else        -> MaterialTheme.colorScheme.onSurface
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
@@ -267,13 +274,16 @@ private fun DayCell(
                     color = textColor
                 )
                 when {
-                    isOvulation -> // 6 dp peak-day dot in tertiary colour
-                        Box(Modifier.size(6.dp).clip(CircleShape)
-                            .background(if (isPeriod) Color.White else ovulColor))
-                    isOvulationWindow -> // 4 dp softer dot for surrounding window days
+                    // Period circle wins visually — show a white dot when ovulation
+                    // overlaps so the user knows both events are present
+                    isPeriod && isOvulation ->
+                        Box(Modifier.size(6.dp).clip(CircleShape).background(Color.White))
+                    isPeriod && isOvulationWindow ->
                         Box(Modifier.size(4.dp).clip(CircleShape)
-                            .background((if (isPeriod) Color.White else ovulColor).copy(alpha = 0.5f)))
-                    hasTrackingLog -> // 4 dp secondary-coloured dot for tracking entries
+                            .background(Color.White.copy(alpha = 0.5f)))
+                    // Ovulation peak already has its own filled circle; no extra dot needed.
+                    // Tracking-log dot only when not on an ovulation day.
+                    !isPeriod && !isOvulation && hasTrackingLog ->
                         Box(Modifier.size(4.dp).clip(CircleShape)
                             .background(MaterialTheme.colorScheme.secondary))
                 }
@@ -281,7 +291,8 @@ private fun DayCell(
         }
 
         // Underline for today — shape-based cue that doesn't rely on colour alone.
-        if (isToday && !isPeriod) {
+        // Skip when period or ovulation already fill the circle (they speak for themselves).
+        if (isToday && !isPeriod && !isOvulation) {
             Box(
                 Modifier
                     .align(Alignment.BottomCenter)

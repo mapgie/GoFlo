@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -53,10 +53,9 @@ abstract class GoFloDatabase : RoomDatabase() {
         }
 
         /**
-         * Adds the four tracking tables introduced in version 3:
-         * tracking_categories, tracking_values, tracking_logs, tracking_log_values.
-         * Existing data is untouched. System categories (Flow, Symptoms) are seeded
-         * here so existing users get them on upgrade.
+         * Adds the four tracking tables introduced in version 3.
+         * Seeds system categories using ONLY the v3 schema columns (name, isSystem,
+         * displayOrder) — iconName and colorToken are not added until later migrations.
          */
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -105,19 +104,87 @@ abstract class GoFloDatabase : RoomDatabase() {
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS `index_tracking_log_values_logId` ON `tracking_log_values`(`logId`)"
                 )
-
-                // Seed system categories for existing users upgrading from v2
-                seedSystemCategories(database)
+                // Seed with v3-only columns; subsequent migrations add iconName + colorToken
+                seedSystemCategoriesV3(database)
             }
         }
 
         /**
-         * Inserts the pre-seeded Flow and Symptoms categories and their default values.
-         * Called both from MIGRATION_2_3 (for upgrades) and from the onCreate callback
-         * (for fresh installs).
+         * Adds iconName + colorArgb to tracking_categories (v4).
+         * colorArgb is superseded by colorToken in MIGRATION_4_5 and is kept here
+         * only to maintain a valid migration chain for users upgrading from v3.
          */
-        private fun seedSystemCategories(database: SupportSQLiteDatabase) {
-            // Flow category
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `iconName` TEXT NOT NULL DEFAULT 'category'"
+                )
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `colorArgb` INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "UPDATE tracking_categories SET `iconName`='water'   WHERE isSystem=1 AND name='Flow'"
+                )
+                database.execSQL(
+                    "UPDATE tracking_categories SET `iconName`='healing' WHERE isSystem=1 AND name='Symptoms'"
+                )
+            }
+        }
+
+        /**
+         * Replaces the hardcoded colorArgb (ARGB integer) with colorToken (semantic
+         * string key: "primary" | "secondary" | "tertiary" | "error").  The token is
+         * resolved to an actual colour from MaterialTheme.colorScheme at render time,
+         * so category bubbles automatically follow the user's chosen palette and
+         * light/dark mode.
+         *
+         * Migration strategy: table reconstruction (SQLite cannot DROP or ALTER
+         * COLUMN type on Android API 26+).  All existing log and value rows are
+         * preserved through their foreign-key relationships.
+         *
+         * Token defaults:
+         *   Flow     → "primary"   (matches the period-circle colour)
+         *   Symptoms → "tertiary"  (matches the ovulation/accent colour)
+         *   Custom   → "secondary" (neutral, distinct from the two built-ins)
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Create the new table with colorToken instead of colorArgb
+                database.execSQL(
+                    """CREATE TABLE `tracking_categories_new`
+                       (`id`           INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name`         TEXT NOT NULL,
+                        `isSystem`     INTEGER NOT NULL DEFAULT 0,
+                        `displayOrder` INTEGER NOT NULL DEFAULT 0,
+                        `iconName`     TEXT NOT NULL DEFAULT 'category',
+                        `colorToken`   TEXT NOT NULL DEFAULT 'secondary')"""
+                )
+                // 2. Copy data, mapping system categories to appropriate theme tokens
+                database.execSQL(
+                    """INSERT INTO tracking_categories_new
+                       (id, name, isSystem, displayOrder, iconName, colorToken)
+                       SELECT id, name, isSystem, displayOrder, iconName,
+                           CASE
+                               WHEN isSystem=1 AND name='Flow'     THEN 'primary'
+                               WHEN isSystem=1 AND name='Symptoms' THEN 'tertiary'
+                               ELSE 'secondary'
+                           END
+                       FROM tracking_categories"""
+                )
+                // 3. Swap tables
+                database.execSQL("DROP TABLE tracking_categories")
+                database.execSQL("ALTER TABLE tracking_categories_new RENAME TO tracking_categories")
+            }
+        }
+
+        // ── Seeding helpers ───────────────────────────────────────────────────
+
+        /**
+         * Seeds system categories using only the original v3 schema columns.
+         * Called exclusively from [MIGRATION_2_3] to avoid referencing columns that
+         * don't exist yet in the database at that migration step.
+         */
+        private fun seedSystemCategoriesV3(database: SupportSQLiteDatabase) {
             database.execSQL(
                 "INSERT INTO tracking_categories (name, isSystem, displayOrder) VALUES ('Flow', 1, 0)"
             )
@@ -132,9 +199,47 @@ abstract class GoFloDatabase : RoomDatabase() {
                 )
             }
 
-            // Symptoms category
             database.execSQL(
                 "INSERT INTO tracking_categories (name, isSystem, displayOrder) VALUES ('Symptoms', 1, 1)"
+            )
+            val symptomIdCursor = database.query("SELECT last_insert_rowid()")
+            symptomIdCursor.moveToFirst()
+            val symptomId = symptomIdCursor.getLong(0)
+            symptomIdCursor.close()
+
+            listOf("Cramps", "Headache", "Bloating", "Fatigue", "Back Pain", "Mood Swings")
+                .forEachIndexed { index, label ->
+                    database.execSQL(
+                        "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES ($symptomId, '$label', $index)"
+                    )
+                }
+        }
+
+        /**
+         * Seeds system categories with ALL current (v5) columns.
+         * Called only from [RoomDatabase.Callback.onCreate] for fresh installs.
+         */
+        private fun seedSystemCategories(database: SupportSQLiteDatabase) {
+            // Flow — water drop icon, primary colour token
+            database.execSQL(
+                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`) " +
+                "VALUES ('Flow', 1, 0, 'water', 'primary')"
+            )
+            val flowIdCursor = database.query("SELECT last_insert_rowid()")
+            flowIdCursor.moveToFirst()
+            val flowId = flowIdCursor.getLong(0)
+            flowIdCursor.close()
+
+            listOf("Spotting", "Light", "Medium", "Heavy").forEachIndexed { index, label ->
+                database.execSQL(
+                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES ($flowId, '$label', $index)"
+                )
+            }
+
+            // Symptoms — healing icon, tertiary (accent) colour token
+            database.execSQL(
+                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`) " +
+                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary')"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
             symptomIdCursor.moveToFirst()
@@ -156,11 +261,10 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
-                            // Fresh install: seed the system categories
                             seedSystemCategories(db)
                         }
                     })
