@@ -91,7 +91,6 @@ enum class CategoryColor(
     PRIMARY   ("primary",   "Primary"),
     SECONDARY ("secondary", "Secondary"),
     TERTIARY  ("tertiary",  "Accent"),
-    ERROR     ("error",     "Error"),
 }
 
 /**
@@ -135,7 +134,6 @@ fun String.toCategoryColor(): Color {
         "primary"   -> s.primary
         "secondary" -> s.secondary
         "tertiary"  -> s.tertiary
-        "error"     -> s.error
         else        -> runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
     }
 }
@@ -156,7 +154,6 @@ fun String.toCategoryOnColor(): Color {
         "primary"   -> s.onPrimary
         "secondary" -> s.onSecondary
         "tertiary"  -> s.onTertiary
-        "error"     -> s.onError
         else        -> {
             val bg = runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
             // WCAG: contrast ≥ 3:1 for icons. luminance > 0.35 means the background
