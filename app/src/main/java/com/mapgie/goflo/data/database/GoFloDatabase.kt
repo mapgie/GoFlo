@@ -195,7 +195,8 @@ abstract class GoFloDatabase : RoomDatabase() {
 
             listOf("Spotting", "Light", "Medium", "Heavy").forEachIndexed { index, label ->
                 database.execSQL(
-                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES ($flowId, '$label', $index)"
+                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                    arrayOf(flowId, label, index)
                 )
             }
 
@@ -210,7 +211,8 @@ abstract class GoFloDatabase : RoomDatabase() {
             listOf("Cramps", "Headache", "Bloating", "Fatigue", "Back Pain", "Mood Swings")
                 .forEachIndexed { index, label ->
                     database.execSQL(
-                        "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES ($symptomId, '$label', $index)"
+                        "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                        arrayOf(symptomId, label, index)
                     )
                 }
         }
@@ -232,7 +234,8 @@ abstract class GoFloDatabase : RoomDatabase() {
 
             listOf("Spotting", "Light", "Medium", "Heavy").forEachIndexed { index, label ->
                 database.execSQL(
-                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES ($flowId, '$label', $index)"
+                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                    arrayOf(flowId, label, index)
                 )
             }
 
@@ -249,7 +252,8 @@ abstract class GoFloDatabase : RoomDatabase() {
             listOf("Cramps", "Headache", "Bloating", "Fatigue", "Back Pain", "Mood Swings")
                 .forEachIndexed { index, label ->
                     database.execSQL(
-                        "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES ($symptomId, '$label', $index)"
+                        "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                        arrayOf(symptomId, label, index)
                     )
                 }
         }
