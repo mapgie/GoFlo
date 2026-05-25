@@ -10,6 +10,7 @@ import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingLogWithValues
 import com.mapgie.goflo.data.repository.TrackingRepository
+import com.mapgie.goflo.ui.theme.BannerStyle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -42,6 +43,8 @@ data class HomeUiState(
     val trackingCategories: List<TrackingCategory> = emptyList(),
     /** The preferred Quick Log category ID (-1L = Log Period). */
     val quickLogCategoryId: Long = -1L,
+    /** Decorative shape style for the home-screen banner. */
+    val bannerStyle: BannerStyle = BannerStyle.PLAIN,
 )
 
 /** Data loaded for the Day Log bottom sheet. */
@@ -109,6 +112,8 @@ class HomeViewModel(
             daysWithAnyData      = periodDays + trackingDates,
             trackingCategories   = categories,
             quickLogCategoryId   = prefs.quickLogCategoryId,
+            bannerStyle          = runCatching { BannerStyle.valueOf(prefs.bannerStyle) }
+                                       .getOrDefault(BannerStyle.PLAIN),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

@@ -67,6 +67,8 @@ class SettingsViewModel(
 
     fun setTheme(theme: String) = viewModelScope.launch { store.setTheme(theme) }
 
+    fun setBannerStyle(style: String) = viewModelScope.launch { store.setBannerStyle(style) }
+
     // ── App icon ───────────────────────────────────────────────────────────────
 
     /**
