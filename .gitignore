@@ -21,3 +21,6 @@ upload.keystore
 # The debug.keystore is intentionally committed for CI signing consistency (see LESSONS.md).
 # Do NOT follow this pattern for release keys.
 __pycache__/
+
+# Gradle wrapper binary — downloaded by the wrapper script on first build
+gradle/wrapper/gradle-wrapper.jar
