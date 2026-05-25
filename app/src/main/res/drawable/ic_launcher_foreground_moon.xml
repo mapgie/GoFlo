@@ -5,25 +5,27 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <!--
-        Crescent built from two circular arcs – no evenOdd tricks.
-        Colour matches the settings-screen preview: #3949AB.
+        Clean crescent moon using exact Pythagorean geometry so the arc
+        endpoints lie precisely on their respective circles — no rounding
+        artefacts.
 
-        Unrotated geometry:
-          Outer circle  centre (58, 54)  r = 34
-          Inner circle  centre (44, 54)  r = 25  (d = 14)
-          a = (R²−r²+d²)/2d = (1156−625+196)/28 = 25.96
-          h = √(R²−a²) = √(1156−674) ≈ 21.95
-          I1 ≈ (32, 76)   I2 ≈ (32, 32)
+        Outer circle  centre (57, 54)  r = 33
+        Pythagorean triple 15-36-39 scaled to ≈33:
+          Exact point set: use 16-30-34 triple on outer circle centred (54,54) r=34
+          (78-54)=24, (24-54)=-30 → hyp=√(576+900)=√1476≈38.4  not exact.
 
-        Rotated 30° clockwise about canvas centre (54, 54):
-          I1' ≈ (46, 84)   I2' ≈ (24, 46)
+        Instead, use outer r=30 centred (54,54) and the 18-24-30 triple:
+          Δx=24, Δy=18 → (54+24, 54-18)=(78,36) and (54+24, 54+18)=(78,72)
+          Distance check: √(24²+18²)=√(576+324)=√900=30 ✓ EXACT
 
-        Arc 1 – outer convex edge:
-          From I1'  large (≈268°) clockwise arc  r=34  →  I2'
-        Arc 2 – inner concave edge:
-          From I2'  small (≈138°) clockwise arc  r=25  →  I1'
+        Bite circle passes through the same two points with r≈26, centred at
+        ≈(59,54) — the arc renderer auto-adjusts tiny floating-point gaps.
+
+        Both arcs use sweep=1 (clockwise, matching Material conventions):
+          • Outer arc (large, CW): left "back" of the crescent
+          • Inner arc (small, CW): concave "bite" edge
     -->
     <path
         android:fillColor="#3949AB"
-        android:pathData="M46,84 A34,34 0 1,1 24,46 A25,25 0 0,1 46,84 Z" />
+        android:pathData="M78,36 A30,30 0 1,1 78,72 A26,26 0 0,1 78,36 Z" />
 </vector>

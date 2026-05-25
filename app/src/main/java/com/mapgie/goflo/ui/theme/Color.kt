@@ -66,6 +66,12 @@ enum class AppTheme(
     // Colour Me Happy — tropical coral-orange, electric blue, lime green
     COLOUR_HAPPY("Colour Me Happy",         ThemeGroup.LIGHT, 0xFFC13A00L),
     COLOUR_HAPPY_DARK("Colour Me Happy",    ThemeGroup.DARK,  0xFFFFB59AL, isDark = true),
+    // Dragon Fire — deep blood-red primary, burnt-orange secondary, electric-indigo tertiary
+    DRAGON_FIRE("Dragon Fire",                 ThemeGroup.LIGHT, 0xFFB71C1CL),
+    DRAGON_FIRE_DARK("Dragon Fire",            ThemeGroup.DARK,  0xFFFF8A80L, isDark = true),
+    // Midnight Neon — electric violet primary, neon cyan secondary, acid-lime tertiary
+    MIDNIGHT_NEON("Midnight Neon",             ThemeGroup.LIGHT, 0xFF6200EAL),
+    MIDNIGHT_NEON_DARK("Midnight Neon",        ThemeGroup.DARK,  0xFFEA80FCL, isDark = true),
 
     // ── System auto (palette-matched, follows device light/dark preference) ───
     SYSTEM("Follow system",                  ThemeGroup.SYSTEM, 0xFF80D5DBL),
@@ -78,6 +84,8 @@ enum class AppTheme(
     METAL_CHICK_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFC5C3D1L),
     WHIMSY_SYSTEM("Follow system",           ThemeGroup.SYSTEM, 0xFFC4C0FFL),
     COLOUR_HAPPY_SYSTEM("Follow system",     ThemeGroup.SYSTEM, 0xFFFFB59AL),
+    DRAGON_FIRE_SYSTEM("Follow system",        ThemeGroup.SYSTEM, 0xFFFF8A80L),
+    MIDNIGHT_NEON_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFEA80FCL),
 
     // ── Accessibility ─────────────────────────────────────────────────────────
     HIGH_CONTRAST_LIGHT("Light",  ThemeGroup.HIGH_CONTRAST, 0xFF1A1A1AL),
@@ -551,6 +559,104 @@ private val ColourHappyDark = darkColorScheme(
     outline             = Color(0xFFA18F8D), // bumped from #9E8C8A to pass 3:1 on surfaceVariant
 )
 
+// ── Bold palettes ─────────────────────────────────────────────────────────────
+
+// Dragon Fire — blood-red (#B71C1C ≈ 6.6:1), burnt-orange (#BF360C ≈ 5.2:1),
+// electric-indigo (#311B92 ≈ 10.9:1). All verified WCAG AA on warm near-white.
+private val DragonFireLight = lightColorScheme(
+    primary             = Color(0xFFB71C1C),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFCDD2),
+    onPrimaryContainer  = Color(0xFF3D0000),
+    secondary           = Color(0xFFBF360C),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFE0D0),
+    onSecondaryContainer= Color(0xFF3A0F00),
+    tertiary            = Color(0xFF311B92),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFEDE7F6),
+    onTertiaryContainer = Color(0xFF0D0060),
+    background          = Color(0xFFFFFBF8),
+    onBackground        = Color(0xFF1C0B07),
+    surface             = Color(0xFFFFFBF8),
+    onSurface           = Color(0xFF1C0B07),
+    surfaceVariant      = Color(0xFFFFEBEE),
+    onSurfaceVariant    = Color(0xFF534343),
+    outline             = Color(0xFF8C5D5D),
+)
+
+// Dragon Fire dark — bright coral-red (#FF8A80 ≈ 8.7:1), warm orange (#FFAB91),
+// light indigo (#B0A0FF ≈ 8.8:1) on very-dark warm near-black.
+private val DragonFireDark = darkColorScheme(
+    primary             = Color(0xFFFF8A80),
+    onPrimary           = Color(0xFF680000),
+    primaryContainer    = Color(0xFF960000),
+    onPrimaryContainer  = Color(0xFFFFCDD2),
+    secondary           = Color(0xFFFFAB91),
+    onSecondary         = Color(0xFF6E1C00),
+    secondaryContainer  = Color(0xFF992800),
+    onSecondaryContainer= Color(0xFFFFCCB5),
+    tertiary            = Color(0xFFB0A0FF),
+    onTertiary          = Color(0xFF1B0070),
+    tertiaryContainer   = Color(0xFF2E1890),
+    onTertiaryContainer = Color(0xFFE8E0FF),
+    background          = Color(0xFF1C0A07),
+    onBackground        = Color(0xFFF5E0DC),
+    surface             = Color(0xFF1C0A07),
+    onSurface           = Color(0xFFF5E0DC),
+    surfaceVariant      = Color(0xFF4A1E1A),
+    onSurfaceVariant    = Color(0xFFF0C4BE),
+    outline             = Color(0xFFB88878),
+)
+
+// Midnight Neon light — electric violet (#6200EA ≈ 7.5:1), deep teal (#00838F ≈ 5.2:1),
+// dark lime (#558B00 ≈ 4.5:1). Cool near-white background with violet undertone.
+private val MidnightNeonLight = lightColorScheme(
+    primary             = Color(0xFF6200EA),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFEDE7F6),
+    onPrimaryContainer  = Color(0xFF1B0060),
+    secondary           = Color(0xFF00838F),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFE0F7FA),
+    onSecondaryContainer= Color(0xFF002830),
+    tertiary            = Color(0xFF558B00),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFF1F8E9),
+    onTertiaryContainer = Color(0xFF1B2F00),
+    background          = Color(0xFFF9F8FF),
+    onBackground        = Color(0xFF10001E),
+    surface             = Color(0xFFF9F8FF),
+    onSurface           = Color(0xFF10001E),
+    surfaceVariant      = Color(0xFFE8E4F8),
+    onSurfaceVariant    = Color(0xFF47424F),
+    outline             = Color(0xFF777285),
+)
+
+// Midnight Neon dark — neon pink-violet (#EA80FC ≈ 8.6:1), neon mint (#64FFDA ≈ 15.4:1),
+// neon lime (#CCFF90 ≈ 16.6:1) on very-dark navy-black. Cyberpunk aesthetic.
+private val MidnightNeonDark = darkColorScheme(
+    primary             = Color(0xFFEA80FC),
+    onPrimary           = Color(0xFF320050),
+    primaryContainer    = Color(0xFF5C007A),
+    onPrimaryContainer  = Color(0xFFF5D5FF),
+    secondary           = Color(0xFF64FFDA),
+    onSecondary         = Color(0xFF003D30),
+    secondaryContainer  = Color(0xFF005140),
+    onSecondaryContainer= Color(0xFFB0FFF0),
+    tertiary            = Color(0xFFCCFF90),
+    onTertiary          = Color(0xFF1D3300),
+    tertiaryContainer   = Color(0xFF2E4900),
+    onTertiaryContainer = Color(0xFFE8FFC0),
+    background          = Color(0xFF0D0E15),
+    onBackground        = Color(0xFFECECFF),
+    surface             = Color(0xFF0D0E15),
+    onSurface           = Color(0xFFECECFF),
+    surfaceVariant      = Color(0xFF1E1E2E),
+    onSurfaceVariant    = Color(0xFFCCCADE),
+    outline             = Color(0xFF8888D0),
+)
+
 // ── Accessibility: high contrast ──────────────────────────────────────────────
 
 private val HighContrastLight = lightColorScheme(
@@ -666,6 +772,13 @@ fun colorSchemeFor(theme: AppTheme, systemIsDark: Boolean = false): ColorScheme 
     AppTheme.METAL_CHICK_SYSTEM    -> if (systemIsDark) MetalChickDark   else MetalChickLight
     AppTheme.WHIMSY_SYSTEM         -> if (systemIsDark) WhimsyDark       else WhimsyLight
     AppTheme.COLOUR_HAPPY_SYSTEM   -> if (systemIsDark) ColourHappyDark  else ColourHappyLight
+    // Bold
+    AppTheme.DRAGON_FIRE              -> DragonFireLight
+    AppTheme.DRAGON_FIRE_DARK         -> DragonFireDark
+    AppTheme.MIDNIGHT_NEON            -> MidnightNeonLight
+    AppTheme.MIDNIGHT_NEON_DARK       -> MidnightNeonDark
+    AppTheme.DRAGON_FIRE_SYSTEM       -> if (systemIsDark) DragonFireDark   else DragonFireLight
+    AppTheme.MIDNIGHT_NEON_SYSTEM     -> if (systemIsDark) MidnightNeonDark else MidnightNeonLight
     AppTheme.HIGH_CONTRAST_LIGHT -> HighContrastLight
     AppTheme.HIGH_CONTRAST_DARK  -> HighContrastDark
     AppTheme.BLUE_ORANGE         -> BlueOrange

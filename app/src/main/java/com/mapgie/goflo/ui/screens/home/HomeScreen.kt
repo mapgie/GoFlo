@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
+import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -165,7 +166,7 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("GoFlo", style = MaterialTheme.typography.headlineMedium) },
+                title = { Text("GoFlo", style = MaterialTheme.typography.headlineMedium, fontFamily = ComfortaaFamily) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer

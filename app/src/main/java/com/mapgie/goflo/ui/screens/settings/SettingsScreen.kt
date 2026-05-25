@@ -137,6 +137,9 @@ private enum class StandardPalette(
     METAL_CHICK  ("Metal Chick",            AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL, 0xFF6B2D3EL), // charcoal + burgundy
     WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,       AppTheme.WHIMSY_DARK,       AppTheme.WHIMSY_SYSTEM,         0xFF5050A0L, 0xFF2D7A6EL), // periwinkle + mint-teal
     COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFC13A00L, 0xFF1B6FA8L), // coral-orange + electric-blue
+    // Bold
+    DRAGON_FIRE   ("Dragon Fire",    AppTheme.DRAGON_FIRE,   AppTheme.DRAGON_FIRE_DARK,   AppTheme.DRAGON_FIRE_SYSTEM,   0xFFB71C1CL, 0xFF311B92L), // blood-red + electric-indigo
+    MIDNIGHT_NEON ("Midnight Neon",  AppTheme.MIDNIGHT_NEON, AppTheme.MIDNIGHT_NEON_DARK, AppTheme.MIDNIGHT_NEON_SYSTEM, 0xFF6200EAL, 0xFFEA80FCL), // electric-violet + neon-pink
 }
 
 private val AppTheme.themeMode: ThemeMode? get() = when (this) {
@@ -149,19 +152,22 @@ private val AppTheme.themeMode: ThemeMode? get() = when (this) {
     AppTheme.DISCO_SYSTEM,
     AppTheme.METAL_CHICK_SYSTEM,
     AppTheme.WHIMSY_SYSTEM,
-    AppTheme.COLOUR_HAPPY_SYSTEM                 -> ThemeMode.SYSTEM
+    AppTheme.COLOUR_HAPPY_SYSTEM,
+    AppTheme.DRAGON_FIRE_SYSTEM, AppTheme.MIDNIGHT_NEON_SYSTEM -> ThemeMode.SYSTEM
     AppTheme.CORAL, AppTheme.TURQUOISE,
     AppTheme.GREEN,
     AppTheme.SUMMER_CANDY, AppTheme.BEACH_VIBES,
     AppTheme.PEACH_MELBA, AppTheme.DISCO,
     AppTheme.METAL_CHICK, AppTheme.WHIMSY,
-    AppTheme.COLOUR_HAPPY                        -> ThemeMode.LIGHT
+    AppTheme.COLOUR_HAPPY,
+    AppTheme.DRAGON_FIRE, AppTheme.MIDNIGHT_NEON -> ThemeMode.LIGHT
     AppTheme.CORAL_DARK, AppTheme.TURQUOISE_DARK,
     AppTheme.GREEN_DARK,
     AppTheme.SUMMER_CANDY_DARK, AppTheme.BEACH_VIBES_DARK,
     AppTheme.PEACH_MELBA_DARK, AppTheme.DISCO_DARK,
     AppTheme.METAL_CHICK_DARK, AppTheme.WHIMSY_DARK,
-    AppTheme.COLOUR_HAPPY_DARK                   -> ThemeMode.DARK
+    AppTheme.COLOUR_HAPPY_DARK,
+    AppTheme.DRAGON_FIRE_DARK, AppTheme.MIDNIGHT_NEON_DARK -> ThemeMode.DARK
     else                                         -> null  // accessibility
 }
 
@@ -186,6 +192,10 @@ private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
     AppTheme.WHIMSY_SYSTEM                                         -> StandardPalette.WHIMSY
     AppTheme.COLOUR_HAPPY,    AppTheme.COLOUR_HAPPY_DARK,
     AppTheme.COLOUR_HAPPY_SYSTEM                                   -> StandardPalette.COLOUR_HAPPY
+    AppTheme.DRAGON_FIRE,   AppTheme.DRAGON_FIRE_DARK,
+    AppTheme.DRAGON_FIRE_SYSTEM                                   -> StandardPalette.DRAGON_FIRE
+    AppTheme.MIDNIGHT_NEON, AppTheme.MIDNIGHT_NEON_DARK,
+    AppTheme.MIDNIGHT_NEON_SYSTEM                                 -> StandardPalette.MIDNIGHT_NEON
     else                                                    -> null
 }
 
@@ -220,6 +230,12 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.WHIMSY_DARK           -> "Whimsy Whispers · Dark"
     AppTheme.COLOUR_HAPPY          -> "Colour Me Happy · Light"
     AppTheme.COLOUR_HAPPY_DARK     -> "Colour Me Happy · Dark"
+    AppTheme.DRAGON_FIRE_SYSTEM   -> "Dragon Fire · Auto"
+    AppTheme.MIDNIGHT_NEON_SYSTEM -> "Midnight Neon · Auto"
+    AppTheme.DRAGON_FIRE          -> "Dragon Fire · Light"
+    AppTheme.DRAGON_FIRE_DARK     -> "Dragon Fire · Dark"
+    AppTheme.MIDNIGHT_NEON        -> "Midnight Neon · Light"
+    AppTheme.MIDNIGHT_NEON_DARK   -> "Midnight Neon · Dark"
     AppTheme.HIGH_CONTRAST_LIGHT   -> "High Contrast Light"
     AppTheme.HIGH_CONTRAST_DARK    -> "High Contrast Dark"
     AppTheme.BLUE_ORANGE           -> "Blue & Orange"
