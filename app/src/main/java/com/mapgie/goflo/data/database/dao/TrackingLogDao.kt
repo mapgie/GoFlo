@@ -55,4 +55,38 @@ interface TrackingLogDao {
 
     @Query("DELETE FROM tracking_log_values WHERE logId = :logId")
     suspend fun deleteLogValuesForLog(logId: Long)
+
+    // ── Stats queries ─────────────────────────────────────────────────────────
+
+    /** All logs for a given category within an inclusive date range (ISO-8601 strings). */
+    @Query("SELECT * FROM tracking_logs WHERE categoryId = :categoryId AND date >= :startDate AND date <= :endDate ORDER BY date ASC")
+    suspend fun getLogsForCategoryInRange(
+        categoryId: Long,
+        startDate: String,
+        endDate: String
+    ): List<TrackingLog>
+
+    /**
+     * Frequency of each value label for a category within a date range.
+     * Returns a [ValueCount] projection ordered by count descending.
+     */
+    @Query("""
+        SELECT tlv.valueLabel, COUNT(*) as count
+        FROM tracking_logs tl
+        JOIN tracking_log_values tlv ON tl.id = tlv.logId
+        WHERE tl.categoryId = :categoryId
+          AND tl.date >= :startDate
+          AND tl.date <= :endDate
+        GROUP BY tlv.valueLabel
+        ORDER BY count DESC
+    """)
+    suspend fun getValueCountsForCategory(
+        categoryId: Long,
+        startDate: String,
+        endDate: String
+    ): List<ValueCount>
+
+    /** All logs across all categories within an inclusive date range. */
+    @Query("SELECT * FROM tracking_logs WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC")
+    suspend fun getAllLogsInRange(startDate: String, endDate: String): List<TrackingLog>
 }

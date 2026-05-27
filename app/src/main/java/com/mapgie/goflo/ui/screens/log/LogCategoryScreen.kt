@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,12 +19,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,10 +41,93 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.components.SelectableChip
 import java.time.format.DateTimeFormatter
 
 private val displayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy")
+
+/**
+ * Slider input for numeric tracking categories.
+ *
+ * Shows the category's configured range, a Material3 [Slider] constrained to
+ * [category.numericMin]..[category.numericMax], and the current value in large text.
+ * When [value] is null (no value set yet) the slider defaults to [category.numericMin]
+ * and shows a gentle hint.
+ */
+@Composable
+private fun NumericSliderSection(
+    category: TrackingCategory,
+    value: Float?,
+    onValueChange: (Float) -> Unit,
+) {
+    val min = category.numericMin
+    val max = category.numericMax
+    val sliderValue = value ?: min
+
+    // Steps: 0 = continuous (for decimals), otherwise whole-number steps
+    val steps = if (category.allowDecimals) 0 else {
+        val range = (max - min).toInt()
+        if (range > 1) range - 1 else 0
+    }
+
+    val displayValue = if (category.allowDecimals)
+        "%.1f".format(sliderValue)
+    else
+        sliderValue.toInt().toString()
+
+    val minLabel = if (category.allowDecimals) "%.1f".format(min) else min.toInt().toString()
+    val maxLabel = if (category.allowDecimals) "%.1f".format(max) else max.toInt().toString()
+
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    category.name,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    displayValue,
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Slider(
+                value = sliderValue,
+                onValueChange = onValueChange,
+                valueRange = min..max,
+                steps = steps,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(minLabel, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (value == null) {
+                    Text(
+                        "Drag to set a value",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(maxLabel, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -123,56 +209,67 @@ fun LogCategoryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── Value chips ───────────────────────────────────────────────────
+            // ── Input area — slider for numeric, chips for text ───────────────
 
-            if (state.availableValues.isNotEmpty()) {
-                Text(
-                    "Select all that apply:",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            val cat = state.category
+            if (cat != null && cat.isNumeric) {
+                // Numeric slider
+                NumericSliderSection(
+                    category = cat,
+                    value = state.numericValue,
+                    onValueChange = viewModel::setNumericValue
                 )
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    state.availableValues.forEach { value ->
-                        SelectableChip(
-                            label = value.label,
-                            selected = value.label in state.selectedValues,
-                            onClick = { viewModel.toggleValue(value.label) }
-                        )
-                    }
-                }
-
-                // Show removed values (in historical record but no longer in catalog)
-                val removedValues = state.selectedValues.filter { label ->
-                    state.availableValues.none { it.label == label }
-                }
-                if (removedValues.isNotEmpty()) {
+            } else {
+                // Text value chips
+                if (state.availableValues.isNotEmpty()) {
                     Text(
-                        "Previously recorded (removed from options):",
-                        style = MaterialTheme.typography.labelSmall,
+                        "Select all that apply:",
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        removedValues.forEach { label ->
+                        state.availableValues.forEach { value ->
                             SelectableChip(
-                                label = "$label (removed)",
-                                selected = true,
-                                onClick = { viewModel.toggleValue(label) }
+                                label = value.label,
+                                selected = value.label in state.selectedValues,
+                                onClick = { viewModel.toggleValue(value.label) }
                             )
                         }
                     }
+
+                    // Show removed values (in historical record but no longer in catalog)
+                    val removedValues = state.selectedValues.filter { label ->
+                        state.availableValues.none { it.label == label }
+                    }
+                    if (removedValues.isNotEmpty()) {
+                        Text(
+                            "Previously recorded (removed from options):",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            removedValues.forEach { label ->
+                                SelectableChip(
+                                    label = "$label (removed)",
+                                    selected = true,
+                                    onClick = { viewModel.toggleValue(label) }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        "No values defined for this category yet. You can add values in Settings → Tracking Categories.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            } else {
-                Text(
-                    "No values defined for this category yet. You can add values in Settings → Tracking Categories.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
 
             // ── Notes ─────────────────────────────────────────────────────────

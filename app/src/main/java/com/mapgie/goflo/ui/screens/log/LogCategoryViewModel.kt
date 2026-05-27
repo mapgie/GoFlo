@@ -24,6 +24,12 @@ data class LogCategoryUiState(
     val availableValues: List<TrackingValue> = emptyList(),
     /** Labels of values currently selected (may include labels not in availableValues if removed). */
     val selectedValues: Set<String> = emptySet(),
+    /**
+     * Current slider position for numeric categories.
+     * Null until the user interacts (or an existing value is loaded).
+     * Ignored for text categories.
+     */
+    val numericValue: Float? = null,
     val date: LocalDate = LocalDate.now(),
     val notes: String = "",
     val isEditing: Boolean = false,
@@ -79,12 +85,18 @@ class LogCategoryViewModel(
             else -> repository.getExistingLog(date, categoryId)
         }
 
+        // For numeric categories, parse the first stored label back to Float
+        val existingNumeric: Float? = if (category?.isNumeric == true)
+            existingEntry?.values?.firstOrNull()?.toFloatOrNull()
+        else null
+
         _uiState.update {
             it.copy(
                 isLoading = false,
                 category = category,
                 availableValues = values,
                 selectedValues = existingEntry?.values?.toSet() ?: emptySet(),
+                numericValue = existingNumeric,
                 date = existingEntry?.log?.date?.let { d ->
                     runCatching { LocalDate.parse(d) }.getOrElse { date }
                 } ?: date,
@@ -103,6 +115,8 @@ class LogCategoryViewModel(
         }
     }
 
+    fun setNumericValue(v: Float) = _uiState.update { it.copy(numericValue = v) }
+
     fun setNotes(notes: String) {
         _uiState.update { it.copy(notes = notes) }
     }
@@ -110,12 +124,22 @@ class LogCategoryViewModel(
     fun save() {
         val state = _uiState.value
         if (state.isLoading) return
+        val cat = state.category
+
+        // Determine the values to persist
+        val valuesToSave: Set<String> = if (cat?.isNumeric == true) {
+            val v = state.numericValue ?: return   // nothing to save yet
+            setOf(formatNumericValue(v, cat.allowDecimals))
+        } else {
+            state.selectedValues
+        }
+
         viewModelScope.launch {
             runCatching {
                 repository.saveLog(
                     date = state.date,
                     categoryId = categoryId,
-                    selectedValues = state.selectedValues,
+                    selectedValues = valuesToSave,
                     notes = state.notes
                 )
                 _uiState.update { it.copy(saved = true) }
@@ -124,6 +148,9 @@ class LogCategoryViewModel(
             }
         }
     }
+
+    private fun formatNumericValue(v: Float, allowDecimals: Boolean): String =
+        if (allowDecimals) "%.1f".format(v) else v.toInt().toString()
 
     fun delete() {
         val log = _uiState.value.existingLog ?: return

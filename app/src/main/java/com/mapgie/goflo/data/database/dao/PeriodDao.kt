@@ -14,6 +14,9 @@ interface PeriodDao {
     @Query("SELECT * FROM periods ORDER BY startDate DESC")
     fun getAllPeriods(): Flow<List<PeriodEntry>>
 
+    @Query("SELECT * FROM periods ORDER BY startDate ASC")
+    suspend fun getAllPeriodsOnce(): List<PeriodEntry>
+
     @Query("SELECT * FROM periods WHERE id = :id")
     fun getPeriodById(id: Long): Flow<PeriodEntry?>
 

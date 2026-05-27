@@ -1,8 +1,10 @@
 package com.mapgie.goflo.ui.screens.home
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -19,6 +22,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
+import com.mapgie.goflo.ui.util.toCategoryOnColor
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -116,15 +121,25 @@ fun HomeScreen(
 
                 // One option per tracking category — icon and colour follow the current theme
                 state.trackingCategories.forEach { category ->
-                    val iconTint = category.colorToken.toCategoryColor()
+                    val bubbleColor  = category.colorToken.toCategoryColor()
+                    val iconOnColor  = category.colorToken.toCategoryOnColor()
                     LogMenuOption(
                         label = "Log ${category.name}",
                         icon  = {
-                            Icon(
-                                imageVector        = category.iconName.toCategoryIcon().vector,
-                                contentDescription = null,
-                                tint               = iconTint,
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(bubbleColor),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector        = category.iconName.toCategoryIcon().vector,
+                                    contentDescription = null,
+                                    tint               = iconOnColor,
+                                    modifier           = Modifier.size(20.dp)
+                                )
+                            }
                         },
                         onClick = {
                             showLogMenu = false

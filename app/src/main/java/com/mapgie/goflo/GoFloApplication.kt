@@ -5,11 +5,18 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.mapgie.goflo.data.database.GoFloDatabase
+import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.preferences.SecurityPreferences
 import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingRepository
 import com.mapgie.goflo.notifications.ReminderScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 class GoFloApplication : Application() {
 
@@ -18,6 +25,9 @@ class GoFloApplication : Application() {
     val trackingRepository by lazy { TrackingRepository(database.trackingCategoryDao(), database.trackingLogDao()) }
     val preferencesStore by lazy { AppPreferencesStore(this) }
     val securityPreferences by lazy { SecurityPreferences(this) }
+
+    // Application-level coroutine scope for one-shot background work.
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // In-memory unlock flag — false on every cold start and after the app backgrounds.
     // Not persisted: if the process is killed, the user must re-authenticate.
@@ -33,5 +43,40 @@ class GoFloApplication : Application() {
                 isUnlocked = false
             }
         })
+        appScope.launch { runFlowBackfillIfNeeded() }
+    }
+
+    /**
+     * One-time migration: copies period flow levels into the TrackingLog system so
+     * the Stats screen can query all categories uniformly.
+     *
+     * Only runs once — guarded by the [flowBackfillDone] preference flag.
+     * Skips any date that already has a TrackingLog for the Flow category (preserves
+     * manually logged entries and avoids duplicate writes on re-install).
+     */
+    private suspend fun runFlowBackfillIfNeeded() {
+        val prefs = preferencesStore.preferences.first()
+        if (prefs.flowBackfillDone) return
+
+        val flowCategory = trackingRepository.getSystemCategoryByName("Flow") ?: run {
+            // Flow category not seeded yet — mark done and skip; it will be seeded
+            // on next DB open and the user has no historical data yet.
+            preferencesStore.setFlowBackfillDone(true)
+            return
+        }
+
+        val periods = repository.getAllPeriodsOnce()
+        for (period in periods) {
+            val flowLabel = runCatching { FlowLevel.valueOf(period.flowLevel) }
+                .getOrNull()?.displayName ?: continue // skip if unrecognised value
+
+            val start = runCatching { LocalDate.parse(period.startDate) }.getOrNull() ?: continue
+            val end = period.endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: start
+
+            val dates = generateSequence(start) { d -> if (d < end) d.plusDays(1) else null }.toList()
+            trackingRepository.syncFlowLogsForPeriod(flowCategory.id, dates, flowLabel)
+        }
+
+        preferencesStore.setFlowBackfillDone(true)
     }
 }
