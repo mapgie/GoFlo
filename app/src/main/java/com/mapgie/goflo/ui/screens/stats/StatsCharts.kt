@@ -367,3 +367,135 @@ private fun LegendItem(color: Color, label: String) {
         )
     }
 }
+
+// ── Numeric average chart ─────────────────────────────────────────────────────
+
+/**
+ * Bar chart showing the **average** numeric value per time bucket.
+ *
+ * Bars are scaled relative to the range [globalMin..globalMax] across all
+ * buckets so even a narrow range looks meaningful.  Buckets with no data are
+ * omitted (the helper only emits buckets that have entries).
+ */
+@Composable
+fun NumericAverageChart(data: StatsChartData.NumericAverageData) {
+    val primary = MaterialTheme.colorScheme.primary
+    val rangeSpan = (data.globalMax - data.globalMin).coerceAtLeast(0.001f)
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "${data.categoryName} — average per period",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            data.buckets.forEach { bucket ->
+                // Height fraction: 0.1 baseline so even min-value bars are visible
+                val fraction = (0.1f + 0.9f * ((bucket.average - data.globalMin) / rangeSpan))
+                    .coerceIn(0.05f, 1f)
+                val avgLabel = if (bucket.average % 1f == 0f)
+                    bucket.average.toInt().toString()
+                else "%.1f".format(bucket.average)
+
+                Column(
+                    modifier = Modifier.width(52.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Average value label above bar
+                    Text(
+                        text = avgLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.height(16.dp)
+                    )
+                    // Bar body
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .padding(horizontal = 6.dp),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(fraction)
+                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                .background(primary)
+                        )
+                    }
+                    // X-axis label
+                    Text(
+                        text = bucket.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Numeric distribution chart ────────────────────────────────────────────────
+
+/**
+ * Horizontal bar chart showing **how many times** each numeric value was logged.
+ * Values are sorted numerically so the chart reads like a histogram.
+ * Uses [MaterialTheme.colorScheme.secondary] to visually distinguish it from
+ * the text-category [ComboBarChart].
+ */
+@Composable
+fun NumericDistributionChart(data: StatsChartData.NumericDistributionData) {
+    val secondary = MaterialTheme.colorScheme.secondary
+    val maxCount = data.bars.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            "${data.categoryName} — value distribution",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        data.bars.forEach { bar ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = bar.label,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.widthIn(min = 40.dp),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(28.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(bar.count.toFloat() / maxCount)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(secondary)
+                    )
+                }
+                Text(
+                    text = "${bar.count}×",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}

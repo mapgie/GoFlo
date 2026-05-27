@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -147,6 +147,29 @@ abstract class GoFloDatabase : RoomDatabase() {
          *   Symptoms → "tertiary"  (matches the ovulation/accent colour)
          *   Custom   → "secondary" (neutral, distinct from the two built-ins)
          */
+        /**
+         * Adds numeric-mode columns to tracking_categories (v6).
+         *
+         * All existing categories default to isNumeric=0 (text mode), preserving
+         * all existing data and behaviour.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `isNumeric` INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `numericMin` REAL NOT NULL DEFAULT 0.0"
+                )
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `numericMax` REAL NOT NULL DEFAULT 10.0"
+                )
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `allowDecimals` INTEGER NOT NULL DEFAULT 0"
+                )
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -265,7 +288,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)

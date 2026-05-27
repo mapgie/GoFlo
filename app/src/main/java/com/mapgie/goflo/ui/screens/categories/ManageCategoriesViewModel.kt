@@ -28,19 +28,54 @@ class ManageCategoriesViewModel(
                 initialValue = ManageCategoriesUiState()
             )
 
-    fun addCategory(name: String, iconName: String, colorToken: String) {
+    fun addCategory(
+        name: String,
+        iconName: String,
+        colorToken: String,
+        isNumeric: Boolean = false,
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
+    ) {
         if (name.isBlank()) return
-        viewModelScope.launch { repository.addCategory(name, iconName, colorToken) }
+        viewModelScope.launch {
+            repository.addCategory(
+                name          = name,
+                iconName      = iconName,
+                colorToken    = colorToken,
+                isNumeric     = isNumeric,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+            )
+        }
     }
 
     fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
     }
 
-    fun updateCategoryNameAndAppearance(id: Long, name: String, iconName: String, colorToken: String) {
+    fun updateCategoryNameAndAppearance(
+        id: Long,
+        name: String,
+        iconName: String,
+        colorToken: String,
+        isNumeric: Boolean = false,
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
+    ) {
         viewModelScope.launch {
-            repository.renameCategory(id, name)
-            repository.updateCategoryAppearance(id, iconName, colorToken)
+            repository.updateCategoryFullSettings(
+                id            = id,
+                name          = name,
+                iconName      = iconName,
+                colorToken    = colorToken,
+                isNumeric     = isNumeric,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+            )
         }
     }
 

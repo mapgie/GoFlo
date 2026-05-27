@@ -408,12 +408,33 @@ private fun ChartTypeSelector(
 ) {
     data class ChartOption(val type: ChartType, val icon: ImageVector, val label: String)
 
+    val eitherNumeric = cat1.isNumeric || cat2?.isNumeric == true
+
     val options = buildList {
-        add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Distribution"))
-        add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
-        if (cat2 != null) {
-            add(ChartOption(ChartType.COMBO, Icons.Default.TableChart, "Combinations"))
-            add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart, "Compare"))
+        when {
+            // Single numeric category
+            cat1.isNumeric && cat2 == null -> {
+                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart,  "Average"))
+                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.BarChart,   "Distribution"))
+            }
+            // Mixed or two categories where at least one is numeric — offer time-based charts
+            eitherNumeric -> {
+                add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,  "Over Time"))
+                if (cat2 != null)
+                    add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart, "Compare"))
+            }
+            // Two text categories
+            cat2 != null -> {
+                add(ChartOption(ChartType.PIE,              Icons.Default.DonutLarge,  "Distribution"))
+                add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,    "Over Time"))
+                add(ChartOption(ChartType.COMBO,            Icons.Default.TableChart,  "Combinations"))
+                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart,   "Compare"))
+            }
+            // Single text category
+            else -> {
+                add(ChartOption(ChartType.PIE,         Icons.Default.DonutLarge, "Distribution"))
+                add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart,   "Over Time"))
+            }
         }
     }
 
@@ -543,6 +564,18 @@ private fun ChartArea(
                 is StatsChartData.DualTimeSeriesData -> {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                         DualBarChart(data = chartData)
+                    }
+                }
+
+                is StatsChartData.NumericAverageData -> {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        NumericAverageChart(data = chartData)
+                    }
+                }
+
+                is StatsChartData.NumericDistributionData -> {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        NumericDistributionChart(data = chartData)
                     }
                 }
             }

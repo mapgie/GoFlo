@@ -34,7 +34,11 @@ enum class ChartType {
     PIE,
     TIME_SERIES,
     COMBO,
-    DUAL_TIME_SERIES
+    DUAL_TIME_SERIES,
+    /** Average of numeric values per time bucket. Only valid when cat1 is numeric. */
+    NUMERIC_AVERAGE,
+    /** Frequency histogram of each discrete numeric value. Only valid when cat1 is numeric. */
+    NUMERIC_DISTRIBUTION,
 }
 
 // ── Chart data models ─────────────────────────────────────────────────────────
@@ -43,6 +47,12 @@ data class PieSlice(val label: String, val count: Int, val fraction: Float)
 data class TimeBucket(val label: String, val count: Int)
 data class ComboBar(val label: String, val count: Int)
 data class DualBucket(val label: String, val count1: Int, val count2: Int)
+
+/** One time bucket for a numeric average chart: holds the average value and log count. */
+data class NumericBucket(val label: String, val average: Float, val count: Int)
+
+/** One bar in a numeric distribution histogram. */
+data class NumericHistBar(val label: String, val count: Int)
 
 sealed class StatsChartData {
     data object Empty : StatsChartData()
@@ -54,6 +64,18 @@ sealed class StatsChartData {
         val buckets: List<DualBucket>,
         val categoryName1: String,
         val categoryName2: String
+    ) : StatsChartData()
+    data class NumericAverageData(
+        val buckets: List<NumericBucket>,
+        val categoryName: String,
+        /** Smallest average value across all buckets — used to scale the y-axis. */
+        val globalMin: Float,
+        /** Largest average value across all buckets — used to scale the y-axis. */
+        val globalMax: Float,
+    ) : StatsChartData()
+    data class NumericDistributionData(
+        val bars: List<NumericHistBar>,
+        val categoryName: String,
     ) : StatsChartData()
 }
 
@@ -92,7 +114,11 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                 state.selectedCategory1?.id == category.id -> {
                     // Deselect cat1 — promote cat2 if present
                     val newCat1 = state.selectedCategory2
-                    val newType = if (newCat1 == null) ChartType.PIE else state.chartType
+                    val newType = when {
+                        newCat1 == null -> ChartType.PIE
+                        newCat1.isNumeric -> ChartType.NUMERIC_AVERAGE
+                        else -> state.chartType
+                    }
                     state.copy(
                         selectedCategory1 = newCat1,
                         selectedCategory2 = null,
@@ -102,9 +128,13 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                 }
                 state.selectedCategory2?.id == category.id -> {
                     // Deselect cat2 — reset chart type to single-cat option if needed
-                    val newType = if (state.chartType == ChartType.COMBO ||
-                        state.chartType == ChartType.DUAL_TIME_SERIES) ChartType.PIE
-                    else state.chartType
+                    val cat1 = state.selectedCategory1
+                    val newType = when {
+                        state.chartType == ChartType.COMBO ||
+                        state.chartType == ChartType.DUAL_TIME_SERIES ->
+                            if (cat1?.isNumeric == true) ChartType.NUMERIC_AVERAGE else ChartType.PIE
+                        else -> state.chartType
+                    }
                     state.copy(
                         selectedCategory2 = null,
                         chartType = newType,
@@ -112,7 +142,13 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     )
                 }
                 state.selectedCategory1 == null -> {
-                    state.copy(selectedCategory1 = category, chartData = StatsChartData.Empty)
+                    // First category selected — choose appropriate default chart type
+                    val defaultType = if (category.isNumeric) ChartType.NUMERIC_AVERAGE else ChartType.PIE
+                    state.copy(
+                        selectedCategory1 = category,
+                        chartType = defaultType,
+                        chartData = StatsChartData.Empty
+                    )
                 }
                 state.selectedCategory2 == null -> {
                     state.copy(selectedCategory2 = category, chartData = StatsChartData.Empty)
@@ -200,6 +236,44 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                         val buckets = buildDualBuckets(logs1, logs2, start, end)
                         if (buckets.isEmpty()) StatsChartData.Empty
                         else StatsChartData.DualTimeSeriesData(buckets, cat1.name, cat2.name)
+                    }
+                }
+
+                ChartType.NUMERIC_AVERAGE -> {
+                    val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
+                    // Pair each log with its parsed float value
+                    val logValues = logs.mapNotNull { log ->
+                        repository.getValuesForLog(log.id).firstOrNull()?.toFloatOrNull()
+                            ?.let { log to it }
+                    }
+                    if (logValues.isEmpty()) {
+                        StatsChartData.Empty
+                    } else {
+                        val buckets = buildNumericAverageBuckets(logValues, start, end)
+                        val allVals = logValues.map { it.second }
+                        StatsChartData.NumericAverageData(
+                            buckets      = buckets,
+                            categoryName = cat1.name,
+                            globalMin    = allVals.min(),
+                            globalMax    = allVals.max(),
+                        )
+                    }
+                }
+
+                ChartType.NUMERIC_DISTRIBUTION -> {
+                    val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
+                    val counts = mutableMapOf<String, Int>()
+                    for (log in logs) {
+                        val label = repository.getValuesForLog(log.id).firstOrNull() ?: continue
+                        counts[label] = (counts[label] ?: 0) + 1
+                    }
+                    if (counts.isEmpty()) {
+                        StatsChartData.Empty
+                    } else {
+                        val bars = counts.entries
+                            .sortedBy { it.key.toFloatOrNull() ?: Float.MAX_VALUE }
+                            .map { NumericHistBar(it.key, it.value) }
+                        StatsChartData.NumericDistributionData(bars, cat1.name)
                     }
                 }
             }
@@ -297,6 +371,70 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
         return weeks.map { ws ->
             val label = "W${ws.get(weekFields.weekOfWeekBasedYear())} '${ws.format(DateTimeFormatter.ofPattern("yy"))}"
             TimeBucket(label = label, count = logsByWeek[ws]?.size ?: 0)
+        }
+    }
+
+    // ── Numeric average bucket helpers ───────────────────────────────────────
+
+    /**
+     * Groups [logValues] (log + parsed float) into time buckets and computes the
+     * average numeric value per bucket.  Uses the same weekly/monthly logic as
+     * [groupByTimeBucket].
+     */
+    private fun buildNumericAverageBuckets(
+        logValues: List<Pair<TrackingLog, Float>>,
+        start: LocalDate,
+        end: LocalDate
+    ): List<NumericBucket> {
+        if (logValues.isEmpty()) return emptyList()
+        val daysBetween = ChronoUnit.DAYS.between(start, end)
+        return if (daysBetween <= 90) {
+            buildNumericWeekBuckets(logValues, start, end)
+        } else {
+            buildNumericMonthBuckets(logValues, start, end)
+        }
+    }
+
+    private fun buildNumericWeekBuckets(
+        logValues: List<Pair<TrackingLog, Float>>,
+        start: LocalDate,
+        end: LocalDate
+    ): List<NumericBucket> {
+        val weekFields = WeekFields.of(Locale.getDefault())
+        val weeks = mutableListOf<LocalDate>()
+        var ws = start.with(weekFields.dayOfWeek(), 1)
+        val lastWs = end.with(weekFields.dayOfWeek(), 1)
+        while (!ws.isAfter(lastWs)) { weeks.add(ws); ws = ws.plusWeeks(1) }
+
+        val byWeek = logValues.groupBy { (log, _) ->
+            LocalDate.parse(log.date).with(weekFields.dayOfWeek(), 1)
+        }
+        return weeks.mapNotNull { weekStart ->
+            val entries = byWeek[weekStart] ?: return@mapNotNull null
+            val avg = entries.map { it.second }.average().toFloat()
+            val label = "W${weekStart.get(weekFields.weekOfWeekBasedYear())} '${weekStart.format(DateTimeFormatter.ofPattern("yy"))}"
+            NumericBucket(label, avg, entries.size)
+        }
+    }
+
+    private fun buildNumericMonthBuckets(
+        logValues: List<Pair<TrackingLog, Float>>,
+        start: LocalDate,
+        end: LocalDate
+    ): List<NumericBucket> {
+        val months = mutableListOf<YearMonth>()
+        var m = YearMonth.from(start)
+        val endMonth = YearMonth.from(end)
+        while (!m.isAfter(endMonth)) { months.add(m); m = m.plusMonths(1) }
+
+        val byMonth = logValues.groupBy { (log, _) ->
+            YearMonth.from(LocalDate.parse(log.date))
+        }
+        val fmt = DateTimeFormatter.ofPattern("MMM yy")
+        return months.mapNotNull { ym ->
+            val entries = byMonth[ym] ?: return@mapNotNull null
+            val avg = entries.map { it.second }.average().toFloat()
+            NumericBucket(ym.format(fmt), avg, entries.size)
         }
     }
 

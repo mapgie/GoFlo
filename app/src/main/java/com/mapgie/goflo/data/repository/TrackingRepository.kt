@@ -40,6 +40,10 @@ class TrackingRepository(
         name: String,
         iconName: String = "category",
         colorToken: String = "secondary",
+        isNumeric: Boolean = false,
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
@@ -49,6 +53,10 @@ class TrackingRepository(
                 displayOrder = maxOrder + 1,
                 iconName     = iconName,
                 colorToken   = colorToken,
+                isNumeric    = isNumeric,
+                numericMin   = numericMin,
+                numericMax   = numericMax,
+                allowDecimals = allowDecimals,
             )
         )
     }
@@ -62,6 +70,34 @@ class TrackingRepository(
     suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
+    }
+
+    /**
+     * Updates name, appearance, and numeric settings of an existing category in one call.
+     * Used by the edit dialog which surfaces all these fields together.
+     */
+    suspend fun updateCategoryFullSettings(
+        id: Long,
+        name: String,
+        iconName: String,
+        colorToken: String,
+        isNumeric: Boolean,
+        numericMin: Float,
+        numericMax: Float,
+        allowDecimals: Boolean,
+    ) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(
+            cat.copy(
+                name          = name.trim(),
+                iconName      = iconName,
+                colorToken    = colorToken,
+                isNumeric     = isNumeric,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+            )
+        )
     }
 
     suspend fun deleteCategory(category: TrackingCategory) {
