@@ -36,14 +36,21 @@ data class SymptomTrend(
 class HistoryViewModel(private val repository: PeriodRepository) : ViewModel() {
 
     // ── Pending-delete state ──────────────────────────────────────────────────
-    // IDs staged for deletion. Excluded from the visible list immediately so the
-    // card disappears when the user swipes, but not yet removed from the DB.
-    // The DB write is deferred until the snackbar times out (SnackbarResult.Dismissed).
-    // If the user taps Undo (SnackbarResult.ActionPerformed), the ID is cleared
-    // from this set and the period reappears in the list — no DB write at all.
+    // IDs of periods that have been swiped but whose Undo snackbar is still
+    // visible. The period is hidden from the visible list immediately AND deleted
+    // from the DB straight away (inside viewModelScope, so the delete survives
+    // navigation). If the user taps Undo, the full period + symptoms are
+    // re-inserted from the in-memory cache below.
     private val _pendingDeleteIds = MutableStateFlow<Set<Long>>(emptySet())
 
-    /** Visible period list — periods pending a snackbar-undo delete are hidden. */
+    private data class UndoData(
+        val period: PeriodEntry,
+        val builtIn: Set<SymptomType>,
+        val custom: Set<String>,
+    )
+    private val pendingUndo = mutableMapOf<Long, UndoData>()
+
+    /** Visible period list — periods being deleted are hidden during the Undo window. */
     val periods: StateFlow<List<PeriodEntry>> = combine(
         repository.getAllPeriods(),
         _pendingDeleteIds,
@@ -80,25 +87,40 @@ class HistoryViewModel(private val repository: PeriodRepository) : ViewModel() {
 
     // ── Delete lifecycle ──────────────────────────────────────────────────────
 
-    /** Hides [period] from the visible list without touching the DB. */
+    /**
+     * Hides [period] from the visible list and immediately deletes it from the DB.
+     * Symptoms are read first and stored for a potential Undo re-insertion.
+     * Using viewModelScope ensures the delete completes even if the user
+     * navigates away before the snackbar times out.
+     */
     fun stageDeletion(period: PeriodEntry) {
         _pendingDeleteIds.update { it + period.id }
+        viewModelScope.launch {
+            val (builtIn, custom) = repository.getSymptomsParsed(period.id)
+            pendingUndo[period.id] = UndoData(period, builtIn, custom)
+            repository.deletePeriod(period)
+        }
     }
 
     /**
-     * Cancels a staged deletion (Undo).
-     * The period reappears in the visible list; the DB is never written.
+     * Re-inserts the deleted period and its symptoms (Undo tapped).
      */
     fun undoDeletion(period: PeriodEntry) {
-        _pendingDeleteIds.update { it - period.id }
+        viewModelScope.launch {
+            val undo = pendingUndo.remove(period.id)
+            if (undo != null) {
+                repository.insertPeriod(undo.period, undo.builtIn.toList(), undo.custom.toList())
+            }
+            _pendingDeleteIds.update { it - period.id }
+        }
     }
 
     /**
-     * Commits a staged deletion to the DB (called after the Undo snackbar times
-     * out without the user tapping Undo).
+     * Clears the in-memory Undo cache (snackbar timed out without Undo).
+     * The DB delete already happened in [stageDeletion].
      */
-    fun commitDeletion(period: PeriodEntry) = viewModelScope.launch {
-        repository.deletePeriod(period)
+    fun commitDeletion(period: PeriodEntry) {
+        pendingUndo.remove(period.id)
         _pendingDeleteIds.update { it - period.id }
     }
 
