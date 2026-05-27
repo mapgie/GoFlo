@@ -131,9 +131,9 @@ fun ManageCategoriesScreen(
     if (categoryToEditAppearance != null) {
         EditAppearanceDialog(
             category = categoryToEditAppearance,
-            onSave = { name, iconName, colorToken ->
-                viewModel.updateCategoryAppearanceAndName(
-                    categoryToEditAppearance.id, name, iconName, colorToken
+            onSave = { iconName, colorToken ->
+                viewModel.updateCategoryAppearance(
+                    categoryToEditAppearance.id, iconName, colorToken
                 )
                 pendingEditAppearance = null
             },
@@ -506,19 +506,14 @@ private fun AddCategoryDialog(
 @Composable
 private fun EditAppearanceDialog(
     category: TrackingCategory,
-    onSave: (name: String, iconName: String, colorToken: String) -> Unit,
+    onSave: (iconName: String, colorToken: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name            by rememberSaveable { mutableStateOf(category.name) }
     var selectedIconKey by rememberSaveable { mutableStateOf(category.iconName) }
     var selectedToken   by rememberSaveable { mutableStateOf(category.colorToken) }
 
     val previewBubble = selectedToken.toCategoryColor()
     val previewIcon   = selectedToken.toCategoryOnColor()
-
-    val canSave by remember(name) {
-        derivedStateOf { name.isNotBlank() }
-    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -552,27 +547,18 @@ private fun EditAppearanceDialog(
                     }
                     Column {
                         Text(
-                            text  = "Customise",
+                            text  = "Appearance",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text  = name.ifBlank { category.name },
+                            text  = category.name,
                             style = MaterialTheme.typography.headlineSmall
                         )
                     }
                 }
 
                 HorizontalDivider()
-
-                // Name field
-                OutlinedTextField(
-                    value         = name,
-                    onValueChange = { name = it },
-                    label         = { Text("Name") },
-                    singleLine    = true,
-                    modifier      = Modifier.fillMaxWidth()
-                )
 
                 Text("Icon", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -589,12 +575,7 @@ private fun EditAppearanceDialog(
                 ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            if (canSave) onSave(name, selectedIconKey, selectedToken)
-                        },
-                        enabled = canSave
-                    ) { Text("Save") }
+                    Button(onClick = { onSave(selectedIconKey, selectedToken) }) { Text("Save") }
                 }
             }
         }

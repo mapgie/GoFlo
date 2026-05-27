@@ -49,14 +49,9 @@ class ManageCategoriesViewModel(
         }
     }
 
-    fun updateCategoryAppearanceAndName(
-        id: Long,
-        name: String,
-        iconName: String,
-        colorToken: String,
-    ) {
+    fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         viewModelScope.launch {
-            repository.updateCategoryAppearanceAndName(id, name, iconName, colorToken)
+            repository.updateCategoryAppearance(id, iconName, colorToken)
         }
     }
 

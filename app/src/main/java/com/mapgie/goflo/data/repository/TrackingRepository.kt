@@ -77,17 +77,10 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
     }
 
-    /** Updates name and appearance (icon, colour) only — type is immutable after creation. */
-    suspend fun updateCategoryAppearanceAndName(
-        id: Long,
-        name: String,
-        iconName: String,
-        colorToken: String,
-    ) {
+    /** Updates icon and colour only — name and type are immutable from this path. */
+    suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
-        categoryDao.updateCategory(
-            cat.copy(name = name.trim(), iconName = iconName, colorToken = colorToken)
-        )
+        categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
     }
 
     /** Updates the numeric range settings for a category (slider type only). */
