@@ -38,7 +38,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.NightsStay
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.DarkMode
@@ -1295,21 +1295,21 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
 /** Preview background colour for each icon choice (matches the adaptive-icon background). */
 private val AppIconChoice.previewBg: Color get() = when (this) {
     AppIconChoice.LEAF -> Color(0xFFC8E6C9L)
-    AppIconChoice.MOON -> Color(0xFFC5CAE9L)
-    AppIconChoice.STAR -> Color(0xFFFFF9C4L)
+    AppIconChoice.MOON -> Color(0xFF1A237EL)   // deep night-sky indigo
+    AppIconChoice.STAR -> Color(0xFF311B92L)   // deep purple
 }
 
 /** Icon foreground / tint colour for each choice. */
 private val AppIconChoice.previewFg: Color get() = when (this) {
     AppIconChoice.LEAF -> Color(0xFF2E7D32L)
-    AppIconChoice.MOON -> Color(0xFF3949ABL)
-    AppIconChoice.STAR -> Color(0xFFF57C00L)
+    AppIconChoice.MOON -> Color(0xFFFFF8E1L)   // warm ivory crescent
+    AppIconChoice.STAR -> Color(0xFFFFD740L)   // bright gold sparkle
 }
 
 private val AppIconChoice.previewIcon: androidx.compose.ui.graphics.vector.ImageVector get() = when (this) {
     AppIconChoice.LEAF -> Icons.Filled.Eco
     AppIconChoice.MOON -> Icons.Filled.NightsStay
-    AppIconChoice.STAR -> Icons.Filled.Star
+    AppIconChoice.STAR -> Icons.Filled.AutoAwesome
 }
 
 @OptIn(ExperimentalLayoutApi::class)
