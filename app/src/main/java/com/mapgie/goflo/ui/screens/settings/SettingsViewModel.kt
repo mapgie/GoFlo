@@ -18,6 +18,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.export.DataExporter
+import com.mapgie.goflo.data.export.ExportConfig
+import com.mapgie.goflo.data.export.ExportFormat
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.repository.ImportResult
 import com.mapgie.goflo.data.preferences.AppPreferences
@@ -34,6 +36,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 class SettingsViewModel(
     private val store: AppPreferencesStore,
@@ -51,6 +57,11 @@ class SettingsViewModel(
 
     val trackingCategories: StateFlow<List<TrackingCategory>> =
         trackingRepository.getActiveCategories()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** All categories (active + archived) for display in the export dialog. */
+    val allCategoriesForExport: StateFlow<List<TrackingCategory>> =
+        trackingRepository.getAllCategories()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val isBiometricAvailable: Boolean =
@@ -221,6 +232,159 @@ class SettingsViewModel(
             val intent = DataExporter.buildCsvShareIntent(context, csv)
             onReady(intent)
         }
+    }
+
+    /**
+     * Exports data according to [config] — selected categories, date range, and format —
+     * then delivers a share-sheet Intent to [onReady].
+     */
+    fun exportWithOptions(config: ExportConfig, onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val (startDate, endDate) = config.effectiveDateRange
+            val content = when (config.format) {
+                ExportFormat.JSON -> buildJsonExport(config, startDate, endDate)
+                ExportFormat.CSV  -> buildCsvExport(config, startDate, endDate)
+            }
+            val intent = when (config.format) {
+                ExportFormat.JSON -> DataExporter.buildShareIntent(context, content)
+                ExportFormat.CSV  -> DataExporter.buildCsvShareIntent(context, content)
+            }
+            onReady(intent)
+        }
+    }
+
+    private suspend fun buildJsonExport(
+        config: ExportConfig,
+        startDate: LocalDate?,
+        endDate: LocalDate?
+    ): String {
+        val root = JSONObject()
+        root.put("version", 2)
+        root.put("exportedAt", LocalDate.now().toString())
+        val rangeObj = JSONObject()
+        rangeObj.put("from", startDate?.toString() ?: JSONObject.NULL)
+        rangeObj.put("to", endDate?.toString() ?: JSONObject.NULL)
+        root.put("dateRange", rangeObj)
+
+        if (config.includePeriods) {
+            val allPeriods = repository.getAllPeriods().first().sortedBy { it.startDate }
+            val periods = if (startDate != null && endDate != null) {
+                allPeriods.filter {
+                    val s = LocalDate.parse(it.startDate)
+                    val e = it.endDate?.let { d -> LocalDate.parse(d) } ?: s
+                    s <= endDate && e >= startDate
+                }
+            } else allPeriods
+            val allSymptoms = repository.getAllSymptomsOnce()
+            val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+            val periodsArray = JSONArray()
+            periods.forEach { period ->
+                val obj = JSONObject().apply {
+                    put("id", period.id)
+                    put("startDate", period.startDate)
+                    put("endDate", if (period.endDate != null) period.endDate else JSONObject.NULL)
+                    put("flowLevel", period.flowLevel)
+                    put("notes", period.notes)
+                    val symptomsArray = JSONArray()
+                    symptomsByPeriod[period.id]?.forEach { symptomsArray.put(it.symptomType) }
+                    put("symptoms", symptomsArray)
+                }
+                periodsArray.put(obj)
+            }
+            root.put("periods", periodsArray)
+        }
+
+        if (config.selectedCategoryIds.isNotEmpty()) {
+            val logs = trackingRepository.exportTrackingLogs(
+                config.selectedCategoryIds.toList(), startDate, endDate
+            )
+            val byCategory = logs.groupBy { it.log.categoryId }
+            val allCats = trackingRepository.getAllCategoriesOnce()
+                .filter { it.id in config.selectedCategoryIds }
+            val trackingArray = JSONArray()
+            allCats.forEach { cat ->
+                val catObj = JSONObject()
+                catObj.put("id", cat.id)
+                catObj.put("name", cat.name)
+                catObj.put("archived", cat.isArchived)
+                catObj.put("type", cat.categoryType)
+                val logsArray = JSONArray()
+                byCategory[cat.id]?.forEach { entry ->
+                    val logObj = JSONObject()
+                    logObj.put("date", entry.log.date)
+                    val valArray = JSONArray()
+                    entry.values.forEach { valArray.put(it) }
+                    logObj.put("values", valArray)
+                    logObj.put("notes", entry.log.notes)
+                    logsArray.put(logObj)
+                }
+                catObj.put("logs", logsArray)
+                trackingArray.put(catObj)
+            }
+            root.put("tracking", trackingArray)
+        }
+
+        return root.toString(2)
+    }
+
+    private suspend fun buildCsvExport(
+        config: ExportConfig,
+        startDate: LocalDate?,
+        endDate: LocalDate?
+    ): String {
+        val sb = StringBuilder()
+
+        if (config.includePeriods) {
+            val allPeriods = repository.getAllPeriods().first().sortedBy { it.startDate }
+            val periods = if (startDate != null && endDate != null) {
+                allPeriods.filter {
+                    val s = LocalDate.parse(it.startDate)
+                    val e = it.endDate?.let { d -> LocalDate.parse(d) } ?: s
+                    s <= endDate && e >= startDate
+                }
+            } else allPeriods
+            val allSymptoms = repository.getAllSymptomsOnce()
+            val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+            sb.appendLine("# Periods")
+            sb.appendLine("start_date,end_date,duration_days,flow_level,symptoms,notes")
+            periods.forEach { period ->
+                val start    = LocalDate.parse(period.startDate)
+                val end      = period.endDate?.let { LocalDate.parse(it) }
+                val duration = if (end != null) (ChronoUnit.DAYS.between(start, end) + 1).toString() else ""
+                val symptoms = sanitizeCsvField(
+                    symptomsByPeriod[period.id]
+                        ?.joinToString(";") { it.symptomType }?.replace("\"", "\"\"") ?: ""
+                )
+                val notes = sanitizeCsvField(period.notes.replace("\"", "\"\""))
+                sb.appendLine("${period.startDate},${period.endDate ?: ""},${duration},${period.flowLevel},\"${symptoms}\",\"${notes}\"")
+            }
+        }
+
+        if (config.selectedCategoryIds.isNotEmpty()) {
+            val logs = trackingRepository.exportTrackingLogs(
+                config.selectedCategoryIds.toList(), startDate, endDate
+            )
+            if (config.includePeriods && logs.isNotEmpty()) {
+                sb.appendLine()
+                sb.appendLine("# Tracking")
+            }
+            if (logs.isNotEmpty() || config.selectedCategoryIds.isNotEmpty()) {
+                sb.appendLine("date,category,values,notes")
+            }
+            logs.forEach { entry ->
+                val catName  = sanitizeCsvField((entry.category?.name ?: "").replace("\"", "\"\""))
+                val values   = sanitizeCsvField(entry.values.joinToString(";").replace("\"", "\"\""))
+                val notes    = sanitizeCsvField(entry.log.notes.replace("\"", "\"\""))
+                sb.appendLine("${entry.log.date},\"${catName}\",\"${values}\",\"${notes}\"")
+            }
+        }
+
+        return sb.toString()
+    }
+
+    private fun sanitizeCsvField(value: String): String {
+        val dangerChars = setOf('=', '+', '-', '@', '\t', '\r')
+        return if (value.isNotEmpty() && value[0] in dangerChars) "\t$value" else value
     }
 
     /**

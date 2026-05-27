@@ -27,6 +27,9 @@ interface TrackingCategoryDao {
     @Query("SELECT * FROM tracking_categories WHERE id = :id")
     suspend fun getCategoryByIdOnce(id: Long): TrackingCategory?
 
+    @Query("SELECT * FROM tracking_categories ORDER BY displayOrder ASC, id ASC")
+    suspend fun getAllCategoriesOnce(): List<TrackingCategory>
+
     /** Returns the first system category with the given name, or null. */
     @Query("SELECT * FROM tracking_categories WHERE isSystem = 1 AND name = :name LIMIT 1")
     suspend fun getSystemCategoryByName(name: String): TrackingCategory?
