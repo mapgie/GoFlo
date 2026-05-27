@@ -98,4 +98,12 @@ interface TrackingLogDao {
 
     @Query("SELECT * FROM tracking_log_values WHERE logId IN (:logIds)")
     suspend fun getLogValuesForLogs(logIds: List<Long>): List<TrackingLogValue>
+
+    /** The ISO-8601 date string of the earliest log entry, or null if there are none. */
+    @Query("SELECT MIN(date) FROM tracking_logs")
+    suspend fun getEarliestLogDate(): String?
+
+    /** The ISO-8601 date string of the most recent log entry, or null if there are none. */
+    @Query("SELECT MAX(date) FROM tracking_logs")
+    suspend fun getLatestLogDate(): String?
 }

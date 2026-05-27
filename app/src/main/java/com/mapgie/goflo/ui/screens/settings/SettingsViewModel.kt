@@ -258,12 +258,16 @@ class SettingsViewModel(
         startDate: LocalDate?,
         endDate: LocalDate?
     ): String {
+        // Resolve actual data bounds for metadata when no explicit range is given.
+        val metaFrom = startDate ?: trackingRepository.getEarliestLogDate()
+        val metaTo   = endDate   ?: LocalDate.now()
+
         val root = JSONObject()
         root.put("version", 2)
         root.put("exportedAt", LocalDate.now().toString())
         val rangeObj = JSONObject()
-        rangeObj.put("from", startDate?.toString() ?: JSONObject.NULL)
-        rangeObj.put("to", endDate?.toString() ?: JSONObject.NULL)
+        rangeObj.put("from", metaFrom?.toString() ?: JSONObject.NULL)
+        rangeObj.put("to", metaTo.toString())
         root.put("dateRange", rangeObj)
 
         if (config.includePeriods) {

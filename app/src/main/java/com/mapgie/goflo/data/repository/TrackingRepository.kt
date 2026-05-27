@@ -253,6 +253,14 @@ class TrackingRepository(
     suspend fun getAllLogsInRange(start: LocalDate, end: LocalDate): List<TrackingLog> =
         logDao.getAllLogsInRange(start.toString(), end.toString())
 
+    /** The date of the earliest log entry across all categories, or null if no logs exist. */
+    suspend fun getEarliestLogDate(): LocalDate? =
+        logDao.getEarliestLogDate()?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
+    /** The date of the most recent log entry across all categories, or null if no logs exist. */
+    suspend fun getLatestLogDate(): LocalDate? =
+        logDao.getLatestLogDate()?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
     /** Value labels for a specific log. Thin wrapper for Stats use. */
     suspend fun getValuesForLog(logId: Long): List<String> =
         logDao.getLogValuesForLogOnce(logId).map { it.valueLabel }
