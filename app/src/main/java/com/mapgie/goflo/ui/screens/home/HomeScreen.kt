@@ -30,7 +30,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
-import com.mapgie.goflo.ui.components.BannerTopBar
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -162,7 +164,22 @@ fun HomeScreen(
     // ── Main scaffold ─────────────────────────────────────────────────────────
 
     Scaffold(
-        topBar = { BannerTopBar(bannerStyle = state.bannerStyle) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text  = "GoFlo",
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontFamily = ComfortaaFamily
+                        )
+                    )
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor    = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
         floatingActionButton = {
             // Custom FAB using Surface (non-clickable variant) + combinedClickable so that
             // both short-press (Quick Log) and long-press (Log menu) work reliably without

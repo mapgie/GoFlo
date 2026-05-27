@@ -102,10 +102,9 @@ import androidx.compose.material.icons.outlined.Tune
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
-import com.mapgie.goflo.ui.components.BannerStylePreview
+import androidx.compose.material3.Checkbox
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
 import com.mapgie.goflo.ui.theme.AppTheme
-import com.mapgie.goflo.ui.theme.BannerStyle
 
 // ── Theme mode / palette helpers ──────────────────────────────────────────────
 
@@ -128,20 +127,23 @@ private enum class StandardPalette(
     val accentArgb: Long,
 ) {
     // Classic
-    CORAL        ("Coral",                  AppTheme.CORAL,        AppTheme.CORAL_DARK,        AppTheme.CORAL_SYSTEM,          0xFFC15542L, 0xFFB85C00L), // coral-red + amber
+    CORAL        ("Coral",                  AppTheme.CORAL,        AppTheme.CORAL_DARK,        AppTheme.CORAL_SYSTEM,          0xFFC15542L, 0xFFB5307AL), // coral-red + rose-magenta
     TEAL         ("Teal",                   AppTheme.TURQUOISE,    AppTheme.TURQUOISE_DARK,    AppTheme.SYSTEM,                0xFF00696FL, 0xFF4E6078L), // deep teal + slate-blue
-    SAGE         ("Sage",                   AppTheme.GREEN,        AppTheme.GREEN_DARK,        AppTheme.GREEN_SYSTEM,          0xFF386A20L, 0xFF386669L), // forest-green + teal
+    SAGE         ("Sage",                   AppTheme.GREEN,        AppTheme.GREEN_DARK,        AppTheme.GREEN_SYSTEM,          0xFF386A20L, 0xFF6B5BAEL), // forest-green + periwinkle
     // Fun
-    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY, AppTheme.SUMMER_CANDY_DARK, AppTheme.SUMMER_CANDY_SYSTEM,   0xFFC2185BL, 0xFF006064L), // raspberry + vivid teal
-    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,  AppTheme.BEACH_VIBES_DARK,  AppTheme.BEACH_VIBES_SYSTEM,    0xFF0D47A1L, 0xFF006064L), // deep ocean-blue + vivid teal
-    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,  AppTheme.PEACH_MELBA_DARK,  AppTheme.PEACH_MELBA_SYSTEM,    0xFFBF360CL, 0xFF33691EL), // vivid terra-cotta + forest green
-    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,        AppTheme.DISCO_DARK,        AppTheme.DISCO_SYSTEM,          0xFF7B0EA0L, 0xFF8B6A00L), // deep-violet + disco-gold
-    METAL_CHICK  ("Metal Chick",            AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL, 0xFF6B2D3EL), // charcoal + burgundy
+    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY, AppTheme.SUMMER_CANDY_DARK, AppTheme.SUMMER_CANDY_SYSTEM,   0xFFC2185BL, 0xFF9B27AFL), // raspberry + electric-violet
+    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,  AppTheme.BEACH_VIBES_DARK,  AppTheme.BEACH_VIBES_SYSTEM,    0xFF0D47A1L, 0xFFD4700AL), // deep ocean-blue + vivid coral-orange
+    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,  AppTheme.PEACH_MELBA_DARK,  AppTheme.PEACH_MELBA_SYSTEM,    0xFFBF360CL, 0xFF9C5BA0L), // vivid terra-cotta + dusty lilac
+    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,        AppTheme.DISCO_DARK,        AppTheme.DISCO_SYSTEM,          0xFF7B0EA0L, 0xFF76B900L), // deep-violet + acid-lime
+    METAL_CHICK  ("Metal Chic",             AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL, 0xFF6B2D3EL), // charcoal + burgundy
     WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,       AppTheme.WHIMSY_DARK,       AppTheme.WHIMSY_SYSTEM,         0xFF5050A0L, 0xFF2D7A6EL), // periwinkle + mint-teal
-    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFC13A00L, 0xFF1B6FA8L), // coral-orange + electric-blue
+    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFD63A26L, 0xFF00A8E8L), // vivid strawberry + electric cerulean
     // Bold
-    DRAGON_FIRE   ("Dragon Fire",    AppTheme.DRAGON_FIRE,   AppTheme.DRAGON_FIRE_DARK,   AppTheme.DRAGON_FIRE_SYSTEM,   0xFFB71C1CL, 0xFF311B92L), // blood-red + electric-indigo
-    MIDNIGHT_NEON ("Midnight Neon",  AppTheme.MIDNIGHT_NEON, AppTheme.MIDNIGHT_NEON_DARK, AppTheme.MIDNIGHT_NEON_SYSTEM, 0xFF6200EAL, 0xFFEA80FCL), // electric-violet + neon-pink
+    DRAGON_FIRE   ("Dragon Fire",    AppTheme.DRAGON_FIRE,   AppTheme.DRAGON_FIRE_DARK,   AppTheme.DRAGON_FIRE_SYSTEM,   0xFFB71C1CL, 0xFFE07800L), // blood-red + lava-orange
+    MIDNIGHT_NEON ("Midnight Neon",  AppTheme.MIDNIGHT_NEON, AppTheme.MIDNIGHT_NEON_DARK, AppTheme.MIDNIGHT_NEON_SYSTEM, 0xFF6200EAL, 0xFF76B900L), // electric-violet + acid-lime
+    // Accessibility (max-contrast palette circles — always shown regardless of WCAG toggle)
+    MAX_CONTRAST     ("Max Contrast",  AppTheme.HIGH_CONTRAST_LIGHT, AppTheme.HIGH_CONTRAST_DARK, AppTheme.HIGH_CONTRAST_LIGHT, 0xFF1A1A1AL, 0xFF000000L), // near-black primary
+    BLUE_ORANGE_PAL  ("Blue & Orange", AppTheme.BLUE_ORANGE,         AppTheme.BLUE_ORANGE,        AppTheme.BLUE_ORANGE,         0xFF005FADL, 0xFF8B5000L), // cobalt-blue + burnt-sienna
 }
 
 private val AppTheme.themeMode: ThemeMode? get() = when (this) {
@@ -198,7 +200,9 @@ private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
     AppTheme.DRAGON_FIRE_SYSTEM                                   -> StandardPalette.DRAGON_FIRE
     AppTheme.MIDNIGHT_NEON, AppTheme.MIDNIGHT_NEON_DARK,
     AppTheme.MIDNIGHT_NEON_SYSTEM                                 -> StandardPalette.MIDNIGHT_NEON
-    else                                                    -> null
+    AppTheme.HIGH_CONTRAST_LIGHT,
+    AppTheme.HIGH_CONTRAST_DARK                                   -> StandardPalette.MAX_CONTRAST
+    AppTheme.BLUE_ORANGE                                          -> StandardPalette.BLUE_ORANGE_PAL
 }
 
 private val AppTheme.summaryLabel: String get() = when (this) {
@@ -209,7 +213,7 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.BEACH_VIBES_SYSTEM    -> "Beach Vibes · Auto"
     AppTheme.PEACH_MELBA_SYSTEM    -> "Peach Melba · Auto"
     AppTheme.DISCO_SYSTEM          -> "All-Night Disco Party · Auto"
-    AppTheme.METAL_CHICK_SYSTEM    -> "Metal Chick · Auto"
+    AppTheme.METAL_CHICK_SYSTEM    -> "Metal Chic · Auto"
     AppTheme.WHIMSY_SYSTEM         -> "Whimsy Whispers · Auto"
     AppTheme.COLOUR_HAPPY_SYSTEM   -> "Colour Me Happy · Auto"
     AppTheme.CORAL                 -> "Coral · Light"
@@ -226,8 +230,8 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.PEACH_MELBA_DARK      -> "Peach Melba · Dark"
     AppTheme.DISCO                 -> "All-Night Disco Party · Light"
     AppTheme.DISCO_DARK            -> "All-Night Disco Party · Dark"
-    AppTheme.METAL_CHICK           -> "Metal Chick · Light"
-    AppTheme.METAL_CHICK_DARK      -> "Metal Chick · Dark"
+    AppTheme.METAL_CHICK           -> "Metal Chic · Light"
+    AppTheme.METAL_CHICK_DARK      -> "Metal Chic · Dark"
     AppTheme.WHIMSY                -> "Whimsy Whispers · Light"
     AppTheme.WHIMSY_DARK           -> "Whimsy Whispers · Dark"
     AppTheme.COLOUR_HAPPY          -> "Colour Me Happy · Light"
@@ -238,8 +242,8 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.DRAGON_FIRE_DARK     -> "Dragon Fire · Dark"
     AppTheme.MIDNIGHT_NEON        -> "Midnight Neon · Light"
     AppTheme.MIDNIGHT_NEON_DARK   -> "Midnight Neon · Dark"
-    AppTheme.HIGH_CONTRAST_LIGHT   -> "High Contrast Light"
-    AppTheme.HIGH_CONTRAST_DARK    -> "High Contrast Dark"
+    AppTheme.HIGH_CONTRAST_LIGHT   -> "Max Contrast · Light"
+    AppTheme.HIGH_CONTRAST_DARK    -> "Max Contrast · Dark"
     AppTheme.BLUE_ORANGE           -> "Blue & Orange"
 }
 
@@ -260,10 +264,6 @@ fun SettingsScreen(
     val categories by viewModel.trackingCategories.collectAsState()
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
-
-    val currentBannerStyle = runCatching {
-        BannerStyle.valueOf(prefs.bannerStyle)
-    }.getOrDefault(BannerStyle.PLAIN)
 
     val currentIconChoice = runCatching {
         AppIconChoice.valueOf(prefs.iconChoice)
@@ -729,8 +729,10 @@ fun SettingsScreen(
                 summary = currentTheme.summaryLabel
             ) {
                 CompactThemePicker(
-                    current  = currentTheme,
-                    onSelect = { viewModel.setTheme(it.name) }
+                    current      = currentTheme,
+                    wcagChecked  = prefs.wcagMode,
+                    onSelect     = { viewModel.setTheme(it.name) },
+                    onWcagToggle = { viewModel.setWcagMode(it) }
                 )
 
                 HorizontalDivider(
@@ -742,16 +744,6 @@ fun SettingsScreen(
                     currentChoice       = currentIconChoice,
                     onSelect            = { viewModel.setIconChoice(it) },
                     onPickCustomImage   = { customIconPicker.launch("image/*") }
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color    = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                BannerStylePicker(
-                    current  = currentBannerStyle,
-                    onSelect = { viewModel.setBannerStyle(it.name) }
                 )
             }
 
@@ -1083,7 +1075,12 @@ private fun SettingsNavCard(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CompactThemePicker(current: AppTheme, onSelect: (AppTheme) -> Unit) {
+private fun CompactThemePicker(
+    current:      AppTheme,
+    wcagChecked:  Boolean,
+    onSelect:     (AppTheme) -> Unit,
+    onWcagToggle: (Boolean) -> Unit,
+) {
     val currentMode    = current.themeMode
     val currentPalette = current.standardPalette
 
@@ -1170,51 +1167,56 @@ private fun CompactThemePicker(current: AppTheme, onSelect: (AppTheme) -> Unit) 
             }
         }
 
-        // ── Palette circles (hidden when System is active) ────────────────────
-        AnimatedVisibility(visible = currentMode != ThemeMode.SYSTEM) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    "Colour",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                FlowRow(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterHorizontally),
-                    maxItemsInEachRow     = 5,
-                ) {
-                    StandardPalette.entries.forEach { palette ->
-                        val selected = palette == currentPalette
-                        PaletteOption(
-                            palette  = palette,
-                            selected = selected,
-                            onClick  = {
-                                val mode = currentMode ?: ThemeMode.LIGHT
-                                onSelect(
-                                    if (mode == ThemeMode.LIGHT) palette.lightTheme
-                                    else palette.darkTheme
-                                )
-                            }
-                        )
-                    }
-                }
-            }
+        // ── WCAG accessible toggle ────────────────────────────────────────────
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .semantics { role = Role.Checkbox }
+                .clickable { onWcagToggle(!wcagChecked) }
+        ) {
+            Checkbox(
+                checked         = wcagChecked,
+                onCheckedChange = onWcagToggle,
+            )
+            Text(
+                text  = "WCAG accessible",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
 
-        // ── Accessibility themes ──────────────────────────────────────────────
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Text(
-            "Accessibility",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(
-                AppTheme.HIGH_CONTRAST_LIGHT,
-                AppTheme.HIGH_CONTRAST_DARK,
-                AppTheme.BLUE_ORANGE
-            ).forEach { theme ->
-                ThemeChip(theme = theme, selected = current == theme, onClick = { onSelect(theme) })
+        // ── Palette circles ───────────────────────────────────────────────────
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(
+                "Colour",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FlowRow(
+                modifier              = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterHorizontally),
+                maxItemsInEachRow     = 5,
+            ) {
+                StandardPalette.entries.forEach { palette ->
+                    val selected = palette == currentPalette
+                    PaletteOption(
+                        palette  = palette,
+                        selected = selected,
+                        onClick  = {
+                            // MAX_CONTRAST and BLUE_ORANGE_PAL don't have distinct
+                            // light/dark/system variants — their lightTheme is always
+                            // used (both lightTheme and darkTheme point to the same entry).
+                            val mode = currentMode ?: ThemeMode.LIGHT
+                            onSelect(
+                                when (mode) {
+                                    ThemeMode.DARK   -> palette.darkTheme
+                                    ThemeMode.SYSTEM -> palette.systemTheme
+                                    else             -> palette.lightTheme
+                                }
+                            )
+                        }
+                    )
+                }
             }
         }
     }
@@ -1286,32 +1288,6 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
                     else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
-
-// ── Theme chip (for accessibility themes) ─────────────────────────────────────
-
-@Composable
-private fun ThemeChip(theme: AppTheme, selected: Boolean, onClick: () -> Unit) {
-    val previewColor = Color(theme.previewArgb)
-    FilterChip(
-        selected    = selected,
-        onClick     = onClick,
-        label       = { Text(theme.displayName) },
-        leadingIcon = {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .clip(CircleShape)
-                    .background(previewColor)
-                    .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), CircleShape)
-            )
-        },
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor   = MaterialTheme.colorScheme.primary,
-            selectedLabelColor       = MaterialTheme.colorScheme.onPrimary,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-        )
-    )
 }
 
 // ── App icon picker ───────────────────────────────────────────────────────────
@@ -1445,84 +1421,6 @@ private fun IconChoiceCell(
             style = MaterialTheme.typography.labelSmall,
             color = if (selected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-// ── Banner style picker ───────────────────────────────────────────────────────
-
-/**
- * A row of tappable mini-preview tiles, one per [BannerStyle].
- * Each tile renders a scaled-down canvas preview using live theme colours so the
- * user can see exactly how their active colour scheme looks with each decoration.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun BannerStylePicker(current: BannerStyle, onSelect: (BannerStyle) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(
-            "Banner decoration",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        FlowRow(
-            modifier              = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            BannerStyle.entries.forEach { style ->
-                BannerStyleOption(
-                    style    = style,
-                    selected = style == current,
-                    onClick  = { onSelect(style) },
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun BannerStyleOption(
-    style:    BannerStyle,
-    selected: Boolean,
-    onClick:  () -> Unit,
-) {
-    val selRingColor  = MaterialTheme.colorScheme.primary
-    val outlineColor  = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
-    val contentColor  = MaterialTheme.colorScheme.onPrimaryContainer
-
-    Column(
-        modifier            = Modifier
-            .clickable(onClick = onClick)
-            .padding(horizontal = 6.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .border(
-                    width = if (selected) 2.5.dp else 1.dp,
-                    color = if (selected) selRingColor else outlineColor,
-                    shape = RoundedCornerShape(8.dp),
-                ),
-            contentAlignment = Alignment.Center,
-        ) {
-            BannerStylePreview(style = style)
-
-            if (selected) {
-                Icon(
-                    imageVector        = Icons.Default.Check,
-                    contentDescription = "Selected",
-                    tint               = contentColor,
-                    modifier           = Modifier.size(20.dp),
-                )
-            }
-        }
-        Text(
-            text  = style.displayName,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
