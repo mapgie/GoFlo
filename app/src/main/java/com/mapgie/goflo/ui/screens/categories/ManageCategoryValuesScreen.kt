@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -25,19 +28,24 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingValue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,20 +56,17 @@ fun ManageCategoryValuesScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    // Dialog state
-    var showAddValue by rememberSaveable { mutableStateOf(false) }
+    var showAddValue       by rememberSaveable { mutableStateOf(false) }
     var showRenameCategory by rememberSaveable { mutableStateOf(false) }
-    var renamingValue by rememberSaveable { mutableStateOf<Long?>(null) }
+    var renamingValue      by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingDeleteValue by rememberSaveable { mutableStateOf<Long?>(null) }
 
     val valueToRename = state.values.firstOrNull { it.id == renamingValue }
     val valueToDelete = state.values.firstOrNull { it.id == pendingDeleteValue }
 
-    // ── Add value dialog ──────────────────────────────────────────────────────
-
     if (showAddValue) {
         AddValueDialog(
-            categoryName = state.category?.name ?: "",
+            categoryName   = state.category?.name ?: "",
             existingLabels = state.values.map { it.label },
             onAdd = { label ->
                 viewModel.addValue(label)
@@ -70,8 +75,6 @@ fun ManageCategoryValuesScreen(
             onDismiss = { showAddValue = false }
         )
     }
-
-    // ── Rename category dialog ────────────────────────────────────────────────
 
     if (showRenameCategory && state.category != null) {
         RenameCategoryDialog(
@@ -84,8 +87,6 @@ fun ManageCategoryValuesScreen(
         )
     }
 
-    // ── Rename value dialog ───────────────────────────────────────────────────
-
     if (valueToRename != null) {
         RenameValueDialog(
             value = valueToRename,
@@ -96,8 +97,6 @@ fun ManageCategoryValuesScreen(
             onDismiss = { renamingValue = null }
         )
     }
-
-    // ── Delete value confirmation ─────────────────────────────────────────────
 
     if (valueToDelete != null) {
         AlertDialog(
@@ -158,51 +157,229 @@ fun ManageCategoryValuesScreen(
             return@Scaffold
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                "Values in this category:",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (state.values.isEmpty()) {
-                Text(
-                    "No values yet. Add some below.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    items(state.values, key = { it.id }) { value ->
-                        ValueRow(
-                            value = value,
-                            onRename = { renamingValue = value.id },
-                            onDelete = { pendingDeleteValue = value.id }
-                        )
-                    }
+        val category = state.category
+        when (category?.categoryType) {
+            "numeric_slider" -> NumericSliderSettings(
+                category  = category,
+                modifier  = Modifier.padding(padding),
+                onSave    = { min, max, decimals, unit ->
+                    viewModel.updateNumericSettings(min, max, decimals, unit)
                 }
-            }
-
-            HorizontalDivider()
-
-            Button(
-                onClick = { showAddValue = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("+ Add a value")
-            }
+            )
+            "numeric_free" -> NumericFreeSettings(
+                category = category,
+                modifier = Modifier.padding(padding),
+                onSave   = { unit -> viewModel.updateUnit(unit) }
+            )
+            else -> DefaultCategoryValues(
+                state             = state,
+                modifier          = Modifier.padding(padding),
+                onAddValue        = { showAddValue = true },
+                onRenameValue     = { renamingValue = it.id },
+                onDeleteValue     = { pendingDeleteValue = it.id }
+            )
         }
     }
 }
+
+// ── Default (text values) content ─────────────────────────────────────────────
+
+@Composable
+private fun DefaultCategoryValues(
+    state: ManageCategoryValuesUiState,
+    modifier: Modifier,
+    onAddValue: () -> Unit,
+    onRenameValue: (TrackingValue) -> Unit,
+    onDeleteValue: (TrackingValue) -> Unit,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            "Values in this category:",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (state.values.isEmpty()) {
+            Text(
+                "No values yet. Add some below.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                items(state.values, key = { it.id }) { value ->
+                    ValueRow(
+                        value    = value,
+                        onRename = { onRenameValue(value) },
+                        onDelete = { onDeleteValue(value) }
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider()
+
+        Button(onClick = onAddValue, modifier = Modifier.fillMaxWidth()) {
+            Text("+ Add a value")
+        }
+    }
+}
+
+// ── Numeric slider settings content ──────────────────────────────────────────
+
+@Composable
+private fun NumericSliderSettings(
+    category: TrackingCategory,
+    modifier: Modifier,
+    onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String) -> Unit,
+) {
+    var minText       by rememberSaveable {
+        mutableStateOf(
+            if (category.allowDecimals) "%.1f".format(category.numericMin)
+            else category.numericMin.toInt().toString()
+        )
+    }
+    var maxText       by rememberSaveable {
+        mutableStateOf(
+            if (category.allowDecimals) "%.1f".format(category.numericMax)
+            else category.numericMax.toInt().toString()
+        )
+    }
+    var allowDecimals by rememberSaveable { mutableStateOf(category.allowDecimals) }
+    var unit          by rememberSaveable { mutableStateOf(category.numericUnit) }
+
+    val canSave by remember(minText, maxText) {
+        derivedStateOf {
+            minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
+            (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
+        }
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "Numeric Slider settings",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        OutlinedTextField(
+            value         = unit,
+            onValueChange = { unit = it },
+            label         = { Text("Unit / Key (optional)") },
+            placeholder   = { Text("e.g. °C, bpm, kg…") },
+            singleLine    = true,
+            modifier      = Modifier.fillMaxWidth()
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value           = minText,
+                onValueChange   = { minText = it },
+                label           = { Text("Min") },
+                singleLine      = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier        = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value           = maxText,
+                onValueChange   = { maxText = it },
+                label           = { Text("Max") },
+                singleLine      = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier        = Modifier.weight(1f)
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Allow decimals", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Slider snaps to 0.1 steps instead of whole numbers",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(checked = allowDecimals, onCheckedChange = { allowDecimals = it })
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        Button(
+            onClick  = {
+                if (canSave) onSave(
+                    minText.toFloatOrNull() ?: 0f,
+                    maxText.toFloatOrNull() ?: 10f,
+                    allowDecimals,
+                    unit.trim()
+                )
+            },
+            enabled  = canSave,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Save") }
+    }
+}
+
+// ── Numeric free-input settings content ──────────────────────────────────────
+
+@Composable
+private fun NumericFreeSettings(
+    category: TrackingCategory,
+    modifier: Modifier,
+    onSave: (unit: String) -> Unit,
+) {
+    var unit by rememberSaveable { mutableStateOf(category.numericUnit) }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "Numeric Input settings",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        OutlinedTextField(
+            value         = unit,
+            onValueChange = { unit = it },
+            label         = { Text("Unit / Key (optional)") },
+            placeholder   = { Text("e.g. °C, bpm, kg…") },
+            singleLine    = true,
+            modifier      = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick  = { onSave(unit.trim()) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Save") }
+    }
+}
+
+// ── Shared value row ──────────────────────────────────────────────────────────
 
 @Composable
 private fun ValueRow(
@@ -218,28 +395,24 @@ private fun ValueRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = value.label,
-            style = MaterialTheme.typography.bodyMedium,
+            text     = value.label,
+            style    = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f)
         )
         Row {
             IconButton(onClick = onRename) {
-                Icon(
-                    Icons.Default.Edit,
-                    contentDescription = "Rename ${value.label}",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                Icon(Icons.Default.Edit, contentDescription = "Rename ${value.label}",
+                    tint = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onDelete) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete ${value.label}",
-                    tint = MaterialTheme.colorScheme.error
-                )
+                Icon(Icons.Default.Delete, contentDescription = "Delete ${value.label}",
+                    tint = MaterialTheme.colorScheme.error)
             }
         }
     }
 }
+
+// ── Dialogs ───────────────────────────────────────────────────────────────────
 
 @Composable
 private fun AddValueDialog(
@@ -258,21 +431,21 @@ private fun AddValueDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OutlinedTextField(
-                    value = text,
+                    value         = text,
                     onValueChange = { text = it },
-                    label = { Text("Value") },
-                    placeholder = { Text("e.g. Happy, Calm, Tired…") },
-                    singleLine = true,
-                    isError = alreadyExists,
+                    label         = { Text("Value") },
+                    placeholder   = { Text("e.g. Happy, Calm, Tired…") },
+                    singleLine    = true,
+                    isError       = alreadyExists,
                     supportingText = if (alreadyExists) ({ Text("Already exists") }) else null,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier      = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { if (trimmed.isNotBlank() && !alreadyExists) onAdd(trimmed) },
-                enabled = trimmed.isNotBlank() && !alreadyExists
+                onClick  = { if (trimmed.isNotBlank() && !alreadyExists) onAdd(trimmed) },
+                enabled  = trimmed.isNotBlank() && !alreadyExists
             ) { Text("Add") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
@@ -292,17 +465,17 @@ private fun RenameCategoryDialog(
         title = { Text("Rename category") },
         text = {
             OutlinedTextField(
-                value = name,
+                value         = name,
                 onValueChange = { name = it },
-                label = { Text("Category name") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                label         = { Text("Category name") },
+                singleLine    = true,
+                modifier      = Modifier.fillMaxWidth()
             )
         },
         confirmButton = {
             TextButton(
-                onClick = { if (name.isNotBlank()) onRename(name) },
-                enabled = name.isNotBlank() && name != currentName
+                onClick  = { if (name.isNotBlank()) onRename(name) },
+                enabled  = name.isNotBlank() && name != currentName
             ) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
@@ -325,11 +498,11 @@ private fun RenameValueDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = newLabel,
+                    value         = newLabel,
                     onValueChange = { newLabel = it },
-                    label = { Text("New label") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    label         = { Text("New label") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth()
                 )
                 if (changed) {
                     Spacer(Modifier.height(4.dp))
@@ -343,18 +516,11 @@ private fun RenameValueDialog(
         },
         confirmButton = {
             if (changed) {
-                // Two explicit action buttons when a change is pending
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Button(
-                        onClick = { onRename(trimmed, true) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Button(onClick = { onRename(trimmed, true) }, modifier = Modifier.fillMaxWidth()) {
                         Text("Fix everywhere")
                     }
-                    TextButton(
-                        onClick = { onRename(trimmed, false) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    TextButton(onClick = { onRename(trimmed, false) }, modifier = Modifier.fillMaxWidth()) {
                         Text("Rename option only")
                     }
                 }

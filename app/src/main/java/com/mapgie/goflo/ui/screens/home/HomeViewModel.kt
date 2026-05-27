@@ -63,7 +63,7 @@ class HomeViewModel(
         repository.getAllPeriods(),
         preferencesStore.preferences,
         trackingRepository.getAllLogDates(),
-        trackingRepository.getAllCategories(),
+        trackingRepository.getActiveCategories(),
     ) { periods, prefs, trackingDates, categories ->
         val customCycle = prefs.preferredCycleLength.takeIf { it > 0 }
         val avg = customCycle ?: PeriodRepository.calculateAvgCycleLength(periods)

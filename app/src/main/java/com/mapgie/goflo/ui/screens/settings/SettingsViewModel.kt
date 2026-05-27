@@ -50,7 +50,7 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SecuritySettings())
 
     val trackingCategories: StateFlow<List<TrackingCategory>> =
-        trackingRepository.getAllCategories()
+        trackingRepository.getActiveCategories()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val isBiometricAvailable: Boolean =
