@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -40,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.components.SelectableChip
@@ -129,6 +131,38 @@ private fun NumericSliderSection(
     }
 }
 
+@Composable
+private fun NumericFreeInputSection(
+    category: TrackingCategory,
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                category.name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedTextField(
+                value           = value,
+                onValueChange   = onValueChange,
+                label           = {
+                    val label = if (category.numericUnit.isNotBlank()) category.numericUnit else "Value"
+                    Text(label)
+                },
+                placeholder     = { Text("Enter a number") },
+                singleLine      = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier        = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LogCategoryScreen(
@@ -209,17 +243,25 @@ fun LogCategoryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // ── Input area — slider for numeric, chips for text ───────────────
+            // ── Input area — slider / free input / chips ──────────────────────
 
             val cat = state.category
-            if (cat != null && cat.isNumeric) {
-                // Numeric slider
-                NumericSliderSection(
-                    category = cat,
-                    value = state.numericValue,
-                    onValueChange = viewModel::setNumericValue
-                )
-            } else {
+            when (cat?.categoryType) {
+                "numeric_slider" -> {
+                    NumericSliderSection(
+                        category = cat,
+                        value = state.numericValue,
+                        onValueChange = viewModel::setNumericValue
+                    )
+                }
+                "numeric_free" -> {
+                    NumericFreeInputSection(
+                        category = cat,
+                        value = state.numericFreeText,
+                        onValueChange = viewModel::setNumericFreeText
+                    )
+                }
+                else -> {
                 // Text value chips
                 if (state.availableValues.isNotEmpty()) {
                     Text(
@@ -270,7 +312,8 @@ fun LogCategoryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            }
+                }  // else ->
+            }  // when
 
             // ── Notes ─────────────────────────────────────────────────────────
 

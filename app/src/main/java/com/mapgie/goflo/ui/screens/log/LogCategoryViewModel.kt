@@ -25,11 +25,12 @@ data class LogCategoryUiState(
     /** Labels of values currently selected (may include labels not in availableValues if removed). */
     val selectedValues: Set<String> = emptySet(),
     /**
-     * Current slider position for numeric categories.
+     * Current slider position for numeric_slider categories.
      * Null until the user interacts (or an existing value is loaded).
-     * Ignored for text categories.
      */
     val numericValue: Float? = null,
+    /** Current text entry for numeric_free categories. */
+    val numericFreeText: String = "",
     val date: LocalDate = LocalDate.now(),
     val notes: String = "",
     val isEditing: Boolean = false,
@@ -85,10 +86,13 @@ class LogCategoryViewModel(
             else -> repository.getExistingLog(date, categoryId)
         }
 
-        // For numeric categories, parse the first stored label back to Float
-        val existingNumeric: Float? = if (category?.isNumeric == true)
+        val existingNumeric: Float? = if (category?.categoryType == "numeric_slider")
             existingEntry?.values?.firstOrNull()?.toFloatOrNull()
         else null
+
+        val existingFreeText: String = if (category?.categoryType == "numeric_free")
+            existingEntry?.values?.firstOrNull() ?: ""
+        else ""
 
         _uiState.update {
             it.copy(
@@ -97,6 +101,7 @@ class LogCategoryViewModel(
                 availableValues = values,
                 selectedValues = existingEntry?.values?.toSet() ?: emptySet(),
                 numericValue = existingNumeric,
+                numericFreeText = existingFreeText,
                 date = existingEntry?.log?.date?.let { d ->
                     runCatching { LocalDate.parse(d) }.getOrElse { date }
                 } ?: date,
@@ -117,6 +122,8 @@ class LogCategoryViewModel(
 
     fun setNumericValue(v: Float) = _uiState.update { it.copy(numericValue = v) }
 
+    fun setNumericFreeText(text: String) = _uiState.update { it.copy(numericFreeText = text) }
+
     fun setNotes(notes: String) {
         _uiState.update { it.copy(notes = notes) }
     }
@@ -126,12 +133,17 @@ class LogCategoryViewModel(
         if (state.isLoading) return
         val cat = state.category
 
-        // Determine the values to persist
-        val valuesToSave: Set<String> = if (cat?.isNumeric == true) {
-            val v = state.numericValue ?: return   // nothing to save yet
-            setOf(formatNumericValue(v, cat.allowDecimals))
-        } else {
-            state.selectedValues
+        val valuesToSave: Set<String> = when (cat?.categoryType) {
+            "numeric_slider" -> {
+                val v = state.numericValue ?: return
+                setOf(formatNumericValue(v, cat.allowDecimals))
+            }
+            "numeric_free" -> {
+                val text = state.numericFreeText.trim()
+                if (text.isEmpty()) return
+                setOf(text)
+            }
+            else -> state.selectedValues
         }
 
         viewModelScope.launch {

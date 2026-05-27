@@ -32,51 +32,41 @@ class ManageCategoriesViewModel(
         name: String,
         iconName: String,
         colorToken: String,
-        isNumeric: Boolean = false,
-        numericMin: Float = 0f,
-        numericMax: Float = 10f,
-        allowDecimals: Boolean = false,
+        categoryType: String = "default",
+        numericUnit: String = "",
+        onCreated: (Long) -> Unit = {},
     ) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            repository.addCategory(
-                name          = name,
-                iconName      = iconName,
-                colorToken    = colorToken,
-                isNumeric     = isNumeric,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
+            val id = repository.addCategory(
+                name         = name,
+                iconName     = iconName,
+                colorToken   = colorToken,
+                categoryType = categoryType,
+                numericUnit  = numericUnit,
             )
+            onCreated(id)
         }
     }
 
-    fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
-        viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
-    }
-
-    fun updateCategoryNameAndAppearance(
+    fun updateCategoryAppearanceAndName(
         id: Long,
         name: String,
         iconName: String,
         colorToken: String,
-        isNumeric: Boolean = false,
-        numericMin: Float = 0f,
-        numericMax: Float = 10f,
-        allowDecimals: Boolean = false,
     ) {
         viewModelScope.launch {
-            repository.updateCategoryFullSettings(
-                id            = id,
-                name          = name,
-                iconName      = iconName,
-                colorToken    = colorToken,
-                isNumeric     = isNumeric,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
-            )
+            repository.updateCategoryAppearanceAndName(id, name, iconName, colorToken)
         }
+    }
+
+    fun archiveCategory(category: TrackingCategory) {
+        if (category.isSystem) return
+        viewModelScope.launch { repository.archiveCategory(category.id) }
+    }
+
+    fun unarchiveCategory(category: TrackingCategory) {
+        viewModelScope.launch { repository.unarchiveCategory(category.id) }
     }
 
     fun deleteCategory(category: TrackingCategory) {
