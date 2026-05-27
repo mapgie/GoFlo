@@ -2,6 +2,7 @@ package com.mapgie.goflo.data.repository
 
 import com.mapgie.goflo.data.database.dao.TrackingCategoryDao
 import com.mapgie.goflo.data.database.dao.TrackingLogDao
+import com.mapgie.goflo.data.database.dao.ValueCount
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingLog
 import com.mapgie.goflo.data.database.entities.TrackingLogValue
@@ -39,6 +40,10 @@ class TrackingRepository(
         name: String,
         iconName: String = "category",
         colorToken: String = "secondary",
+        isNumeric: Boolean = false,
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
@@ -48,6 +53,10 @@ class TrackingRepository(
                 displayOrder = maxOrder + 1,
                 iconName     = iconName,
                 colorToken   = colorToken,
+                isNumeric    = isNumeric,
+                numericMin   = numericMin,
+                numericMax   = numericMax,
+                allowDecimals = allowDecimals,
             )
         )
     }
@@ -61,6 +70,34 @@ class TrackingRepository(
     suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
+    }
+
+    /**
+     * Updates name, appearance, and numeric settings of an existing category in one call.
+     * Used by the edit dialog which surfaces all these fields together.
+     */
+    suspend fun updateCategoryFullSettings(
+        id: Long,
+        name: String,
+        iconName: String,
+        colorToken: String,
+        isNumeric: Boolean,
+        numericMin: Float,
+        numericMax: Float,
+        allowDecimals: Boolean,
+    ) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(
+            cat.copy(
+                name          = name.trim(),
+                iconName      = iconName,
+                colorToken    = colorToken,
+                isNumeric     = isNumeric,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+            )
+        )
     }
 
     suspend fun deleteCategory(category: TrackingCategory) {
@@ -176,5 +213,56 @@ class TrackingRepository(
         val values = logDao.getLogValuesForLogOnce(log.id).map { it.valueLabel }
         val category = categoryDao.getCategoryByIdOnce(log.categoryId)
         return TrackingLogWithValues(log = log, category = category, values = values)
+    }
+
+    // ── Stats data access ─────────────────────────────────────────────────────
+
+    /** All logs for a category within an inclusive date range. */
+    suspend fun getLogsForCategoryInRange(
+        categoryId: Long,
+        start: LocalDate,
+        end: LocalDate
+    ): List<TrackingLog> =
+        logDao.getLogsForCategoryInRange(categoryId, start.toString(), end.toString())
+
+    /** Frequency of each value label for a category within a date range. */
+    suspend fun getValueCountsForCategory(
+        categoryId: Long,
+        start: LocalDate,
+        end: LocalDate
+    ): List<ValueCount> =
+        logDao.getValueCountsForCategory(categoryId, start.toString(), end.toString())
+
+    /** All logs across all categories within an inclusive date range. */
+    suspend fun getAllLogsInRange(start: LocalDate, end: LocalDate): List<TrackingLog> =
+        logDao.getAllLogsInRange(start.toString(), end.toString())
+
+    /** Value labels for a specific log. Thin wrapper for Stats use. */
+    suspend fun getValuesForLog(logId: Long): List<String> =
+        logDao.getLogValuesForLogOnce(logId).map { it.valueLabel }
+
+    /** System category lookup by name — used for Flow data migration. */
+    suspend fun getSystemCategoryByName(name: String): TrackingCategory? =
+        categoryDao.getSystemCategoryByName(name)
+
+    /**
+     * Ensures a TrackingLog + TrackingLogValue exists for each date in [dates]
+     * under [flowCategoryId] with value label [flowLabel].
+     * Skips dates that already have a log for this category (preserves manual entries).
+     */
+    suspend fun syncFlowLogsForPeriod(
+        flowCategoryId: Long,
+        dates: List<LocalDate>,
+        flowLabel: String
+    ) {
+        for (date in dates) {
+            val existing = logDao.getLogForDateAndCategory(date.toString(), flowCategoryId)
+            if (existing == null) {
+                val logId = logDao.insertLog(
+                    TrackingLog(date = date.toString(), categoryId = flowCategoryId)
+                )
+                logDao.insertLogValue(TrackingLogValue(logId = logId, valueLabel = flowLabel))
+            }
+        }
     }
 }

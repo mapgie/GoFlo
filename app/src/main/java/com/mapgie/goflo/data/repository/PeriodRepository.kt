@@ -27,6 +27,9 @@ class PeriodRepository(
 ) {
     fun getAllPeriods(): Flow<List<PeriodEntry>> = periodDao.getAllPeriods()
 
+    /** One-shot read of all periods — used for the Flow data backfill migration. */
+    suspend fun getAllPeriodsOnce(): List<PeriodEntry> = periodDao.getAllPeriodsOnce()
+
     fun getPeriodById(id: Long): Flow<PeriodEntry?> = periodDao.getPeriodById(id)
 
     fun getSymptomsForPeriod(periodId: Long): Flow<List<SymptomEntry>> =

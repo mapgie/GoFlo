@@ -29,6 +29,21 @@ data class TrackingCategory(
     val iconName: String = "category",
     /** Theme-relative colour token — resolves live from MaterialTheme.colorScheme. */
     val colorToken: String = "secondary",
+    /**
+     * When true the category records a single numeric value (stored as its string
+     * representation in [TrackingLogValue.valueLabel]) instead of a set of text labels.
+     * The log screen shows a slider between [numericMin] and [numericMax].
+     */
+    val isNumeric: Boolean = false,
+    /** Inclusive lower bound for numeric input. Ignored when [isNumeric] is false. */
+    val numericMin: Float = 0f,
+    /** Inclusive upper bound for numeric input. Ignored when [isNumeric] is false. */
+    val numericMax: Float = 10f,
+    /**
+     * When true the slider snaps to one decimal place; when false it snaps to integers.
+     * Ignored when [isNumeric] is false.
+     */
+    val allowDecimals: Boolean = false,
 )
 
 

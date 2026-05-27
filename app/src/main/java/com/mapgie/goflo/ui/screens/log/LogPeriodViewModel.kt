@@ -37,7 +37,8 @@ data class LogPeriodUiState(
 class LogPeriodViewModel(
     private val repository: PeriodRepository,
     private val periodId: Long,
-    private val prefilledDate: LocalDate? = null
+    private val prefilledDate: LocalDate? = null,
+    private val trackingRepository: com.mapgie.goflo.data.repository.TrackingRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LogPeriodUiState(startDate = prefilledDate ?: LocalDate.now()))
@@ -127,11 +128,27 @@ class LogPeriodViewModel(
                 } else {
                     repository.insertPeriod(entry, state.symptoms.toList(), state.customSymptoms.toList())
                 }
+                // Dual-write: sync flow data to TrackingLog so Stats can query uniformly
+                syncFlowToTrackingLog(state)
                 _uiState.update { it.copy(saved = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Could not save entry. Please try again.") }
             }
         }
+    }
+
+    /**
+     * Mirrors the saved period's flow level into the TrackingLog system.
+     * This ensures new/edited periods appear in the Stats screen under the Flow category.
+     * No-op if [trackingRepository] was not provided (e.g. in tests or legacy callers).
+     */
+    private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) {
+        val tr = trackingRepository ?: return
+        val flowCategory = tr.getSystemCategoryByName("Flow") ?: return
+        val flowLabel = state.flowLevel.displayName
+        val end = state.endDate ?: state.startDate
+        val dates = generateSequence(state.startDate) { d -> if (d < end) d.plusDays(1) else null }.toList()
+        tr.syncFlowLogsForPeriod(flowCategory.id, dates, flowLabel)
     }
 
     fun delete() {
@@ -151,11 +168,12 @@ class LogPeriodViewModel(
     class Factory(
         private val repository: PeriodRepository,
         private val periodId: Long,
-        private val prefilledDate: LocalDate? = null
+        private val prefilledDate: LocalDate? = null,
+        private val trackingRepository: com.mapgie.goflo.data.repository.TrackingRepository? = null
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return LogPeriodViewModel(repository, periodId, prefilledDate) as T
+            return LogPeriodViewModel(repository, periodId, prefilledDate, trackingRepository) as T
         }
     }
 }
