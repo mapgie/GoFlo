@@ -1,6 +1,7 @@
 package com.mapgie.goflo.ui.screens.categories
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -53,10 +54,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -260,7 +264,7 @@ fun ManageCategoriesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(state.categories, key = { it.id }) { category ->
-                    CategoryRow(
+                    SwipeableCategoryRow(
                         category         = category,
                         onClick          = { onNavigateToCategory(category.id) },
                         onEditAppearance = { pendingEditAppearance = category.id },
@@ -275,13 +279,104 @@ fun ManageCategoriesScreen(
 
 // ── Category row ──────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoryRow(
+private fun SwipeableCategoryRow(
     category: TrackingCategory,
     onClick: () -> Unit,
     onEditAppearance: () -> Unit,
     onArchiveToggle: () -> Unit,
     onDelete: () -> Unit
+) {
+    if (category.isSystem) {
+        CategoryRow(category = category, onClick = onClick, onEditAppearance = onEditAppearance)
+        return
+    }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> { onArchiveToggle(); false }
+                SwipeToDismissBoxValue.EndToStart -> { onDelete(); false }
+                else -> false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            val direction = dismissState.targetValue
+            val bgColor by animateColorAsState(
+                targetValue = when (direction) {
+                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.secondaryContainer
+                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                    else -> Color.Transparent
+                },
+                label = "swipe_bg"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(bgColor)
+            ) {
+                when (direction) {
+                    SwipeToDismissBoxValue.StartToEnd -> Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (category.isArchived) Icons.Default.Unarchive
+                                          else Icons.Default.Archive,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (category.isArchived) "Unarchive" else "Archive",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    SwipeToDismissBoxValue.EndToStart -> Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(end = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            text = "Delete",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    else -> {}
+                }
+            }
+        }
+    ) {
+        CategoryRow(category = category, onClick = onClick, onEditAppearance = onEditAppearance)
+    }
+}
+
+@Composable
+private fun CategoryRow(
+    category: TrackingCategory,
+    onClick: () -> Unit,
+    onEditAppearance: () -> Unit,
 ) {
     val bubbleColor = category.colorToken.toCategoryColor()
     val iconTint    = category.colorToken.toCategoryOnColor()
@@ -339,29 +434,6 @@ private fun CategoryRow(
                     tint               = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier           = Modifier.size(20.dp)
                 )
-            }
-
-            // Archive / unarchive (custom categories only)
-            if (!category.isSystem) {
-                IconButton(onClick = onArchiveToggle) {
-                    Icon(
-                        imageVector = if (category.isArchived) Icons.Default.Unarchive
-                                      else Icons.Default.Archive,
-                        contentDescription = if (category.isArchived) "Unarchive ${category.name}"
-                                             else "Archive ${category.name}",
-                        tint     = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector        = Icons.Default.Delete,
-                        contentDescription = "Delete ${category.name}",
-                        tint               = MaterialTheme.colorScheme.error,
-                        modifier           = Modifier.size(20.dp)
-                    )
-                }
             }
 
             Icon(
