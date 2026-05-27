@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -56,6 +57,8 @@ import com.mapgie.goflo.ui.screens.log.LogCategoryScreen
 import com.mapgie.goflo.ui.screens.log.LogCategoryViewModel
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
+import com.mapgie.goflo.ui.screens.stats.StatsScreen
+import com.mapgie.goflo.ui.screens.stats.StatsViewModel
 import android.annotation.SuppressLint
 import com.mapgie.goflo.ui.theme.AppTheme
 import com.mapgie.goflo.ui.theme.GoFloTheme
@@ -144,7 +147,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    val bottomNavRoutes = listOf(Screen.Home.route, Screen.History.route, Screen.Settings.route)
+    val bottomNavRoutes = listOf(Screen.Home.route, Screen.History.route, Screen.Stats.route, Screen.Settings.route)
     val showBottomBar = bottomNavRoutes.any { currentRoute?.startsWith(it) == true }
 
     Scaffold(
@@ -168,6 +171,15 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                         } },
                         icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
                         label = { Text("History") }
+                    )
+                    NavigationBarItem(
+                        selected = currentRoute == Screen.Stats.route,
+                        onClick = { navController.navigate(Screen.Stats.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        } },
+                        icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
+                        label = { Text("Stats") }
                     )
                     NavigationBarItem(
                         selected = currentRoute == Screen.Settings.route,
@@ -195,6 +207,11 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
             composable(Screen.History.route) {
                 val vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory(app.repository))
                 HistoryScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+            }
+
+            composable(Screen.Stats.route) {
+                val vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory(app.trackingRepository))
+                StatsScreen(viewModel = vm)
             }
 
             composable(Screen.Settings.route) {
@@ -230,7 +247,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 val prefilledDate = startDateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
                 val vm: com.mapgie.goflo.ui.screens.log.LogPeriodViewModel = viewModel(
                     key = "log_${periodId}_${startDateStr}",
-                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate)
+                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate, app.trackingRepository)
                 )
                 com.mapgie.goflo.ui.screens.log.LogPeriodScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }

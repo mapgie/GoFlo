@@ -50,6 +50,11 @@ data class AppPreferences(
      * Defaults to "PLAIN" (no decoration) so existing installs are unaffected.
      */
     val bannerStyle: String = "PLAIN",
+    /**
+     * True once the one-time migration of period flow data into TrackingLog has
+     * been completed. Prevents the migration running on every app start.
+     */
+    val flowBackfillDone: Boolean = false,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -68,6 +73,7 @@ class AppPreferencesStore(private val context: Context) {
         val SHOW_PERIOD_PREDICTION = booleanPreferencesKey("show_period_prediction")
         val SHOW_OVULATION_MARKERS = booleanPreferencesKey("show_ovulation_markers")
         val BANNER_STYLE = stringPreferencesKey("banner_style")
+        val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -79,6 +85,7 @@ class AppPreferencesStore(private val context: Context) {
             showPeriodPrediction = prefs[Keys.SHOW_PERIOD_PREDICTION] ?: true,
             showOvulationMarkers = prefs[Keys.SHOW_OVULATION_MARKERS] ?: true,
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
+            flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -154,5 +161,9 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setBannerStyle(style: String) {
         context.dataStore.edit { it[Keys.BANNER_STYLE] = style }
+    }
+
+    suspend fun setFlowBackfillDone(done: Boolean) {
+        context.dataStore.edit { it[Keys.FLOW_BACKFILL_DONE] = done }
     }
 }
