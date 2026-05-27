@@ -16,11 +16,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,6 +39,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -56,10 +62,16 @@ fun ManageCategoryValuesScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    var showAddValue       by rememberSaveable { mutableStateOf(false) }
-    var showRenameCategory by rememberSaveable { mutableStateOf(false) }
-    var renamingValue      by rememberSaveable { mutableStateOf<Long?>(null) }
-    var pendingDeleteValue by rememberSaveable { mutableStateOf<Long?>(null) }
+    var showAddValue           by rememberSaveable { mutableStateOf(false) }
+    var showRenameCategory     by rememberSaveable { mutableStateOf(false) }
+    var renamingValue          by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingDeleteValue     by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingArchiveCategory by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteCategory  by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(state.isLoading, state.category) {
+        if (!state.isLoading && state.category == null) onNavigateBack()
+    }
 
     val valueToRename = state.values.firstOrNull { it.id == renamingValue }
     val valueToDelete = state.values.firstOrNull { it.id == pendingDeleteValue }
@@ -121,6 +133,76 @@ fun ManageCategoryValuesScreen(
         )
     }
 
+    // ── Archive/Unarchive category dialog ────────────────────────────────────────
+
+    if (pendingArchiveCategory && state.category != null) {
+        val cat = state.category!!
+        if (cat.isArchived) {
+            AlertDialog(
+                onDismissRequest = { pendingArchiveCategory = false },
+                title = { Text("Unarchive \"${cat.name}\"?") },
+                text = { Text("${cat.name} will be restored to your active tracking categories.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.unarchiveCategory()
+                        pendingArchiveCategory = false
+                    }) { Text("Unarchive") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingArchiveCategory = false }) { Text("Cancel") }
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { pendingArchiveCategory = false },
+                title = { Text("Archive \"${cat.name}\"?") },
+                text = {
+                    Text(
+                        "${cat.name} will be hidden from tracking but all your logged data will " +
+                        "be preserved. You can unarchive it here at any time."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.archiveCategory()
+                        pendingArchiveCategory = false
+                    }) { Text("Archive") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingArchiveCategory = false }) { Text("Cancel") }
+                }
+            )
+        }
+    }
+
+    // ── Delete category dialog ────────────────────────────────────────────────
+
+    if (pendingDeleteCategory && state.category != null) {
+        val cat = state.category!!
+        AlertDialog(
+            onDismissRequest = { pendingDeleteCategory = false },
+            title = { Text("Delete \"${cat.name}\"?") },
+            text = {
+                Text(
+                    "This will permanently remove the ${cat.name} category and all log entries " +
+                    "recorded for it. If you want to keep a copy of your data, export it before " +
+                    "continuing. This cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteCategory()
+                        pendingDeleteCategory = false
+                    }
+                ) { Text("Delete Everything", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteCategory = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -141,6 +223,63 @@ fun ManageCategoryValuesScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (state.category?.isSystem == false) {
+                        var showMenu by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { showMenu = true }) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = "More options",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (state.category?.isArchived == true) "Unarchive"
+                                            else "Archive"
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        pendingArchiveCategory = true
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            if (state.category?.isArchived == true) Icons.Default.Unarchive
+                                            else Icons.Default.Archive,
+                                            contentDescription = null
+                                        )
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "Delete category",
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        pendingDeleteCategory = true
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                )
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

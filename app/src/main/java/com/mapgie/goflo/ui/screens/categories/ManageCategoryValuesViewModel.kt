@@ -71,6 +71,22 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.renameValue(value, newLabel, fixHistorical) }
     }
 
+    fun archiveCategory() {
+        val cat = uiState.value.category ?: return
+        if (cat.isSystem) return
+        viewModelScope.launch { repository.archiveCategory(categoryId) }
+    }
+
+    fun unarchiveCategory() {
+        viewModelScope.launch { repository.unarchiveCategory(categoryId) }
+    }
+
+    fun deleteCategory() {
+        val cat = uiState.value.category ?: return
+        if (cat.isSystem) return
+        viewModelScope.launch { repository.deleteCategory(cat) }
+    }
+
     class Factory(
         private val categoryId: Long,
         private val repository: TrackingRepository
