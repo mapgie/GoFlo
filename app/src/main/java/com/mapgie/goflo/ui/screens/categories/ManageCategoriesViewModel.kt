@@ -32,36 +32,51 @@ class ManageCategoriesViewModel(
         name: String,
         iconName: String,
         colorToken: String,
-        categoryType: String = "default",
-        numericUnit: String = "",
-        onCreated: (Long) -> Unit = {},
+        isNumeric: Boolean = false,
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
     ) {
         if (name.isBlank()) return
         viewModelScope.launch {
-            val id = repository.addCategory(
-                name         = name,
-                iconName     = iconName,
-                colorToken   = colorToken,
-                categoryType = categoryType,
-                numericUnit  = numericUnit,
+            repository.addCategory(
+                name          = name,
+                iconName      = iconName,
+                colorToken    = colorToken,
+                isNumeric     = isNumeric,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
             )
-            onCreated(id)
         }
     }
 
     fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
+        viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
+    }
+
+    fun updateCategoryNameAndAppearance(
+        id: Long,
+        name: String,
+        iconName: String,
+        colorToken: String,
+        isNumeric: Boolean = false,
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
+    ) {
         viewModelScope.launch {
-            repository.updateCategoryAppearance(id, iconName, colorToken)
+            repository.updateCategoryFullSettings(
+                id            = id,
+                name          = name,
+                iconName      = iconName,
+                colorToken    = colorToken,
+                isNumeric     = isNumeric,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+            )
         }
-    }
-
-    fun archiveCategory(category: TrackingCategory) {
-        if (category.isSystem) return
-        viewModelScope.launch { repository.archiveCategory(category.id) }
-    }
-
-    fun unarchiveCategory(category: TrackingCategory) {
-        viewModelScope.launch { repository.unarchiveCategory(category.id) }
     }
 
     fun deleteCategory(category: TrackingCategory) {
