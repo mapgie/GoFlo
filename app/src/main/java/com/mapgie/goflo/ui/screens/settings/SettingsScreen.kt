@@ -245,7 +245,7 @@ private val AppTheme.summaryLabel: String get() = when (this) {
 
 // ── Main screen ───────────────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
@@ -614,7 +614,6 @@ fun SettingsScreen(
             )
 
             // One-Tap Quick Log ────────────────────────────────────────────────
-            @OptIn(ExperimentalLayoutApi::class)
             CollapsibleSection(
                 title   = "One-Tap Quick Log",
                 icon    = Icons.Outlined.TouchApp,
