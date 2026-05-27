@@ -71,12 +71,6 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(name = newName.trim()))
     }
 
-    /** Updates only the icon and colour token of an existing category. */
-    suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
-        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
-        categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
-    }
-
     /** Updates icon and colour only — name and type are immutable from this path. */
     suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
