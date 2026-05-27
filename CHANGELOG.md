@@ -19,6 +19,19 @@ Rules:
 
 ---
 
+## [0.10.0-beta.1] - 2026-05-27
+
+### Added
+- **Numeric tracking categories** — categories can now be set to "Numeric" mode (toggle in Add/Edit dialogs). Numeric categories record a single number per day via a draggable slider with configurable min/max range and optional decimal steps.
+- **Average chart** — Stats screen shows average numeric value per week/month for numeric categories.
+- **Distribution chart** — Stats screen shows a value-frequency histogram for numeric categories.
+- Chart type selector adapts automatically to the type(s) of selected categories.
+
+### Changed
+- Database schema bumped to v6 (backward-compatible `ALTER TABLE` migration; existing categories and logs unaffected).
+
+---
+
 ## [0.9.2-beta.1] - 2026-05-24
 
 ### Changed
