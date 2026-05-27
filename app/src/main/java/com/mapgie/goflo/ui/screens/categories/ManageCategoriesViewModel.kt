@@ -37,6 +37,13 @@ class ManageCategoriesViewModel(
         viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
     }
 
+    fun updateCategoryNameAndAppearance(id: Long, name: String, iconName: String, colorToken: String) {
+        viewModelScope.launch {
+            repository.renameCategory(id, name)
+            repository.updateCategoryAppearance(id, iconName, colorToken)
+        }
+    }
+
     fun deleteCategory(category: TrackingCategory) {
         if (category.isSystem) return
         viewModelScope.launch { repository.deleteCategory(category) }
