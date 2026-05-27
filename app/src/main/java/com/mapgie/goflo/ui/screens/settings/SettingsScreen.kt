@@ -614,6 +614,7 @@ fun SettingsScreen(
             )
 
             // One-Tap Quick Log ────────────────────────────────────────────────
+            @OptIn(ExperimentalLayoutApi::class)
             CollapsibleSection(
                 title   = "One-Tap Quick Log",
                 icon    = Icons.Outlined.TouchApp,
@@ -627,27 +628,32 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(Modifier.height(4.dp))
-                // Log Period option
-                FilterChip(
-                    selected = prefs.quickLogCategoryId == -1L,
-                    onClick  = { viewModel.setQuickLogCategory(-1L) },
-                    label    = { Text("Period") },
-                    leadingIcon = if (prefs.quickLogCategoryId == -1L) {
-                        { Icon(Icons.Default.Check, contentDescription = null,
-                            modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                    } else null
-                )
-                // One chip per tracking category
-                categories.forEach { cat ->
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement   = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Log Period option
                     FilterChip(
-                        selected = prefs.quickLogCategoryId == cat.id,
-                        onClick  = { viewModel.setQuickLogCategory(cat.id) },
-                        label    = { Text(cat.name) },
-                        leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
+                        selected = prefs.quickLogCategoryId == -1L,
+                        onClick  = { viewModel.setQuickLogCategory(-1L) },
+                        label    = { Text("Period") },
+                        leadingIcon = if (prefs.quickLogCategoryId == -1L) {
                             { Icon(Icons.Default.Check, contentDescription = null,
                                 modifier = Modifier.size(FilterChipDefaults.IconSize)) }
                         } else null
                     )
+                    // One chip per tracking category
+                    categories.forEach { cat ->
+                        FilterChip(
+                            selected = prefs.quickLogCategoryId == cat.id,
+                            onClick  = { viewModel.setQuickLogCategory(cat.id) },
+                            label    = { Text(cat.name) },
+                            leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
+                                { Icon(Icons.Default.Check, contentDescription = null,
+                                    modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                            } else null
+                        )
+                    }
                 }
             }
 
