@@ -57,9 +57,9 @@ enum class AppTheme(
     // All-Night Disco Party — hot magenta, electric violet, glitter gold
     DISCO("All-Night Disco Party",          ThemeGroup.LIGHT, 0xFFC1127AL),
     DISCO_DARK("All-Night Disco Party",     ThemeGroup.DARK,  0xFFFF66B8L, isDark = true),
-    // Metal Chick — gunmetal, crimson-lipstick, brushed chrome
-    METAL_CHICK("Metal Chick",              ThemeGroup.LIGHT, 0xFF2E2E3AL),
-    METAL_CHICK_DARK("Metal Chick",         ThemeGroup.DARK,  0xFFC7C5D6L, isDark = true),
+    // Metal Chic — gunmetal, crimson-lipstick, brushed chrome
+    METAL_CHICK("Metal Chic",              ThemeGroup.LIGHT, 0xFF2E2E3AL),
+    METAL_CHICK_DARK("Metal Chic",         ThemeGroup.DARK,  0xFFC7C5D6L, isDark = true),
     // Whimsy Whispers — lavender, blush rose, spearmint
     WHIMSY("Whimsy Whispers",              ThemeGroup.LIGHT, 0xFF6E5DC4L),
     WHIMSY_DARK("Whimsy Whispers",         ThemeGroup.DARK,  0xFFC7BEFFL, isDark = true),
@@ -88,8 +88,8 @@ enum class AppTheme(
     MIDNIGHT_NEON_SYSTEM("Follow system",      ThemeGroup.SYSTEM, 0xFFFF55C8L),
 
     // ── Accessibility ─────────────────────────────────────────────────────────
-    HIGH_CONTRAST_LIGHT("Light",  ThemeGroup.HIGH_CONTRAST, 0xFF1A1A1AL),
-    HIGH_CONTRAST_DARK("Dark",    ThemeGroup.HIGH_CONTRAST, 0xFFFFFFFFFL, isDark = true),
+    HIGH_CONTRAST_LIGHT("Max Contrast",  ThemeGroup.HIGH_CONTRAST, 0xFF1A1A1AL),
+    HIGH_CONTRAST_DARK("Max Contrast",   ThemeGroup.HIGH_CONTRAST, 0xFFFFFFFFFL, isDark = true),
     // Color-blind friendly (safe for deuteranopia & protanopia, ~9% of users)
     BLUE_ORANGE("Blue & Orange",  ThemeGroup.COLOR_BLIND,   0xFF005FADL),
 }
@@ -97,7 +97,7 @@ enum class AppTheme(
 // ── Classic light color schemes ───────────────────────────────────────────────
 // Redesigned 2026-05 — see GoFlo Theme Redesign.md
 
-// Coral: vivid coral reef — coral red · lagoon teal · sun-bleached gold
+// Coral: vivid coral reef — coral red · lagoon teal · vivid rose-magenta
 private val CoralLight = lightColorScheme(
     primary             = Color(0xFFC35040),
     onPrimary           = Color(0xFFFFFFFF),
@@ -107,10 +107,10 @@ private val CoralLight = lightColorScheme(
     onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFFB4ECE7),
     onSecondaryContainer= Color(0xFF002523),
-    tertiary            = Color(0xFF996A00),
+    tertiary            = Color(0xFFB5307A),
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFE08D),
-    onTertiaryContainer = Color(0xFF251A00),
+    tertiaryContainer   = Color(0xFFFFD6EA),
+    onTertiaryContainer = Color(0xFF3C001E),
     background          = Color(0xFFFFF6F2),
     onBackground        = Color(0xFF221915),
     surface             = Color(0xFFFFF6F2),
@@ -143,7 +143,7 @@ private val TurquoiseLight = lightColorScheme(
     outline             = Color(0xFF6F7979),
 )
 
-// Sage: herb garden at dawn — sage green · terra-cotta clay · honey gold
+// Sage: herb garden at dawn — sage green · terra-cotta clay · periwinkle
 private val GreenLight = lightColorScheme(
     primary             = Color(0xFF4F7D2B),
     onPrimary           = Color(0xFFFFFFFF),
@@ -153,10 +153,10 @@ private val GreenLight = lightColorScheme(
     onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFFFFDBC8),
     onSecondaryContainer= Color(0xFF3A1100),
-    tertiary            = Color(0xFF8C6212),
+    tertiary            = Color(0xFF6B5BAE),
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFDF9C),
-    onTertiaryContainer = Color(0xFF2A1D00),
+    tertiaryContainer   = Color(0xFFE5DFFF),
+    onTertiaryContainer = Color(0xFF1A0067),
     background          = Color(0xFFF7FBEE),
     onBackground        = Color(0xFF1A1C16),
     surface             = Color(0xFFF7FBEE),
@@ -178,10 +178,10 @@ private val CoralDark = darkColorScheme(
     onSecondary         = Color(0xFF003734),
     secondaryContainer  = Color(0xFF00504C),
     onSecondaryContainer= Color(0xFFB4EEE9),
-    tertiary            = Color(0xFFFFD787),
-    onTertiary          = Color(0xFF3D2D00),
-    tertiaryContainer   = Color(0xFF574200),
-    onTertiaryContainer = Color(0xFFFFE08D),
+    tertiary            = Color(0xFFFFB1C8),
+    onTertiary          = Color(0xFF65003A),
+    tertiaryContainer   = Color(0xFF8E1F50),
+    onTertiaryContainer = Color(0xFFFFD9E4),
     background          = Color(0xFF1C110E),
     onBackground        = Color(0xFFF1DED8),
     surface             = Color(0xFF1C110E),
@@ -222,10 +222,10 @@ private val GreenDark = darkColorScheme(
     onSecondary         = Color(0xFF5A1B00),
     secondaryContainer  = Color(0xFF8B3914),
     onSecondaryContainer= Color(0xFFFFDBC8),
-    tertiary            = Color(0xFFF4C16D),
-    onTertiary          = Color(0xFF422C00),
-    tertiaryContainer   = Color(0xFF5E4300),
-    onTertiaryContainer = Color(0xFFFFDF9C),
+    tertiary            = Color(0xFFC7BEFF),
+    onTertiary          = Color(0xFF260092),
+    tertiaryContainer   = Color(0xFF3D2EAE),
+    onTertiaryContainer = Color(0xFFE5DFFF),
     background          = Color(0xFF14170F),
     onBackground        = Color(0xFFE2E4D7),
     surface             = Color(0xFF14170F),
@@ -238,7 +238,7 @@ private val GreenDark = darkColorScheme(
 // ── Fun light color schemes ───────────────────────────────────────────────────
 // Redesigned 2026-05 — see GoFlo Theme Redesign.md
 
-// Summer Candy — bubblegum raspberry · mint aqua · lemon gold
+// Summer Candy — bubblegum raspberry · mint aqua · electric violet
 private val SummerCandyLight = lightColorScheme(
     primary             = Color(0xFFD81B60),
     onPrimary           = Color(0xFFFFFFFF),
@@ -248,10 +248,10 @@ private val SummerCandyLight = lightColorScheme(
     onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFF6FF5E5),
     onSecondaryContainer= Color(0xFF00201D),
-    tertiary            = Color(0xFF9E6A00),
+    tertiary            = Color(0xFF9B27AF),
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFE08D),
-    onTertiaryContainer = Color(0xFF271B00),
+    tertiaryContainer   = Color(0xFFF2D7FF),
+    onTertiaryContainer = Color(0xFF35005A),
     background          = Color(0xFFFFF7FA),
     onBackground        = Color(0xFF1E1316),
     surface             = Color(0xFFFFF7FA),
@@ -261,16 +261,16 @@ private val SummerCandyLight = lightColorScheme(
     outline             = Color(0xFF856D74),
 )
 
-// Beach Vibes — clear sea blue · sun-gold sand · sea-foam green
+// Beach Vibes — clear sea blue · vivid coral-orange · sea-foam green
 private val BeachVibesLight = lightColorScheme(
     primary             = Color(0xFF1265AF),
     onPrimary           = Color(0xFFFFFFFF),
     primaryContainer    = Color(0xFFD5E3FF),
     onPrimaryContainer  = Color(0xFF001C3D),
-    secondary           = Color(0xFF9F6B00),
+    secondary           = Color(0xFFB55300),
     onSecondary         = Color(0xFFFFFFFF),
-    secondaryContainer  = Color(0xFFFFE08D),
-    onSecondaryContainer= Color(0xFF251A00),
+    secondaryContainer  = Color(0xFFFFDBB2),
+    onSecondaryContainer= Color(0xFF3B1100),
     tertiary            = Color(0xFF2A8470),
     onTertiary          = Color(0xFFFFFFFF),
     tertiaryContainer   = Color(0xFFA8F0DC),
@@ -284,7 +284,7 @@ private val BeachVibesLight = lightColorScheme(
     outline             = Color(0xFF757782),
 )
 
-// Peach Melba — apricot peach · raspberry · vanilla-caramel cream
+// Peach Melba — apricot peach · raspberry · dusty lilac
 private val PeachMelbaLight = lightColorScheme(
     primary             = Color(0xFFBC5A38),
     onPrimary           = Color(0xFFFFFFFF),
@@ -294,10 +294,10 @@ private val PeachMelbaLight = lightColorScheme(
     onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFFFFD9E3),
     onSecondaryContainer= Color(0xFF3F0024),
-    tertiary            = Color(0xFF8A6926),
+    tertiary            = Color(0xFF884E92),
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFE2A0),
-    onTertiaryContainer = Color(0xFF2A1F00),
+    tertiaryContainer   = Color(0xFFF6D8FF),
+    onTertiaryContainer = Color(0xFF2F003E),
     background          = Color(0xFFFFF6F0),
     onBackground        = Color(0xFF201813),
     surface             = Color(0xFFFFF6F0),
@@ -307,7 +307,7 @@ private val PeachMelbaLight = lightColorScheme(
     outline             = Color(0xFF867262),
 )
 
-// All-Night Disco Party — hot magenta · electric violet · glitter gold
+// All-Night Disco Party — hot magenta · electric violet · acid lime
 private val DiscoLight = lightColorScheme(
     primary             = Color(0xFFC1127A),
     onPrimary           = Color(0xFFFFFFFF),
@@ -317,10 +317,10 @@ private val DiscoLight = lightColorScheme(
     onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFFECDCFF),
     onSecondaryContainer= Color(0xFF270060),
-    tertiary            = Color(0xFF9A6B00),
+    tertiary            = Color(0xFF486E00),
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFE08C),
-    onTertiaryContainer = Color(0xFF2A1D00),
+    tertiaryContainer   = Color(0xFFD6F0A0),
+    onTertiaryContainer = Color(0xFF132200),
     background          = Color(0xFFFFF7FB),
     onBackground        = Color(0xFF1E1020),
     surface             = Color(0xFFFFF7FB),
@@ -330,7 +330,7 @@ private val DiscoLight = lightColorScheme(
     outline             = Color(0xFF807385),
 )
 
-// Metal Chick — gunmetal · crimson-lipstick · brushed chrome
+// Metal Chic — gunmetal · crimson-lipstick · brushed chrome
 private val MetalChickLight = lightColorScheme(
     primary             = Color(0xFF2E2E3A),
     onPrimary           = Color(0xFFFFFFFF),
@@ -376,20 +376,20 @@ private val WhimsyLight = lightColorScheme(
     outline             = Color(0xFF7A7580),
 )
 
-// Colour Me Happy — tomato red · sky blue · grass green
+// Colour Me Happy — vivid strawberry · electric cerulean · neon lime
 private val ColourHappyLight = lightColorScheme(
     primary             = Color(0xFFD63A26),
     onPrimary           = Color(0xFFFFFFFF),
     primaryContainer    = Color(0xFFFFDAD2),
     onPrimaryContainer  = Color(0xFF410000),
-    secondary           = Color(0xFF1872BD),
+    secondary           = Color(0xFF006BA8),
     onSecondary         = Color(0xFFFFFFFF),
-    secondaryContainer  = Color(0xFFD1E4FF),
-    onSecondaryContainer= Color(0xFF001D36),
-    tertiary            = Color(0xFF43852A),
+    secondaryContainer  = Color(0xFFCCE5FF),
+    onSecondaryContainer= Color(0xFF00203A),
+    tertiary            = Color(0xFF486E00),
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFC6F0A1),
-    onTertiaryContainer = Color(0xFF0F2200),
+    tertiaryContainer   = Color(0xFFD6F0A0),
+    onTertiaryContainer = Color(0xFF132200),
     background          = Color(0xFFFFFCF5),
     onBackground        = Color(0xFF1F1A14),
     surface             = Color(0xFFFFFCF5),
@@ -411,10 +411,10 @@ private val SummerCandyDark = darkColorScheme(
     onSecondary         = Color(0xFF003A35),
     secondaryContainer  = Color(0xFF00514B),
     onSecondaryContainer= Color(0xFF6FF5E5),
-    tertiary            = Color(0xFFFFCD66),
-    onTertiary          = Color(0xFF3F2D00),
-    tertiaryContainer   = Color(0xFF5A4200),
-    onTertiaryContainer = Color(0xFFFFE08D),
+    tertiary            = Color(0xFFE5AEFF),
+    onTertiary          = Color(0xFF540080),
+    tertiaryContainer   = Color(0xFF6E00A6),
+    onTertiaryContainer = Color(0xFFF2D7FF),
     background          = Color(0xFF1D1014),
     onBackground        = Color(0xFFECDFE3),
     surface             = Color(0xFF1D1014),
@@ -429,10 +429,10 @@ private val BeachVibesDark = darkColorScheme(
     onPrimary           = Color(0xFF002E66),
     primaryContainer    = Color(0xFF00478A),
     onPrimaryContainer  = Color(0xFFD5E3FF),
-    secondary           = Color(0xFFF4C16D),
-    onSecondary         = Color(0xFF422C00),
-    secondaryContainer  = Color(0xFF5E4300),
-    onSecondaryContainer= Color(0xFFFFE08D),
+    secondary           = Color(0xFFFFB089),
+    onSecondary         = Color(0xFF5A1D00),
+    secondaryContainer  = Color(0xFF8A2D00),
+    onSecondaryContainer= Color(0xFFFFDBB2),
     tertiary            = Color(0xFF84D7BC),
     onTertiary          = Color(0xFF003828),
     tertiaryContainer   = Color(0xFF00513B),
@@ -455,10 +455,10 @@ private val PeachMelbaDark = darkColorScheme(
     onSecondary         = Color(0xFF65003A),
     secondaryContainer  = Color(0xFF8C1F4F),
     onSecondaryContainer= Color(0xFFFFD9E3),
-    tertiary            = Color(0xFFF4C16D),
-    onTertiary          = Color(0xFF432D00),
-    tertiaryContainer   = Color(0xFF5F4300),
-    onTertiaryContainer = Color(0xFFFFE2A0),
+    tertiary            = Color(0xFFE9B4F4),
+    onTertiary          = Color(0xFF46005A),
+    tertiaryContainer   = Color(0xFF620078),
+    onTertiaryContainer = Color(0xFFF6D8FF),
     background          = Color(0xFF1E1410),
     onBackground        = Color(0xFFEDE0D8),
     surface             = Color(0xFF1E1410),
@@ -477,10 +477,10 @@ private val DiscoDark = darkColorScheme(
     onSecondary         = Color(0xFF3F0090),
     secondaryContainer  = Color(0xFF5800B0),
     onSecondaryContainer= Color(0xFFECDCFF),
-    tertiary            = Color(0xFFFFD350),
-    onTertiary          = Color(0xFF3A2A00),
-    tertiaryContainer   = Color(0xFF523D00),
-    onTertiaryContainer = Color(0xFFFFE08C),
+    tertiary            = Color(0xFFC4F076),
+    onTertiary          = Color(0xFF1A3300),
+    tertiaryContainer   = Color(0xFF2D4E00),
+    onTertiaryContainer = Color(0xFFD6F0A0),
     background          = Color(0xFF170820),
     onBackground        = Color(0xFFECDAEC),
     surface             = Color(0xFF170820),
@@ -539,14 +539,14 @@ private val ColourHappyDark = darkColorScheme(
     onPrimary           = Color(0xFF5C1500),
     primaryContainer    = Color(0xFF882000),
     onPrimaryContainer  = Color(0xFFFFDAD2),
-    secondary           = Color(0xFFA0CAFF),
-    onSecondary         = Color(0xFF002F66),
-    secondaryContainer  = Color(0xFF00497D),
-    onSecondaryContainer= Color(0xFFD1E4FF),
-    tertiary            = Color(0xFFACD688),
-    onTertiary          = Color(0xFF1A3900),
-    tertiaryContainer   = Color(0xFF2D530B),
-    onTertiaryContainer = Color(0xFFC6F0A1),
+    secondary           = Color(0xFF93CFFF),
+    onSecondary         = Color(0xFF003558),
+    secondaryContainer  = Color(0xFF004E80),
+    onSecondaryContainer= Color(0xFFCCE5FF),
+    tertiary            = Color(0xFFB8E860),
+    onTertiary          = Color(0xFF1A3300),
+    tertiaryContainer   = Color(0xFF2D4900),
+    onTertiaryContainer = Color(0xFFD6F0A0),
     background          = Color(0xFF1A1612),
     onBackground        = Color(0xFFEDE0D2),
     surface             = Color(0xFF1A1612),
@@ -559,7 +559,7 @@ private val ColourHappyDark = darkColorScheme(
 // ── Bold palettes ─────────────────────────────────────────────────────────────
 // Redesigned 2026-05 — see GoFlo Theme Redesign.md
 
-// Dragon Fire — ember red · molten orange · furnace gold
+// Dragon Fire — ember red · molten orange · lava-orange
 private val DragonFireLight = lightColorScheme(
     primary             = Color(0xFFB0181F),
     onPrimary           = Color(0xFFFFFFFF),
@@ -569,10 +569,10 @@ private val DragonFireLight = lightColorScheme(
     onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFFFFDBC9),
     onSecondaryContainer= Color(0xFF3B1100),
-    tertiary            = Color(0xFF9C6A00),
-    onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFFFDE8E),
-    onTertiaryContainer = Color(0xFF2D1F00),
+    tertiary            = Color(0xFFE07800),
+    onTertiary          = Color(0xFF1F0A00),
+    tertiaryContainer   = Color(0xFFFFDDB0),
+    onTertiaryContainer = Color(0xFF2D1000),
     background          = Color(0xFFFFF8F4),
     onBackground        = Color(0xFF1E140F),
     surface             = Color(0xFFFFF8F4),
@@ -592,10 +592,10 @@ private val DragonFireDark = darkColorScheme(
     onSecondary         = Color(0xFF561A00),
     secondaryContainer  = Color(0xFF8E2D00),
     onSecondaryContainer= Color(0xFFFFDBC9),
-    tertiary            = Color(0xFFFFCD66),
-    onTertiary          = Color(0xFF422C00),
-    tertiaryContainer   = Color(0xFF5E4300),
-    onTertiaryContainer = Color(0xFFFFDE8E),
+    tertiary            = Color(0xFFFFB870),
+    onTertiary          = Color(0xFF351A00),
+    tertiaryContainer   = Color(0xFF7A3D00),
+    onTertiaryContainer = Color(0xFFFFDDB0),
     background          = Color(0xFF1C0907),
     onBackground        = Color(0xFFF1DDD7),
     surface             = Color(0xFF1C0907),
@@ -615,10 +615,10 @@ private val MidnightNeonLight = lightColorScheme(
     onSecondary         = Color(0xFFFFFFFF),
     secondaryContainer  = Color(0xFFB8E9FF),
     onSecondaryContainer= Color(0xFF001E2F),
-    tertiary            = Color(0xFF4C7A0E),
+    tertiary            = Color(0xFF486E00),
     onTertiary          = Color(0xFFFFFFFF),
-    tertiaryContainer   = Color(0xFFC2F088),
-    onTertiaryContainer = Color(0xFF0F2300),
+    tertiaryContainer   = Color(0xFFD6F0A0),
+    onTertiaryContainer = Color(0xFF132200),
     background          = Color(0xFFFBF7FF),
     onBackground        = Color(0xFF161020),
     surface             = Color(0xFFFBF7FF),
@@ -724,6 +724,544 @@ private val BlueOrange = lightColorScheme(
     outline             = Color(0xFF70787F),
 )
 
+// ── WCAG AAA accessible variants (one light + one dark per standard palette) ───
+//
+// Design rules:
+//   Light: primary darkened to L≤0.10 so white onPrimary text passes 7:1.
+//          Background = #FFFFFF, onBackground = #000000.
+//   Dark:  primary lightened to L≥0.32 so dark onPrimary text passes 7:1 on
+//          near-black (#0C0C0C) background.  Background = #0C0C0C.
+//   Secondaries / tertiaries follow the same darkening / lightening approach.
+//   MAX_CONTRAST and BLUE_ORANGE return themselves unchanged (already max-contrast).
+
+// ── Coral WCAG ────────────────────────────────────────────────────────────────
+private val CoralLightWcag = lightColorScheme(
+    primary             = Color(0xFF8A1A0A),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFDAD2),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF00504C),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFB4ECE7),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF6D1547),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFFFD6EA),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF0EDEC),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val CoralDarkWcag = darkColorScheme(
+    primary             = Color(0xFFFFCCBE),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF7C2A18),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFF80EDE8),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF00504C),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFFFCCDD),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF8E1F50),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Teal WCAG ─────────────────────────────────────────────────────────────────
+private val TurquoiseLightWcag = lightColorScheme(
+    primary             = Color(0xFF00474F),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFF9DEFF6),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF6E2C08),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFDBC8),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF1E307A),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFDEE1FF),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFECF3F4),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val TurquoiseDarkWcag = darkColorScheme(
+    primary             = Color(0xFFA0E8EE),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF004F52),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFFFCAAF),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF8C3B16),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFD4D8FF),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF353F93),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Sage WCAG ─────────────────────────────────────────────────────────────────
+private val GreenLightWcag = lightColorScheme(
+    primary             = Color(0xFF2E500F),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFC8F09F),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF6E2500),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFDBC8),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF3D2E80),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFE5DFFF),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFEEF2E8),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val GreenDarkWcag = darkColorScheme(
+    primary             = Color(0xFFC4EDAA),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF2D530B),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFFFCCB0),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF8B3914),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFDDD8FF),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF3D2EAE),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Summer Candy WCAG ─────────────────────────────────────────────────────────
+private val SummerCandyLightWcag = lightColorScheme(
+    primary             = Color(0xFF8B0043),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFD8E5),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF005047),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFF6FF5E5),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF5E0080),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFF2D7FF),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF2EDEF),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val SummerCandyDarkWcag = darkColorScheme(
+    primary             = Color(0xFFFFCCDA),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF8E0049),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFF90F5E8),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF00514B),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFF0CCFF),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF6E00A6),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Beach Vibes WCAG ──────────────────────────────────────────────────────────
+private val BeachVibesLightWcag = lightColorScheme(
+    primary             = Color(0xFF00397A),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFD5E3FF),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF6A2800),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFDBB2),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF005240),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFA8F0DC),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFEDF0F8),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val BeachVibesDarkWcag = darkColorScheme(
+    primary             = Color(0xFFBDD8FF),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF00478A),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFFFCCA8),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF8A2D00),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFA0EDD4),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF00513B),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Peach Melba WCAG ──────────────────────────────────────────────────────────
+private val PeachMelbaLightWcag = lightColorScheme(
+    primary             = Color(0xFF7A2800),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFDBC9),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF6B0035),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFD9E3),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF540063),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFF6D8FF),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF2EEEC),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val PeachMelbaDarkWcag = darkColorScheme(
+    primary             = Color(0xFFFFCCB4),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF7A3015),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFFFCCDB),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF8C1F4F),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFF5CCFF),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF620078),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Disco WCAG ────────────────────────────────────────────────────────────────
+private val DiscoLightWcag = lightColorScheme(
+    primary             = Color(0xFF8B005A),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFD6EA),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF3D0080),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFECDCFF),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF2A4200),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFD6F0A0),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF2EEF4),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val DiscoDarkWcag = darkColorScheme(
+    primary             = Color(0xFFFF9ECC),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF890062),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFE0CCFF),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF5800B0),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFDAF29A),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF2D4E00),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Metal Chic WCAG ───────────────────────────────────────────────────────────
+private val MetalChickLightWcag = lightColorScheme(
+    primary             = Color(0xFF111118),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFDCDBE9),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF770020),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFD8E0),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF2D2C3A),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFE3E2F0),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFEEEDF6),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val MetalChickDarkWcag = darkColorScheme(
+    primary             = Color(0xFFDCDBED),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF454354),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFFFB2C8),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF88133E),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFD0CEE0),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF4A4A58),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Whimsy WCAG ───────────────────────────────────────────────────────────────
+private val WhimsyLightWcag = lightColorScheme(
+    primary             = Color(0xFF3D2EAE),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFE5DFFF),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF6B0035),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFD9E4),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF005240),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFA6F0D6),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF0EFF8),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val WhimsyDarkWcag = darkColorScheme(
+    primary             = Color(0xFFDDD8FF),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF3D2EAE),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFFFCCDA),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF8E1F50),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFA0F0D8),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF00513B),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Colour Me Happy WCAG ──────────────────────────────────────────────────────
+private val ColourHappyLightWcag = lightColorScheme(
+    primary             = Color(0xFF921600),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFDAD2),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF003E68),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFCCE5FF),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF2A4200),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFD6F0A0),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF2EDEA),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val ColourHappyDarkWcag = darkColorScheme(
+    primary             = Color(0xFFFFCCBE),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF882000),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFB8DFFF),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF004E80),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFD4F5A0),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF2D4900),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Dragon Fire WCAG ──────────────────────────────────────────────────────────
+private val DragonFireLightWcag = lightColorScheme(
+    primary             = Color(0xFF7A0000),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFCFCC),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF6A1C00),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFFFDBC9),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF7A3A00),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFFFDDB0),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF2EDEA),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val DragonFireDarkWcag = darkColorScheme(
+    primary             = Color(0xFFFFB0AB),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF960000),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFFFFCCB0),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF8E2D00),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFFFD4A0),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF7A3D00),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
+// ── Midnight Neon WCAG ────────────────────────────────────────────────────────
+private val MidnightNeonLightWcag = lightColorScheme(
+    primary             = Color(0xFF8A0063),
+    onPrimary           = Color(0xFFFFFFFF),
+    primaryContainer    = Color(0xFFFFD6E8),
+    onPrimaryContainer  = Color(0xFF000000),
+    secondary           = Color(0xFF003E56),
+    onSecondary         = Color(0xFFFFFFFF),
+    secondaryContainer  = Color(0xFFB8E9FF),
+    onSecondaryContainer= Color(0xFF000000),
+    tertiary            = Color(0xFF2A4200),
+    onTertiary          = Color(0xFFFFFFFF),
+    tertiaryContainer   = Color(0xFFD6F0A0),
+    onTertiaryContainer = Color(0xFF000000),
+    background          = Color(0xFFFFFFFF),
+    onBackground        = Color(0xFF000000),
+    surface             = Color(0xFFFFFFFF),
+    onSurface           = Color(0xFF000000),
+    surfaceVariant      = Color(0xFFF0EEF5),
+    onSurfaceVariant    = Color(0xFF121212),
+    outline             = Color(0xFF545454),
+)
+private val MidnightNeonDarkWcag = darkColorScheme(
+    primary             = Color(0xFFFFA0E8),
+    onPrimary           = Color(0xFF000000),
+    primaryContainer    = Color(0xFF870068),
+    onPrimaryContainer  = Color(0xFFFFFFFF),
+    secondary           = Color(0xFF90EDFF),
+    onSecondary         = Color(0xFF000000),
+    secondaryContainer  = Color(0xFF00516C),
+    onSecondaryContainer= Color(0xFFFFFFFF),
+    tertiary            = Color(0xFFDAF29A),
+    onTertiary          = Color(0xFF000000),
+    tertiaryContainer   = Color(0xFF2D4900),
+    onTertiaryContainer = Color(0xFFFFFFFF),
+    background          = Color(0xFF0C0C0C),
+    onBackground        = Color(0xFFF0F0F0),
+    surface             = Color(0xFF0C0C0C),
+    onSurface           = Color(0xFFF0F0F0),
+    surfaceVariant      = Color(0xFF1E1E1E),
+    onSurfaceVariant    = Color(0xFFE0E0E0),
+    outline             = Color(0xFFB8B8B8),
+)
+
 // ── Scheme selector ───────────────────────────────────────────────────────────
 
 /**
@@ -731,8 +1269,59 @@ private val BlueOrange = lightColorScheme(
  *
  * [systemIsDark] is only consulted when [theme] is [AppTheme.SYSTEM]; pass the
  * result of `isSystemInDarkTheme()` at the call site.
+ *
+ * [wcag] — when true the WCAG AAA accessible variant is returned for standard
+ * palettes. HIGH_CONTRAST and BLUE_ORANGE are unaffected (already maximum-contrast).
  */
-fun colorSchemeFor(theme: AppTheme, systemIsDark: Boolean = false): ColorScheme = when (theme) {
+fun colorSchemeFor(theme: AppTheme, systemIsDark: Boolean = false, wcag: Boolean = false): ColorScheme {
+    // HIGH_CONTRAST and BLUE_ORANGE are already maximum-contrast; wcag flag ignored.
+    if (!wcag || theme == AppTheme.HIGH_CONTRAST_LIGHT || theme == AppTheme.HIGH_CONTRAST_DARK
+        || theme == AppTheme.BLUE_ORANGE) {
+        return standardColorSchemeFor(theme, systemIsDark)
+    }
+    // WCAG AAA variants for standard palettes
+    return when (theme) {
+        AppTheme.CORAL               -> CoralLightWcag
+        AppTheme.CORAL_DARK          -> CoralDarkWcag
+        AppTheme.CORAL_SYSTEM        -> if (systemIsDark) CoralDarkWcag        else CoralLightWcag
+        AppTheme.TURQUOISE           -> TurquoiseLightWcag
+        AppTheme.TURQUOISE_DARK      -> TurquoiseDarkWcag
+        AppTheme.SYSTEM              -> if (systemIsDark) TurquoiseDarkWcag    else TurquoiseLightWcag
+        AppTheme.GREEN               -> GreenLightWcag
+        AppTheme.GREEN_DARK          -> GreenDarkWcag
+        AppTheme.GREEN_SYSTEM        -> if (systemIsDark) GreenDarkWcag        else GreenLightWcag
+        AppTheme.SUMMER_CANDY        -> SummerCandyLightWcag
+        AppTheme.SUMMER_CANDY_DARK   -> SummerCandyDarkWcag
+        AppTheme.SUMMER_CANDY_SYSTEM -> if (systemIsDark) SummerCandyDarkWcag  else SummerCandyLightWcag
+        AppTheme.BEACH_VIBES         -> BeachVibesLightWcag
+        AppTheme.BEACH_VIBES_DARK    -> BeachVibesDarkWcag
+        AppTheme.BEACH_VIBES_SYSTEM  -> if (systemIsDark) BeachVibesDarkWcag   else BeachVibesLightWcag
+        AppTheme.PEACH_MELBA         -> PeachMelbaLightWcag
+        AppTheme.PEACH_MELBA_DARK    -> PeachMelbaDarkWcag
+        AppTheme.PEACH_MELBA_SYSTEM  -> if (systemIsDark) PeachMelbaDarkWcag   else PeachMelbaLightWcag
+        AppTheme.DISCO               -> DiscoLightWcag
+        AppTheme.DISCO_DARK          -> DiscoDarkWcag
+        AppTheme.DISCO_SYSTEM        -> if (systemIsDark) DiscoDarkWcag        else DiscoLightWcag
+        AppTheme.METAL_CHICK         -> MetalChickLightWcag
+        AppTheme.METAL_CHICK_DARK    -> MetalChickDarkWcag
+        AppTheme.METAL_CHICK_SYSTEM  -> if (systemIsDark) MetalChickDarkWcag   else MetalChickLightWcag
+        AppTheme.WHIMSY              -> WhimsyLightWcag
+        AppTheme.WHIMSY_DARK         -> WhimsyDarkWcag
+        AppTheme.WHIMSY_SYSTEM       -> if (systemIsDark) WhimsyDarkWcag       else WhimsyLightWcag
+        AppTheme.COLOUR_HAPPY        -> ColourHappyLightWcag
+        AppTheme.COLOUR_HAPPY_DARK   -> ColourHappyDarkWcag
+        AppTheme.COLOUR_HAPPY_SYSTEM -> if (systemIsDark) ColourHappyDarkWcag  else ColourHappyLightWcag
+        AppTheme.DRAGON_FIRE         -> DragonFireLightWcag
+        AppTheme.DRAGON_FIRE_DARK    -> DragonFireDarkWcag
+        AppTheme.DRAGON_FIRE_SYSTEM  -> if (systemIsDark) DragonFireDarkWcag   else DragonFireLightWcag
+        AppTheme.MIDNIGHT_NEON       -> MidnightNeonLightWcag
+        AppTheme.MIDNIGHT_NEON_DARK  -> MidnightNeonDarkWcag
+        AppTheme.MIDNIGHT_NEON_SYSTEM-> if (systemIsDark) MidnightNeonDarkWcag else MidnightNeonLightWcag
+        else -> standardColorSchemeFor(theme, systemIsDark)
+    }
+}
+
+private fun standardColorSchemeFor(theme: AppTheme, systemIsDark: Boolean): ColorScheme = when (theme) {
     // Classic
     AppTheme.CORAL              -> CoralLight
     AppTheme.TURQUOISE          -> TurquoiseLight

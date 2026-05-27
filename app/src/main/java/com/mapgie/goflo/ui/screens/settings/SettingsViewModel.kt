@@ -67,7 +67,7 @@ class SettingsViewModel(
 
     fun setTheme(theme: String) = viewModelScope.launch { store.setTheme(theme) }
 
-    fun setBannerStyle(style: String) = viewModelScope.launch { store.setBannerStyle(style) }
+    fun setWcagMode(enabled: Boolean) = viewModelScope.launch { store.setWcagMode(enabled) }
 
     // ── App icon ───────────────────────────────────────────────────────────────
 

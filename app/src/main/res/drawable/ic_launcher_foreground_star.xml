@@ -4,23 +4,38 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
     <!--
-        5-pointed star  centre (54, 54)  outer r = 33  inner r = 13
-        Points alternate outer / inner, clockwise from top:
+        Auto-awesome sparkle — three 4-pointed stars in the style of
+        the Material "auto_awesome" glyph.  All coordinates within the
+        adaptive-icon safe zone (18–90).
 
-          outer 0  (54,  21)    inner 0  (62, 43)
-          outer 1  (85,  44)    inner 1  (66, 58)
-          outer 2  (73,  81)    inner 2  (54, 67)
-          outer 3  (35,  81)    inner 3  (42, 58)
-          outer 4  (23,  44)    inner 4  (46, 43)
+        Large sparkle  centre (52, 52)  half-spans: long=30, waist=3
+        Medium sparkle centre (76, 30)  half-spans: long= 8, waist=2
+        Small sparkle  centre (80, 72)  half-spans: long= 5, waist=1.5
     -->
-    <path
-        android:fillColor="#F57C00"
-        android:pathData="M54,21 L62,43 L85,44 L66,58 L73,81
-                          L54,67 L35,81 L42,58 L23,44 L46,43 Z" />
 
-    <!-- Subtle top-facet highlight -->
+    <!-- Large central sparkle -->
+    <path
+        android:fillColor="#FFD740"
+        android:pathData="M52,22 L55,49 L82,52 L55,55 L52,82
+                          L49,55 L22,52 L49,49 Z" />
+
+    <!-- Top-right facet highlight on main sparkle -->
     <path
         android:fillColor="#40FFFFFF"
-        android:pathData="M54,21 L62,43 L46,43 Z" />
+        android:pathData="M52,22 L55,49 L52,52 L49,49 Z" />
+
+    <!-- Medium sparkle — upper right -->
+    <path
+        android:fillColor="#FFD740"
+        android:pathData="M76,22 L78,28 L84,30 L78,32 L76,38
+                          L74,32 L68,30 L74,28 Z" />
+
+    <!-- Small sparkle — lower right -->
+    <path
+        android:fillColor="#FFD740"
+        android:pathData="M80,67 L82,71 L85,72 L82,73
+                          L80,77 L78,73 L75,72 L78,71 Z" />
+
 </vector>

@@ -9,9 +9,13 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 @Composable
-fun GoFloTheme(appTheme: AppTheme = AppTheme.CORAL, content: @Composable () -> Unit) {
+fun GoFloTheme(
+    appTheme: AppTheme = AppTheme.CORAL,
+    wcag: Boolean = false,
+    content: @Composable () -> Unit
+) {
     val systemDark = isSystemInDarkTheme()
-    val colorScheme = colorSchemeFor(appTheme, systemDark)
+    val colorScheme = colorSchemeFor(appTheme, systemDark, wcag)
 
     // Derived "is dark" flag accounts for all system-following themes.
     val effectivelyDark = when (appTheme) {
