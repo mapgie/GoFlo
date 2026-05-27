@@ -373,7 +373,7 @@ private fun LegendItem(color: Color, label: String) {
 /**
  * Bar chart showing the **average** numeric value per time bucket.
  *
- * Bars are scaled relative to the range [globalMin..globalMax] across all
+ * Bars are scaled relative to the range (globalMin..globalMax) across all
  * buckets so even a narrow range looks meaningful.  Buckets with no data are
  * omitted (the helper only emits buckets that have entries).
  */
