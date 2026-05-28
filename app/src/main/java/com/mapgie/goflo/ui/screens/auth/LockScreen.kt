@@ -104,10 +104,10 @@ fun LockScreen(
 private fun PinDots(filledCount: Int, isError: Boolean) {
     val dotColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        repeat(6) { index ->
+        repeat(4) { index ->
             Box(
                 modifier = Modifier
-                    .size(if (index < 4) 16.dp else 12.dp)
+                    .size(16.dp)
                     .clip(CircleShape)
                     .background(
                         if (index < filledCount) dotColor
