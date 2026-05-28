@@ -35,10 +35,10 @@ class LockViewModel(private val securityPreferences: SecurityPreferences) : View
 
     fun onDigit(digit: Int) {
         val current = _uiState.value.enteredDigits
-        if (current.length >= 6) return
+        if (current.length >= 4) return
         val updated = current + digit.toString()
         _uiState.update { it.copy(enteredDigits = updated, isError = false) }
-        if (updated.length >= 4) verifyPin(updated)
+        if (updated.length == 4) verifyPin(updated)
     }
 
     fun onDelete() {

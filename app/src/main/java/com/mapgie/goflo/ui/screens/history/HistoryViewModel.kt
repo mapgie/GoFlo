@@ -1,8 +1,10 @@
 package com.mapgie.goflo.ui.screens.history
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mapgie.goflo.widget.GoFloWidget
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.model.SymptomType
@@ -33,7 +35,10 @@ data class SymptomTrend(
     val percentage: Int,
 )
 
-class HistoryViewModel(private val repository: PeriodRepository) : ViewModel() {
+class HistoryViewModel(
+    private val repository: PeriodRepository,
+    private val application: Application? = null,
+) : ViewModel() {
 
     // ── Pending-delete state ──────────────────────────────────────────────────
     // IDs of periods that have been swiped but whose Undo snackbar is still
@@ -99,6 +104,7 @@ class HistoryViewModel(private val repository: PeriodRepository) : ViewModel() {
             val (builtIn, custom) = repository.getSymptomsParsed(period.id)
             pendingUndo[period.id] = UndoData(period, builtIn, custom)
             repository.deletePeriod(period)
+            application?.let { GoFloWidget.updateAllWidgets(it) }
         }
     }
 
@@ -110,6 +116,7 @@ class HistoryViewModel(private val repository: PeriodRepository) : ViewModel() {
             val undo = pendingUndo.remove(period.id)
             if (undo != null) {
                 repository.insertPeriod(undo.period, undo.builtIn.toList(), undo.custom.toList())
+                application?.let { GoFloWidget.updateAllWidgets(it) }
             }
             _pendingDeleteIds.update { it - period.id }
         }
@@ -124,10 +131,13 @@ class HistoryViewModel(private val repository: PeriodRepository) : ViewModel() {
         _pendingDeleteIds.update { it - period.id }
     }
 
-    class Factory(private val repository: PeriodRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: PeriodRepository,
+        private val application: Application? = null,
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return HistoryViewModel(repository) as T
+            return HistoryViewModel(repository, application) as T
         }
     }
 }

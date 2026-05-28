@@ -56,6 +56,12 @@ data class AppPreferences(
      * been completed. Prevents the migration running on every app start.
      */
     val flowBackfillDone: Boolean = false,
+    /**
+     * When true, the GoFlo Status home-screen widget shows live cycle data even
+     * if a PIN is set.  Users who trust their home screen can opt in; the default
+     * (false) keeps the privacy placeholder when PIN lock is active.
+     */
+    val widgetDataVisible: Boolean = false,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -76,6 +82,7 @@ class AppPreferencesStore(private val context: Context) {
         val WCAG_MODE = booleanPreferencesKey("wcag_mode")
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
+        val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -89,6 +96,7 @@ class AppPreferencesStore(private val context: Context) {
             wcagMode = prefs[Keys.WCAG_MODE] ?: false,
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
+            widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -172,5 +180,9 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setFlowBackfillDone(done: Boolean) {
         context.dataStore.edit { it[Keys.FLOW_BACKFILL_DONE] = done }
+    }
+
+    suspend fun setWidgetDataVisible(visible: Boolean) {
+        context.dataStore.edit { it[Keys.WIDGET_DATA_VISIBLE] = visible }
     }
 }
