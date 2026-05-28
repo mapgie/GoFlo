@@ -327,9 +327,14 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .setForeignKeyConstraintsEnabled(true)
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .addCallback(object : Callback() {
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
+                            // SQLite has foreign-key enforcement OFF by default.
+                            // Must be re-enabled on every connection open.
+                            db.execSQL("PRAGMA foreign_keys = ON")
+                        }
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
                             seedSystemCategories(db)
