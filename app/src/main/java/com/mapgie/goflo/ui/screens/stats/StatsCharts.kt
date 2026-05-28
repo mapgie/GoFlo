@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -497,5 +498,107 @@ fun NumericDistributionChart(data: StatsChartData.NumericDistributionData) {
                 )
             }
         }
+    }
+}
+
+// ── Scatter plot ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Canvas scatter plot: cat1 values on the X axis, cat2 values on the Y axis.
+ * One circle per day where both categories were logged in the selected range.
+ * Axis tick labels and category name labels are drawn via nativeCanvas.
+ */
+@Composable
+fun ScatterPlot(data: StatsChartData.ScatterData, modifier: Modifier = Modifier) {
+    val primary          = MaterialTheme.colorScheme.primary
+    val outline          = MaterialTheme.colorScheme.outlineVariant
+    val onSurface        = MaterialTheme.colorScheme.onSurface
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Canvas(modifier = modifier.fillMaxWidth().height(280.dp)) {
+        val leftPad   = 52.dp.toPx()
+        val bottomPad = 44.dp.toPx()
+        val rightPad  = 12.dp.toPx()
+        val topPad    = 12.dp.toPx()
+
+        val plotL = leftPad
+        val plotR = size.width - rightPad
+        val plotT = topPad
+        val plotB = size.height - bottomPad
+        val plotW = plotR - plotL
+        val plotH = plotB - plotT
+
+        val xRange = (data.xMax - data.xMin).coerceAtLeast(0.001f)
+        val yRange = (data.yMax - data.yMin).coerceAtLeast(0.001f)
+
+        fun toCanvasX(v: Float) = plotL + (v - data.xMin) / xRange * plotW
+        fun toCanvasY(v: Float) = plotB - (v - data.yMin) / yRange * plotH
+
+        // Faint grid lines
+        for (frac in listOf(0.25f, 0.5f, 0.75f)) {
+            drawLine(outline.copy(alpha = 0.3f),
+                Offset(plotL, plotT + frac * plotH), Offset(plotR, plotT + frac * plotH),
+                strokeWidth = 0.5.dp.toPx())
+            drawLine(outline.copy(alpha = 0.3f),
+                Offset(plotL + frac * plotW, plotT), Offset(plotL + frac * plotW, plotB),
+                strokeWidth = 0.5.dp.toPx())
+        }
+
+        // Axes
+        val axisStroke = 1.5.dp.toPx()
+        drawLine(outline, Offset(plotL, plotT), Offset(plotL, plotB), strokeWidth = axisStroke)
+        drawLine(outline, Offset(plotL, plotB), Offset(plotR, plotB), strokeWidth = axisStroke)
+
+        // Data points
+        val dotRadius = 4.5.dp.toPx()
+        data.points.forEach { pt ->
+            drawCircle(primary.copy(alpha = 0.75f), dotRadius, Offset(toCanvasX(pt.x), toCanvasY(pt.y)))
+        }
+
+        // Text labels via nativeCanvas
+        val nc = drawContext.canvas.nativeCanvas
+
+        fun fmtVal(v: Float) = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
+
+        val tickPaint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            textSize    = 9.dp.toPx()
+            color       = onSurfaceVariant.toArgb()
+        }
+        val namePaint = android.graphics.Paint().apply {
+            isAntiAlias    = true
+            textSize       = 10.dp.toPx()
+            color          = onSurface.toArgb()
+            isFakeBoldText = true
+            textAlign      = android.graphics.Paint.Align.CENTER
+        }
+
+        // Y axis tick labels (right-aligned, beside the axis)
+        tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
+        nc.drawText(fmtVal(data.yMax), plotL - 4.dp.toPx(), plotT + tickPaint.textSize, tickPaint)
+        nc.drawText(fmtVal(data.yMin), plotL - 4.dp.toPx(), plotB, tickPaint)
+        if (data.yMin != data.yMax) {
+            nc.drawText(
+                fmtVal((data.yMin + data.yMax) / 2f),
+                plotL - 4.dp.toPx(),
+                (plotT + plotB) / 2f + tickPaint.textSize / 2f,
+                tickPaint
+            )
+        }
+
+        // X axis tick labels
+        tickPaint.textAlign = android.graphics.Paint.Align.LEFT
+        nc.drawText(fmtVal(data.xMin), plotL, plotB + 12.dp.toPx(), tickPaint)
+        tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
+        nc.drawText(fmtVal(data.xMax), plotR, plotB + 12.dp.toPx(), tickPaint)
+
+        // Y axis name — rotated 90° counter-clockwise along the left edge
+        nc.save()
+        nc.rotate(-90f, 10.dp.toPx(), (plotT + plotB) / 2f)
+        nc.drawText(data.yAxisName, 10.dp.toPx(), (plotT + plotB) / 2f, namePaint)
+        nc.restore()
+
+        // X axis name — centred below the X axis
+        nc.drawText(data.xAxisName, (plotL + plotR) / 2f, size.height - 4.dp.toPx(), namePaint)
     }
 }
