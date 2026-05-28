@@ -61,7 +61,7 @@ fun StatsWarningBanner(
         shape = MaterialTheme.shapes.medium
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            // ── Collapsed header row ──────────────────────────────────────────
+            // ── Collapsed header row ─────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -88,7 +88,7 @@ fun StatsWarningBanner(
                 )
             }
 
-            // ── Expanded detail ───────────────────────────────────────────────
+            // ── Expanded detail ─────────────────────────────────────────────
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically() + fadeIn(),

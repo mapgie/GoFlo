@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TrackingCategoryDao {
 
-    // ── Categories ────────────────────────────────────────────────────────────
+    // ── Categories ────────────────────────────────────────────────────
 
     @Query("SELECT * FROM tracking_categories ORDER BY displayOrder ASC, id ASC")
     fun getAllCategories(): Flow<List<TrackingCategory>>
@@ -43,7 +43,7 @@ interface TrackingCategoryDao {
     @Delete
     suspend fun deleteCategory(category: TrackingCategory)
 
-    // ── Values ────────────────────────────────────────────────────────────────
+    // ── Values ────────────────────────────────────────────────────────────
 
     @Query("SELECT * FROM tracking_values WHERE categoryId = :categoryId ORDER BY displayOrder ASC, id ASC")
     fun getValuesForCategory(categoryId: Long): Flow<List<TrackingValue>>

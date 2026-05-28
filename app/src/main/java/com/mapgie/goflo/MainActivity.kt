@@ -64,6 +64,8 @@ import com.mapgie.goflo.ui.theme.AppTheme
 import com.mapgie.goflo.ui.theme.GoFloTheme
 import com.mapgie.goflo.AppIconChoice
 import com.mapgie.goflo.AppIconManager
+import com.mapgie.goflo.widget.QuickLogWidget
+import androidx.compose.runtime.LaunchedEffect
 
 class MainActivity : ComponentActivity() {
 
@@ -104,7 +106,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             val appPrefs by app.preferencesStore.preferences.collectAsState(initial = initialPrefs)
             val currentTheme = runCatching { AppTheme.valueOf(appPrefs.theme) }.getOrDefault(AppTheme.CORAL)
 
-            GoFloTheme(appTheme = currentTheme, wcag = appPrefs.wcagMode) {
+            GoFloTheme(appTheme = currentTheme) {
                 when (appState) {
                     AppState.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -121,7 +123,10 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                         LockScreen(viewModel = lockVm, onUnlocked = { mainVm.onUnlocked() })
                     }
 
-                    AppState.READY -> MainNavHost(app = app, currentTheme = currentTheme)
+                    AppState.READY -> {
+                        val pendingCategoryId = intent.getLongExtra(QuickLogWidget.EXTRA_CATEGORY_ID, -1L)
+                        MainNavHost(app = app, currentTheme = currentTheme, pendingCategoryId = pendingCategoryId)
+                    }
                 }
             }
         }
@@ -142,8 +147,17 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
 }
 
 @androidx.compose.runtime.Composable
-private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
+private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCategoryId: Long = -1L) {
     val navController = rememberNavController()
+
+    // Deep-link from the Quick Log widget: navigate to the category log screen for today.
+    LaunchedEffect(pendingCategoryId) {
+        if (pendingCategoryId != -1L) {
+            navController.navigate(
+                Screen.LogCategory.newEntry(pendingCategoryId, java.time.LocalDate.now())
+            )
+        }
+    }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
@@ -205,7 +219,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
             }
 
             composable(Screen.History.route) {
-                val vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory(app.repository))
+                val vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory(app.repository, app))
                 HistoryScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
 
@@ -247,7 +261,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 val prefilledDate = startDateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
                 val vm: com.mapgie.goflo.ui.screens.log.LogPeriodViewModel = viewModel(
                     key = "log_${periodId}_${startDateStr}",
-                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate, app.trackingRepository)
+                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate, app.trackingRepository, app)
                 )
                 com.mapgie.goflo.ui.screens.log.LogPeriodScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
@@ -282,7 +296,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 )
             }
 
-            // ── Tracking categories management ────────────────────────────────
+            // ── Tracking categories management ────────────────────────────────────
 
             composable(Screen.ManageCategories.route) {
                 val vm: ManageCategoriesViewModel = viewModel(
@@ -312,7 +326,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 )
             }
 
-            // ── Per-day category logging ──────────────────────────────────────
+            // ── Per-day category logging ─────────────────────────────────────────
 
             composable(
                 route = Screen.LogCategory.route,

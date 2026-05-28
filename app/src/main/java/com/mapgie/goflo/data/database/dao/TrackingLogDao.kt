@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TrackingLogDao {
 
-    // ── Logs ─────────────────────────────────────────────────────────────────
+    // ── Logs ───────────────────────────────────────────────────────────────────
 
     @Query("SELECT * FROM tracking_logs WHERE date = :date ORDER BY categoryId ASC")
     fun getLogsForDate(date: String): Flow<List<TrackingLog>>
@@ -56,7 +56,7 @@ interface TrackingLogDao {
     @Query("DELETE FROM tracking_log_values WHERE logId = :logId")
     suspend fun deleteLogValuesForLog(logId: Long)
 
-    // ── Stats queries ─────────────────────────────────────────────────────────
+    // ── Stats queries ────────────────────────────────────────────────────────
 
     /** All logs for a given category within an inclusive date range (ISO-8601 strings). */
     @Query("SELECT * FROM tracking_logs WHERE categoryId = :categoryId AND date >= :startDate AND date <= :endDate ORDER BY date ASC")
