@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.12.5-beta.1] - 2026-05-28
+
+### Added
+- **Log with period** — custom tracking categories can now be pinned to the Log Period screen. Enable "Log with period" in the category's create or edit dialog; the category then appears as a section (chip picker, slider, or text input depending on type) between Symptoms and Notes on the Log Period screen. Selections are saved as tracking logs for the period start date when the period entry is saved.
+
+---
+
 ## [0.12.4-beta.1] - 2026-05-28
 
 ### Changed

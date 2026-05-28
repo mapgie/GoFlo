@@ -116,17 +116,18 @@ fun ManageCategoriesScreen(
 
     if (showAddDialog) {
         AddCategoryDialog(
-            onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple ->
+            onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple, showInLogPeriod ->
                 viewModel.addCategory(
-                    name          = name,
-                    iconName      = iconName,
-                    colorToken    = colorToken,
-                    categoryType  = categoryType,
-                    numericMin    = numericMin,
-                    numericMax    = numericMax,
-                    allowDecimals = allowDecimals,
-                    numericUnit   = numericUnit,
-                    allowMultiple = allowMultiple,
+                    name            = name,
+                    iconName        = iconName,
+                    colorToken      = colorToken,
+                    categoryType    = categoryType,
+                    numericMin      = numericMin,
+                    numericMax      = numericMax,
+                    allowDecimals   = allowDecimals,
+                    numericUnit     = numericUnit,
+                    allowMultiple   = allowMultiple,
+                    showInLogPeriod = showInLogPeriod,
                     onCreated    = { newId ->
                         showAddDialog = false
                         // Numeric categories have all settings configured in the creation
@@ -148,18 +149,19 @@ fun ManageCategoriesScreen(
     if (categoryToEditAppearance != null) {
         EditAppearanceDialog(
             category = categoryToEditAppearance,
-            onSave = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple ->
+            onSave = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple, showInLogPeriod ->
                 viewModel.updateCategoryNameAndAppearance(
-                    id            = categoryToEditAppearance.id,
-                    name          = name,
-                    iconName      = iconName,
-                    colorToken    = colorToken,
-                    categoryType  = categoryType,
-                    numericMin    = numericMin,
-                    numericMax    = numericMax,
-                    allowDecimals = allowDecimals,
-                    numericUnit   = numericUnit,
-                    allowMultiple = allowMultiple,
+                    id              = categoryToEditAppearance.id,
+                    name            = name,
+                    iconName        = iconName,
+                    colorToken      = colorToken,
+                    categoryType    = categoryType,
+                    numericMin      = numericMin,
+                    numericMax      = numericMax,
+                    allowDecimals   = allowDecimals,
+                    numericUnit     = numericUnit,
+                    allowMultiple   = allowMultiple,
+                    showInLogPeriod = showInLogPeriod,
                 )
                 pendingEditAppearance = null
             },
@@ -470,6 +472,7 @@ private fun CategoryRow(
 private fun buildCategorySubtitle(category: TrackingCategory): String = buildString {
     if (category.isSystem) append("Built-in · ")
     if (category.isArchived) append("Archived · ")
+    if (category.showInLogPeriod) append("Log with period · ")
     when (category.categoryType) {
         "numeric_slider" -> {
             append("Numeric · Slider")
@@ -490,7 +493,8 @@ private fun buildCategorySubtitle(category: TrackingCategory): String = buildStr
 private fun AddCategoryDialog(
     onAdd: (name: String, iconName: String, colorToken: String,
             categoryType: String, numericMin: Float, numericMax: Float,
-            allowDecimals: Boolean, numericUnit: String, allowMultiple: Boolean) -> Unit,
+            allowDecimals: Boolean, numericUnit: String, allowMultiple: Boolean,
+            showInLogPeriod: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name             by rememberSaveable { mutableStateOf("") }
@@ -502,6 +506,7 @@ private fun AddCategoryDialog(
     var maxText          by rememberSaveable { mutableStateOf("10") }
     var allowDecimals    by rememberSaveable { mutableStateOf(false) }
     var allowMultiple    by rememberSaveable { mutableStateOf(false) }
+    var showInLogPeriod  by rememberSaveable { mutableStateOf(false) }
 
     val isNumericType = selectedType != CategoryType.DEFAULT.key
 
@@ -624,6 +629,24 @@ private fun AddCategoryDialog(
                     Switch(checked = allowMultiple, onCheckedChange = { allowMultiple = it })
                 }
 
+                // Log with period
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Log with period", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Show this category on the Log Period screen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = showInLogPeriod, onCheckedChange = { showInLogPeriod = it })
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -640,7 +663,8 @@ private fun AddCategoryDialog(
                                 maxText.toFloatOrNull() ?: 10f,
                                 allowDecimals,
                                 numericUnit.trim(),
-                                allowMultiple
+                                allowMultiple,
+                                showInLogPeriod
                             )
                         },
                         enabled = canAdd
@@ -658,7 +682,8 @@ private fun EditAppearanceDialog(
     category: TrackingCategory,
     onSave: (name: String, iconName: String, colorToken: String,
              categoryType: String, numericMin: Float, numericMax: Float,
-             allowDecimals: Boolean, numericUnit: String, allowMultiple: Boolean) -> Unit,
+             allowDecimals: Boolean, numericUnit: String, allowMultiple: Boolean,
+             showInLogPeriod: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name            by rememberSaveable { mutableStateOf(category.name) }
@@ -674,6 +699,7 @@ private fun EditAppearanceDialog(
     }
     var allowDecimals   by rememberSaveable { mutableStateOf(category.allowDecimals) }
     var allowMultiple   by rememberSaveable { mutableStateOf(category.allowMultiple) }
+    var showInLogPeriod by rememberSaveable { mutableStateOf(category.showInLogPeriod) }
 
     val isNumericType = selectedType != CategoryType.DEFAULT.key
 
@@ -833,6 +859,26 @@ private fun EditAppearanceDialog(
                     Switch(checked = allowMultiple, onCheckedChange = { allowMultiple = it })
                 }
 
+                // Log with period (non-system categories only)
+                if (!category.isSystem) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Log with period", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "Show this category on the Log Period screen",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(checked = showInLogPeriod, onCheckedChange = { showInLogPeriod = it })
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -849,7 +895,8 @@ private fun EditAppearanceDialog(
                                 maxText.toFloatOrNull() ?: 10f,
                                 allowDecimals,
                                 numericUnit.trim(),
-                                allowMultiple
+                                allowMultiple,
+                                showInLogPeriod
                             )
                         },
                         enabled = canSave

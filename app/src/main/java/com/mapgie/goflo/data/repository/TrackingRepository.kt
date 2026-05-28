@@ -55,21 +55,23 @@ class TrackingRepository(
         allowDecimals: Boolean = false,
         numericUnit: String = "",
         allowMultiple: Boolean = false,
+        showInLogPeriod: Boolean = false,
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
         return categoryDao.insertCategory(
             TrackingCategory(
-                name          = name.trim(),
-                displayOrder  = maxOrder + 1,
-                iconName      = iconName,
-                colorToken    = colorToken,
-                categoryType  = categoryType,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
-                numericUnit   = numericUnit,
-                allowMultiple = allowMultiple,
+                name            = name.trim(),
+                displayOrder    = maxOrder + 1,
+                iconName        = iconName,
+                colorToken      = colorToken,
+                categoryType    = categoryType,
+                numericMin      = numericMin,
+                numericMax      = numericMax,
+                allowDecimals   = allowDecimals,
+                numericUnit     = numericUnit,
+                allowMultiple   = allowMultiple,
+                showInLogPeriod = showInLogPeriod,
             )
         )
     }
@@ -100,19 +102,21 @@ class TrackingRepository(
         allowDecimals: Boolean,
         numericUnit: String = "",
         allowMultiple: Boolean = false,
+        showInLogPeriod: Boolean = false,
     ) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(
             cat.copy(
-                name          = name.trim(),
-                iconName      = iconName,
-                colorToken    = colorToken,
-                categoryType  = categoryType,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
-                numericUnit   = numericUnit,
-                allowMultiple = allowMultiple,
+                name            = name.trim(),
+                iconName        = iconName,
+                colorToken      = colorToken,
+                categoryType    = categoryType,
+                numericMin      = numericMin,
+                numericMax      = numericMax,
+                allowDecimals   = allowDecimals,
+                numericUnit     = numericUnit,
+                allowMultiple   = allowMultiple,
+                showInLogPeriod = showInLogPeriod,
             )
         )
     }
@@ -336,6 +340,10 @@ class TrackingRepository(
             )
         }
     }
+
+    /** Returns active categories marked to appear on the Log Period screen. */
+    suspend fun getShowInLogPeriodCategories(): List<TrackingCategory> =
+        categoryDao.getShowInLogPeriodCategoriesOnce()
 
     /** System category lookup by name — used for Flow data migration. */
     suspend fun getSystemCategoryByName(name: String): TrackingCategory? =

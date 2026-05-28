@@ -34,6 +34,10 @@ interface TrackingCategoryDao {
     @Query("SELECT * FROM tracking_categories WHERE isSystem = 1 AND name = :name LIMIT 1")
     suspend fun getSystemCategoryByName(name: String): TrackingCategory?
 
+    /** Returns active (non-archived) categories with showInLogPeriod = 1. */
+    @Query("SELECT * FROM tracking_categories WHERE isArchived = 0 AND showInLogPeriod = 1 ORDER BY displayOrder ASC, id ASC")
+    suspend fun getShowInLogPeriodCategoriesOnce(): List<TrackingCategory>
+
     /** Returns the first category (any type) with the given name, or null. Used for import matching. */
     @Query("SELECT * FROM tracking_categories WHERE name = :name LIMIT 1")
     suspend fun getCategoryByName(name: String): TrackingCategory?
