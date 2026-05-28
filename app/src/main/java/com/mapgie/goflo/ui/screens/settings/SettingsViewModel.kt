@@ -74,6 +74,11 @@ class SettingsViewModel(
     fun setQuickLogCategory(categoryId: Long) =
         viewModelScope.launch { store.setQuickLogCategoryId(categoryId) }
 
+    // ── Widget ────────────────────────────────────────────────────────────────
+
+    fun setWidgetDataVisible(visible: Boolean) =
+        viewModelScope.launch { store.setWidgetDataVisible(visible) }
+
     // ── Theme ──────────────────────────────────────────────────────────────────
 
     fun setTheme(theme: String) = viewModelScope.launch { store.setTheme(theme) }

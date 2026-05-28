@@ -99,6 +99,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.Widgets
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
@@ -856,6 +857,58 @@ fun SettingsScreen(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) { Text("Delete All Data") }
+            }
+
+            // ═══════════════════════════════════════════════════════════════════
+            // WIDGETS
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Widgets")
+
+            CollapsibleSection(
+                title   = "Home Screen Widgets",
+                icon    = Icons.Outlined.Widgets,
+                summary = "Two widgets available"
+            ) {
+                Text(
+                    "GoFlo offers two home-screen widgets. Long-press your home screen " +
+                    "and choose Widgets to add them.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // GoFlo Status widget description
+                Text("GoFlo Status (2×1)", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "Shows your cycle status at a glance — current cycle day, days until " +
+                    "your next period, or a privacy placeholder when PIN lock is active.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(8.dp))
+
+                // Quick Log widget description
+                Text("Quick Log (2×2)", style = MaterialTheme.typography.labelMedium)
+                Text(
+                    "Shows up to four of your active tracking categories. Tap any button " +
+                    "to jump straight to today's log entry for that category.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // PIN guard toggle — only shown when a PIN is set
+                if (security.hasPinSet) {
+                    Spacer(Modifier.height(8.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Spacer(Modifier.height(8.dp))
+                    SwitchRow(
+                        label    = "Show data on GoFlo Status widget",
+                        subtitle = "By default the widget hides cycle data when PIN lock is enabled. " +
+                                   "Turn this on to show live data on your home screen.",
+                        checked         = prefs.widgetDataVisible,
+                        onCheckedChange = { viewModel.setWidgetDataVisible(it) }
+                    )
+                }
             }
 
             // ═══════════════════════════════════════════════════════════════════
