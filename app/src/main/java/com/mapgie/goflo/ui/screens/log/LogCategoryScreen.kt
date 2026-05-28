@@ -312,10 +312,10 @@ fun LogCategoryScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                }  // else ->
-            }  // when
+                }
+            }
 
-            // ── Notes ─────────────────────────────────────────────────────────
+            // ── Notes ─────────────────────────────────────────────────────────────
 
             OutlinedTextField(
                 value = state.notes,

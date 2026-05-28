@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-// ── Colour cycling ────────────────────────────────────────────────────────────
+// ── Colour cycling ─────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun chartColor(index: Int): Color {
@@ -43,7 +43,7 @@ private fun chartColor(index: Int): Color {
     else base[index % base.size].copy(alpha = maxOf(0.5f, 1f - (index / base.size) * 0.2f))
 }
 
-// ── Pie chart ─────────────────────────────────────────────────────────────────
+// ── Pie chart ───────────────────────────────────────────────────────────────────────
 
 /**
  * A Canvas-drawn pie chart with a wrapped legend below.
@@ -125,7 +125,7 @@ fun PieChart(
     }
 }
 
-// ── Bar chart (single time series) ───────────────────────────────────────────
+// ── Bar chart (single time series) ───────────────────────────────────────────────
 
 /**
  * Vertical bar chart for a single category over time.
@@ -156,7 +156,7 @@ fun BarChart(
     }
 }
 
-// ── Dual bar chart (two time series) ─────────────────────────────────────────
+// ── Dual bar chart (two time series) ─────────────────────────────────────────────────
 
 /**
  * Vertical bar chart showing two categories side-by-side per time bucket.
@@ -246,7 +246,7 @@ private fun DualBarSegment(count: Int, maxCount: Int, color: Color) {
     }
 }
 
-// ── Combo bar chart (horizontal, cross-category) ──────────────────────────────
+// ── Combo bar chart (horizontal, cross-category) ────────────────────────────────────────────
 
 /**
  * Horizontal bar chart showing which value combinations co-occur most.
@@ -304,7 +304,7 @@ fun ComboBarChart(
     }
 }
 
-// ── Shared helpers ────────────────────────────────────────────────────────────
+// ── Shared helpers ──────────────────────────────────────────────────────────────────────
 
 @Composable
 private fun BarColumn(count: Int, maxCount: Int, label: String, barColor: Color) {
@@ -368,7 +368,7 @@ private fun LegendItem(color: Color, label: String) {
     }
 }
 
-// ── Numeric average chart ─────────────────────────────────────────────────────
+// ── Numeric average chart ─────────────────────────────────────────────────────────────────
 
 /**
  * Bar chart showing the **average** numeric value per time bucket.
@@ -444,7 +444,7 @@ fun NumericAverageChart(data: StatsChartData.NumericAverageData) {
     }
 }
 
-// ── Numeric distribution chart ────────────────────────────────────────────────
+// ── Numeric distribution chart ─────────────────────────────────────────────────────────
 
 /**
  * Horizontal bar chart showing **how many times** each numeric value was logged.

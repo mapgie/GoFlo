@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Quick Log home-screen widget layout — 2×2 cell minimum.
+    Shows up to four active tracking categories as tappable buttons.
+    RemoteViews-compatible views only (no Compose, no custom views).
+    Colours are hardcoded — RemoteViews cannot resolve theme attributes.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ql_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="10dp">
+
+    <!-- Small "QUICK LOG" header label -->
+    <TextView
+        android:id="@+id/ql_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="QUICK LOG"
+        android:textSize="8sp"
+        android:letterSpacing="0.12"
+        android:textColor="#99FFFFFF"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Category grid — two rows of two buttons each -->
+
+    <LinearLayout
+        android:id="@+id/ql_row1"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <LinearLayout
+            android:id="@+id/ql_cat_1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/widget_button_bg"
+            android:layout_marginEnd="2dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/ql_name_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="11sp"
+                android:textColor="#FFFFFFFF"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:padding="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ql_cat_2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/widget_button_bg"
+            android:layout_marginStart="2dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/ql_name_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="11sp"
+                android:textColor="#FFFFFFFF"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:padding="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ql_row2"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/ql_cat_3"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/widget_button_bg"
+            android:layout_marginEnd="2dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/ql_name_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="11sp"
+                android:textColor="#FFFFFFFF"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:padding="4dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ql_cat_4"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/widget_button_bg"
+            android:layout_marginStart="2dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/ql_name_4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="11sp"
+                android:textColor="#FFFFFFFF"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:padding="4dp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Shown only when the user has no active tracking categories -->
+    <TextView
+        android:id="@+id/ql_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:gravity="center"
+        android:text="No categories — tap to open"
+        android:textSize="11sp"
+        android:textColor="#BDFFFFFF"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -19,7 +19,7 @@ sealed class Screen(val route: String) {
     data object Licenses : Screen("licenses")
     data object Privacy  : Screen("privacy")
 
-    // ── Tracking categories management ────────────────────────────────────────
+    // ── Tracking categories management ─────────────────────────────────────────────
 
     data object ManageCategories : Screen("manage_categories")
 
@@ -27,7 +27,7 @@ sealed class Screen(val route: String) {
         fun forCategory(id: Long) = "manage_category_values/$id"
     }
 
-    // ── Per-day category logging ───────────────────────────────────────────────
+    // ── Per-day category logging ────────────────────────────────────────────────
 
     /**
      * Route for logging or editing a tracking category entry.

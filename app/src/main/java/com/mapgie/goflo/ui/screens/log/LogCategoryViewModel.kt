@@ -27,6 +27,7 @@ data class LogCategoryUiState(
     /**
      * Current slider position for numeric_slider categories.
      * Null until the user interacts (or an existing value is loaded).
+     * Ignored for text categories.
      */
     val numericValue: Float? = null,
     /** Current text entry for numeric_free categories. */
@@ -86,6 +87,7 @@ class LogCategoryViewModel(
             else -> repository.getExistingLog(date, categoryId)
         }
 
+        // For numeric categories, parse the first stored label back to Float
         val existingNumeric: Float? = if (category?.categoryType == "numeric_slider")
             existingEntry?.values?.firstOrNull()?.toFloatOrNull()
         else null
@@ -93,6 +95,7 @@ class LogCategoryViewModel(
         val existingFreeText: String = if (category?.categoryType == "numeric_free")
             existingEntry?.values?.firstOrNull() ?: ""
         else ""
+
 
         _uiState.update {
             it.copy(
@@ -124,6 +127,7 @@ class LogCategoryViewModel(
 
     fun setNumericFreeText(text: String) = _uiState.update { it.copy(numericFreeText = text) }
 
+
     fun setNotes(notes: String) {
         _uiState.update { it.copy(notes = notes) }
     }
@@ -133,9 +137,10 @@ class LogCategoryViewModel(
         if (state.isLoading) return
         val cat = state.category
 
+        // Determine the values to persist
         val valuesToSave: Set<String> = when (cat?.categoryType) {
             "numeric_slider" -> {
-                val v = state.numericValue ?: return
+                val v = state.numericValue ?: return   // nothing to save yet
                 setOf(formatNumericValue(v, cat.allowDecimals))
             }
             "numeric_free" -> {

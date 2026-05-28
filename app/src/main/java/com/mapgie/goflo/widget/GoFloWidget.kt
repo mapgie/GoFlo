@@ -87,18 +87,18 @@ class GoFloWidget : AppWidgetProvider() {
         ) {
             val app = context.applicationContext as GoFloApplication
 
-            // ── Issue 1: PIN guard ────────────────────────────────────────────
-            // If the user has enabled PIN protection, do not display sensitive
-            // health data on the home screen — anyone can see the home screen
-            // without unlocking the app. Show a neutral placeholder instead.
+            // Read preferences first so widgetDataVisible is available for the PIN guard.
+            val prefs    = app.preferencesStore.preferences.first()
             val security = app.securityPreferences.settings.first()
-            if (security.hasPinSet) {
+
+            // PIN guard: hide sensitive health data unless the user has explicitly
+            // opted in to showing it on the home screen despite the PIN being set.
+            if (security.hasPinSet && !prefs.widgetDataVisible) {
                 pushLockedPlaceholder(context, appWidgetManager, widgetId)
                 return
             }
 
-            // ── Issue 3: honour custom cycle-length preference ────────────────
-            val prefs      = app.preferencesStore.preferences.first()
+            // ── Honour custom cycle-length preference ─────────────────────────
             val customCycle = prefs.preferredCycleLength.takeIf { it > 0 }
 
             val repository   = app.repository

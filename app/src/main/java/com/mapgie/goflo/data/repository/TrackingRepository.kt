@@ -80,6 +80,36 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
     }
 
+    /**
+     * Updates name, appearance, and numeric settings of an existing category in one call.
+     * Used by the edit dialog which surfaces all these fields together.
+     */
+    suspend fun updateCategoryFullSettings(
+        id: Long,
+        name: String,
+        iconName: String,
+        colorToken: String,
+        categoryType: String,
+        numericMin: Float,
+        numericMax: Float,
+        allowDecimals: Boolean,
+        numericUnit: String = "",
+    ) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(
+            cat.copy(
+                name          = name.trim(),
+                iconName      = iconName,
+                colorToken    = colorToken,
+                categoryType  = categoryType,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+                numericUnit   = numericUnit,
+            )
+        )
+    }
+
     /** Updates the numeric range settings for a category (slider type only). */
     suspend fun updateNumericSettings(
         id: Long,
@@ -115,6 +145,7 @@ class TrackingRepository(
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(cat.copy(isArchived = false))
     }
+
 
     suspend fun deleteCategory(category: TrackingCategory) {
         if (category.isSystem) return   // Guard: system categories cannot be deleted
