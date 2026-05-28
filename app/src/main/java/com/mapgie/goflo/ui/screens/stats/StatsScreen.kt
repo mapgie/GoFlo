@@ -320,14 +320,14 @@ private fun CategoryPickerSection(
                 ) {
                     selectedCat1?.let {
                         Text(
-                            text = "X: ${it.name}",
+                            text = "1: ${it.name}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                     selectedCat2?.let {
                         Text(
-                            text = "Y: ${it.name}",
+                            text = "2: ${it.name}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.secondary
                         )
@@ -361,8 +361,8 @@ private fun CategoryPickerSection(
                         onClick = { onSelect(category) },
                         label = {
                             val prefix = when {
-                                isCat1 -> "X  "
-                                isCat2 -> "Y  "
+                                isCat1 -> "1  "
+                                isCat2 -> "2  "
                                 else   -> ""
                             }
                             Text("$prefix${category.name}")
