@@ -89,4 +89,21 @@ interface TrackingLogDao {
     /** All logs across all categories within an inclusive date range. */
     @Query("SELECT * FROM tracking_logs WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC")
     suspend fun getAllLogsInRange(startDate: String, endDate: String): List<TrackingLog>
+
+    @Query("SELECT * FROM tracking_logs WHERE categoryId IN (:categoryIds) AND date >= :startDate AND date <= :endDate ORDER BY date ASC, categoryId ASC")
+    suspend fun getLogsForCategoriesInRange(categoryIds: List<Long>, startDate: String, endDate: String): List<TrackingLog>
+
+    @Query("SELECT * FROM tracking_logs WHERE categoryId IN (:categoryIds) ORDER BY date ASC, categoryId ASC")
+    suspend fun getAllLogsForCategories(categoryIds: List<Long>): List<TrackingLog>
+
+    @Query("SELECT * FROM tracking_log_values WHERE logId IN (:logIds)")
+    suspend fun getLogValuesForLogs(logIds: List<Long>): List<TrackingLogValue>
+
+    /** The ISO-8601 date string of the earliest log entry, or null if there are none. */
+    @Query("SELECT MIN(date) FROM tracking_logs")
+    suspend fun getEarliestLogDate(): String?
+
+    /** The ISO-8601 date string of the most recent log entry, or null if there are none. */
+    @Query("SELECT MAX(date) FROM tracking_logs")
+    suspend fun getLatestLogDate(): String?
 }

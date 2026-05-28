@@ -33,6 +33,9 @@ class TrackingRepository(
     fun getActiveCategories(): Flow<List<TrackingCategory>> =
         categoryDao.getActiveCategories()
 
+    suspend fun getAllCategoriesOnce(): List<TrackingCategory> =
+        categoryDao.getAllCategoriesOnce()
+
     fun getCategoryById(id: Long): Flow<TrackingCategory?> =
         categoryDao.getCategoryById(id)
 
@@ -250,9 +253,45 @@ class TrackingRepository(
     suspend fun getAllLogsInRange(start: LocalDate, end: LocalDate): List<TrackingLog> =
         logDao.getAllLogsInRange(start.toString(), end.toString())
 
+    /** The date of the earliest log entry across all categories, or null if no logs exist. */
+    suspend fun getEarliestLogDate(): LocalDate? =
+        logDao.getEarliestLogDate()?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
+    /** The date of the most recent log entry across all categories, or null if no logs exist. */
+    suspend fun getLatestLogDate(): LocalDate? =
+        logDao.getLatestLogDate()?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+
     /** Value labels for a specific log. Thin wrapper for Stats use. */
     suspend fun getValuesForLog(logId: Long): List<String> =
         logDao.getLogValuesForLogOnce(logId).map { it.valueLabel }
+
+    /**
+     * Fetches all logs (with values) for the given category IDs, optionally filtered
+     * to an inclusive date range. Pass null for both dates to retrieve all history.
+     */
+    suspend fun exportTrackingLogs(
+        categoryIds: List<Long>,
+        startDate: LocalDate?,
+        endDate: LocalDate?
+    ): List<TrackingLogWithValues> {
+        if (categoryIds.isEmpty()) return emptyList()
+        val logs = if (startDate != null && endDate != null) {
+            logDao.getLogsForCategoriesInRange(categoryIds, startDate.toString(), endDate.toString())
+        } else {
+            logDao.getAllLogsForCategories(categoryIds)
+        }
+        if (logs.isEmpty()) return emptyList()
+        val logIds = logs.map { it.id }
+        val valuesByLog = logDao.getLogValuesForLogs(logIds).groupBy { it.logId }
+        val catMap = categoryDao.getAllCategoriesOnce().associateBy { it.id }
+        return logs.map { log ->
+            TrackingLogWithValues(
+                log = log,
+                category = catMap[log.categoryId],
+                values = valuesByLog[log.id]?.map { it.valueLabel } ?: emptyList()
+            )
+        }
+    }
 
     /** System category lookup by name — used for Flow data migration. */
     suspend fun getSystemCategoryByName(name: String): TrackingCategory? =

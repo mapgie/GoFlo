@@ -262,6 +262,7 @@ fun SettingsScreen(
     val prefs      by viewModel.prefs.collectAsState()
     val security   by viewModel.securitySettings.collectAsState()
     val categories by viewModel.trackingCategories.collectAsState()
+    val allCategoriesForExport by viewModel.allCategoriesForExport.collectAsState()
     val reminder = prefs.reminder
     val currentTheme = runCatching { AppTheme.valueOf(prefs.theme) }.getOrDefault(AppTheme.CORAL)
 
@@ -275,6 +276,7 @@ fun SettingsScreen(
     var showDisclaimer        by rememberSaveable { mutableStateOf(false) }
     var showDeleteAllDialog   by rememberSaveable { mutableStateOf(false) }
     var showChangelog         by rememberSaveable { mutableStateOf(false) }
+    var showExportDialog      by rememberSaveable { mutableStateOf(false) }
     var pendingImportUri      by remember { mutableStateOf<Uri?>(null) }
     var showImportOptionsDialog by rememberSaveable { mutableStateOf(false) }
     var importResult          by remember { mutableStateOf<ImportResult?>(null) }
@@ -309,6 +311,17 @@ fun SettingsScreen(
 
     if (showChangelog) {
         ChangelogDialog(onDismiss = { showChangelog = false })
+    }
+
+    if (showExportDialog) {
+        ExportOptionsDialog(
+            categories = allCategoriesForExport,
+            onDismiss  = { showExportDialog = false },
+            onExport   = { config ->
+                showExportDialog = false
+                viewModel.exportWithOptions(config) { intent -> context.startActivity(intent) }
+            }
+        )
     }
 
     // ── Dialogs ───────────────────────────────────────────────────────────────
@@ -822,20 +835,10 @@ fun SettingsScreen(
                 )
                 Spacer(Modifier.height(4.dp))
 
-                // Export row: two side-by-side buttons
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick  = { viewModel.exportData { intent -> context.startActivity(intent) } },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Export JSON") }
-                    OutlinedButton(
-                        onClick  = { viewModel.exportCsv { intent -> context.startActivity(intent) } },
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Export CSV") }
-                }
+                OutlinedButton(
+                    onClick  = { showExportDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Export Data") }
 
                 OutlinedButton(
                     onClick  = { importFilePicker.launch("application/json") },
