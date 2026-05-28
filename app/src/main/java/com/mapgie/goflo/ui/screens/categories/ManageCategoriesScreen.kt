@@ -1,6 +1,7 @@
 package com.mapgie.goflo.ui.screens.categories
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -35,15 +36,18 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,10 +56,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -66,6 +73,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -80,6 +88,7 @@ import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.util.CATEGORY_COLOR_OPTIONS
 import com.mapgie.goflo.ui.util.CategoryColor
 import com.mapgie.goflo.ui.util.CategoryIcon
+import com.mapgie.goflo.ui.util.CategoryType
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
 import com.mapgie.goflo.ui.util.toCategoryOnColor
@@ -96,18 +105,29 @@ fun ManageCategoriesScreen(
 
     var showAddDialog         by rememberSaveable { mutableStateOf(false) }
     var pendingDelete         by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingArchive        by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingEditAppearance by rememberSaveable { mutableStateOf<Long?>(null) }
 
     val categoryToDelete         = state.categories.firstOrNull { it.id == pendingDelete }
+    val categoryToArchive        = state.categories.firstOrNull { it.id == pendingArchive }
     val categoryToEditAppearance = state.categories.firstOrNull { it.id == pendingEditAppearance }
 
     // ── Add category dialog ───────────────────────────────────────────────────
 
     if (showAddDialog) {
         AddCategoryDialog(
-            onAdd = { name, iconName, colorToken, isNumeric, numericMin, numericMax, allowDecimals ->
-                viewModel.addCategory(name, iconName, colorToken, isNumeric, numericMin, numericMax, allowDecimals)
-                showAddDialog = false
+            onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit ->
+                viewModel.addCategory(
+                    name         = name,
+                    iconName     = iconName,
+                    colorToken   = colorToken,
+                    categoryType = categoryType,
+                    numericUnit  = numericUnit,
+                    onCreated    = { newId ->
+                        showAddDialog = false
+                        onNavigateToCategory(newId)
+                    }
+                )
             },
             onDismiss = { showAddDialog = false }
         )
@@ -118,15 +138,63 @@ fun ManageCategoriesScreen(
     if (categoryToEditAppearance != null) {
         EditAppearanceDialog(
             category = categoryToEditAppearance,
-            onSave = { name, iconName, colorToken, isNumeric, numericMin, numericMax, allowDecimals ->
+            onSave = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit ->
                 viewModel.updateCategoryNameAndAppearance(
-                    categoryToEditAppearance.id, name, iconName, colorToken,
-                    isNumeric, numericMin, numericMax, allowDecimals
+                    id            = categoryToEditAppearance.id,
+                    name          = name,
+                    iconName      = iconName,
+                    colorToken    = colorToken,
+                    categoryType  = categoryType,
+                    numericMin    = numericMin,
+                    numericMax    = numericMax,
+                    allowDecimals = allowDecimals,
+                    numericUnit   = numericUnit,
                 )
                 pendingEditAppearance = null
             },
             onDismiss = { pendingEditAppearance = null }
         )
+    }
+
+    // ── Archive confirmation ──────────────────────────────────────────────────
+
+    if (categoryToArchive != null) {
+        if (categoryToArchive.isArchived) {
+            AlertDialog(
+                onDismissRequest = { pendingArchive = null },
+                title = { Text("Unarchive \"${categoryToArchive.name}\"?") },
+                text = { Text("${categoryToArchive.name} will be restored to your active tracking categories.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.unarchiveCategory(categoryToArchive)
+                        pendingArchive = null
+                    }) { Text("Unarchive") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingArchive = null }) { Text("Cancel") }
+                }
+            )
+        } else {
+            AlertDialog(
+                onDismissRequest = { pendingArchive = null },
+                title = { Text("Archive \"${categoryToArchive.name}\"?") },
+                text = {
+                    Text(
+                        "${categoryToArchive.name} will be hidden from tracking but all your " +
+                        "logged data will be preserved. You can unarchive it here at any time."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.archiveCategory(categoryToArchive)
+                        pendingArchive = null
+                    }) { Text("Archive") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingArchive = null }) { Text("Cancel") }
+                }
+            )
+        }
     }
 
     // ── Delete confirmation ───────────────────────────────────────────────────
@@ -138,7 +206,8 @@ fun ManageCategoriesScreen(
             text = {
                 Text(
                     "This will permanently remove the ${categoryToDelete.name} category and all " +
-                    "log entries recorded for it. This cannot be undone."
+                    "log entries recorded for it. If you want to keep a copy of your data, " +
+                    "export it before continuing. This cannot be undone."
                 )
             },
             confirmButton = {
@@ -206,10 +275,11 @@ fun ManageCategoriesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(state.categories, key = { it.id }) { category ->
-                    CategoryRow(
+                    SwipeableCategoryRow(
                         category         = category,
                         onClick          = { onNavigateToCategory(category.id) },
                         onEditAppearance = { pendingEditAppearance = category.id },
+                        onArchiveToggle  = { pendingArchive = category.id },
                         onDelete         = { pendingDelete = category.id }
                     )
                 }
@@ -220,20 +290,113 @@ fun ManageCategoriesScreen(
 
 // ── Category row ──────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableCategoryRow(
+    category: TrackingCategory,
+    onClick: () -> Unit,
+    onEditAppearance: () -> Unit,
+    onArchiveToggle: () -> Unit,
+    onDelete: () -> Unit
+) {
+    if (category.isSystem) {
+        CategoryRow(category = category, onClick = onClick, onEditAppearance = onEditAppearance)
+        return
+    }
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> { onArchiveToggle(); false }
+                SwipeToDismissBoxValue.EndToStart -> { onDelete(); false }
+                else -> false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = true,
+        backgroundContent = {
+            val direction = dismissState.targetValue
+            val bgColor by animateColorAsState(
+                targetValue = when (direction) {
+                    SwipeToDismissBoxValue.StartToEnd -> MaterialTheme.colorScheme.secondaryContainer
+                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.errorContainer
+                    else -> Color.Transparent
+                },
+                label = "swipe_bg"
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(bgColor)
+            ) {
+                when (direction) {
+                    SwipeToDismissBoxValue.StartToEnd -> Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (category.isArchived) Icons.Default.Unarchive
+                                          else Icons.Default.Archive,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = if (category.isArchived) "Unarchive" else "Archive",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                    SwipeToDismissBoxValue.EndToStart -> Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(end = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            text = "Delete",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    else -> {}
+                }
+            }
+        }
+    ) {
+        CategoryRow(category = category, onClick = onClick, onEditAppearance = onEditAppearance)
+    }
+}
+
 @Composable
 private fun CategoryRow(
     category: TrackingCategory,
     onClick: () -> Unit,
     onEditAppearance: () -> Unit,
-    onDelete: () -> Unit
 ) {
-    // Resolve theme-relative colours here so Modifier.background can use them
     val bubbleColor = category.colorToken.toCategoryColor()
     val iconTint    = category.colorToken.toCategoryOnColor()
 
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(if (category.isArchived) 0.55f else 1f),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
@@ -245,7 +408,6 @@ private fun CategoryRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Coloured icon bubble — resolves from the current theme
             Box(
                 modifier = Modifier
                     .size(40.dp)
@@ -269,18 +431,7 @@ private fun CategoryRow(
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
-                    text  = buildString {
-                        if (category.isSystem) append("Built-in · ")
-                        if (category.isNumeric) {
-                            val rangeStr = if (category.allowDecimals)
-                                "%.1f – %.1f".format(category.numericMin, category.numericMax)
-                            else
-                                "${category.numericMin.toInt()} – ${category.numericMax.toInt()}"
-                            append("Numeric ($rangeStr) · tap to edit range")
-                        } else {
-                            append("Tap to manage values")
-                        }
-                    },
+                    text  = buildCategorySubtitle(category),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -296,18 +447,6 @@ private fun CategoryRow(
                 )
             }
 
-            // Delete (custom categories only)
-            if (!category.isSystem) {
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector        = Icons.Default.Delete,
-                        contentDescription = "Delete ${category.name}",
-                        tint               = MaterialTheme.colorScheme.error,
-                        modifier           = Modifier.size(20.dp)
-                    )
-                }
-            }
-
             Icon(
                 imageVector        = Icons.Default.ChevronRight,
                 contentDescription = null,
@@ -317,25 +456,46 @@ private fun CategoryRow(
     }
 }
 
+private fun buildCategorySubtitle(category: TrackingCategory): String = buildString {
+    if (category.isSystem) append("Built-in · ")
+    if (category.isArchived) append("Archived · ")
+    when (category.categoryType) {
+        "numeric_slider" -> {
+            append("Numeric · Slider")
+            if (category.numericUnit.isNotBlank()) append(" (${category.numericUnit})")
+        }
+        "numeric_free" -> {
+            append("Numeric · Input")
+            if (category.numericUnit.isNotBlank()) append(" (${category.numericUnit})")
+        }
+        else -> append("Tap to manage values")
+    }
+}
+
 // ── Add category dialog ───────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddCategoryDialog(
     onAdd: (name: String, iconName: String, colorToken: String,
-            isNumeric: Boolean, numericMin: Float, numericMax: Float, allowDecimals: Boolean) -> Unit,
+            categoryType: String, numericMin: Float, numericMax: Float,
+            allowDecimals: Boolean, numericUnit: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name            by rememberSaveable { mutableStateOf("") }
-    var selectedIconKey by rememberSaveable { mutableStateOf(CategoryIcon.CATEGORY.key) }
-    var selectedToken   by rememberSaveable { mutableStateOf(CategoryColor.SECONDARY.key) }
-    var isNumeric       by rememberSaveable { mutableStateOf(false) }
-    var minText         by rememberSaveable { mutableStateOf("0") }
-    var maxText         by rememberSaveable { mutableStateOf("10") }
-    var allowDecimals   by rememberSaveable { mutableStateOf(false) }
+    var name             by rememberSaveable { mutableStateOf("") }
+    var selectedType     by rememberSaveable { mutableStateOf(CategoryType.DEFAULT.key) }
+    var numericUnit      by rememberSaveable { mutableStateOf("") }
+    var selectedIconKey  by rememberSaveable { mutableStateOf(CategoryIcon.CATEGORY.key) }
+    var selectedToken    by rememberSaveable { mutableStateOf(CategoryColor.SECONDARY.key) }
+    var minText          by rememberSaveable { mutableStateOf("0") }
+    var maxText          by rememberSaveable { mutableStateOf("10") }
+    var allowDecimals    by rememberSaveable { mutableStateOf(false) }
 
-    val canAdd by remember(name, isNumeric, minText, maxText) {
+    val isNumericType = selectedType != CategoryType.DEFAULT.key
+
+    val canAdd by remember(name, isNumericType, minText, maxText) {
         derivedStateOf {
-            name.isNotBlank() && (!isNumeric || (
+            name.isNotBlank() && (!isNumericType || (
                 minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
                 (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
             ))
@@ -355,6 +515,7 @@ private fun AddCategoryDialog(
             ) {
                 Text("New Category", style = MaterialTheme.typography.headlineSmall)
 
+                // Name
                 OutlinedTextField(
                     value         = name,
                     onValueChange = { name = it },
@@ -364,26 +525,76 @@ private fun AddCategoryDialog(
                     modifier      = Modifier.fillMaxWidth()
                 )
 
+                // Type selector
+                Text(
+                    "Type",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    CategoryType.entries.forEach { type ->
+                        FilterChip(
+                            selected  = selectedType == type.key,
+                            onClick   = { selectedType = type.key },
+                            label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
+                            modifier  = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // Unit field — shown only for numeric types
+                AnimatedVisibility(
+                    visible = isNumericType,
+                    enter   = expandVertically() + fadeIn(),
+                    exit    = shrinkVertically() + fadeOut()
+                ) {
+                    OutlinedTextField(
+                        value         = numericUnit,
+                        onValueChange = { numericUnit = it },
+                        label         = { Text("Unit / Key (optional)") },
+                        placeholder   = { Text("e.g. °C, bpm, kg…") },
+                        singleLine    = true,
+                        modifier      = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Icon
                 Text("Icon", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryIconGrid(selectedKey = selectedIconKey, onSelect = { selectedIconKey = it })
 
+                // Colour
                 Text("Colour", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
-                // ── Numeric toggle ────────────────────────────────────────────
-                HorizontalDivider()
-                NumericSettingsSection(
-                    isNumeric     = isNumeric,
-                    onToggle      = { isNumeric = it },
-                    minText       = minText,
-                    onMinChange   = { minText = it },
-                    maxText       = maxText,
-                    onMaxChange   = { maxText = it },
-                    allowDecimals = allowDecimals,
-                    onDecimalsToggle = { allowDecimals = it }
-                )
+                // ── Numeric range settings ────────────────────────────────────
+                AnimatedVisibility(
+                    visible = isNumericType,
+                    enter   = expandVertically() + fadeIn(),
+                    exit    = shrinkVertically() + fadeOut()
+                ) {
+                    HorizontalDivider()
+                }
+                AnimatedVisibility(
+                    visible = isNumericType,
+                    enter   = expandVertically() + fadeIn(),
+                    exit    = shrinkVertically() + fadeOut()
+                ) {
+                    NumericSettingsSection(
+                        isNumeric        = isNumericType,
+                        onToggle         = { /* type controlled by chip selector above */ },
+                        minText          = minText,
+                        onMinChange      = { minText = it },
+                        maxText          = maxText,
+                        onMaxChange      = { maxText = it },
+                        allowDecimals    = allowDecimals,
+                        onDecimalsToggle = { allowDecimals = it }
+                    )
+                }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -396,10 +607,11 @@ private fun AddCategoryDialog(
                         onClick = {
                             if (canAdd) onAdd(
                                 name, selectedIconKey, selectedToken,
-                                isNumeric,
+                                selectedType,
                                 minText.toFloatOrNull() ?: 0f,
                                 maxText.toFloatOrNull() ?: 10f,
-                                allowDecimals
+                                allowDecimals,
+                                numericUnit.trim()
                             )
                         },
                         enabled = canAdd
@@ -416,13 +628,15 @@ private fun AddCategoryDialog(
 private fun EditAppearanceDialog(
     category: TrackingCategory,
     onSave: (name: String, iconName: String, colorToken: String,
-             isNumeric: Boolean, numericMin: Float, numericMax: Float, allowDecimals: Boolean) -> Unit,
+             categoryType: String, numericMin: Float, numericMax: Float,
+             allowDecimals: Boolean, numericUnit: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name            by rememberSaveable { mutableStateOf(category.name) }
     var selectedIconKey by rememberSaveable { mutableStateOf(category.iconName) }
     var selectedToken   by rememberSaveable { mutableStateOf(category.colorToken) }
-    var isNumeric       by rememberSaveable { mutableStateOf(category.isNumeric) }
+    var selectedType    by rememberSaveable { mutableStateOf(category.categoryType) }
+    var numericUnit     by rememberSaveable { mutableStateOf(category.numericUnit) }
     var minText         by rememberSaveable {
         mutableStateOf(if (category.allowDecimals) "%.1f".format(category.numericMin) else category.numericMin.toInt().toString())
     }
@@ -431,12 +645,14 @@ private fun EditAppearanceDialog(
     }
     var allowDecimals   by rememberSaveable { mutableStateOf(category.allowDecimals) }
 
+    val isNumericType = selectedType != CategoryType.DEFAULT.key
+
     val previewBubble = selectedToken.toCategoryColor()
     val previewIcon   = selectedToken.toCategoryOnColor()
 
-    val canSave by remember(name, isNumeric, minText, maxText) {
+    val canSave by remember(name, isNumericType, minText, maxText) {
         derivedStateOf {
-            name.isNotBlank() && (!isNumeric || (
+            name.isNotBlank() && (!isNumericType || (
                 minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
                 (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
             ))
@@ -475,12 +691,12 @@ private fun EditAppearanceDialog(
                     }
                     Column {
                         Text(
-                            text  = "Customise",
+                            text  = "Appearance",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text  = name.ifBlank { category.name },
+                            text  = category.name,
                             style = MaterialTheme.typography.headlineSmall
                         )
                     }
@@ -488,7 +704,7 @@ private fun EditAppearanceDialog(
 
                 HorizontalDivider()
 
-                // Name field
+                // Name
                 OutlinedTextField(
                     value         = name,
                     onValueChange = { name = it },
@@ -496,6 +712,44 @@ private fun EditAppearanceDialog(
                     singleLine    = true,
                     modifier      = Modifier.fillMaxWidth()
                 )
+
+                // Type selector (non-system only)
+                if (!category.isSystem) {
+                    Text(
+                        "Type",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CategoryType.entries.forEach { type ->
+                            FilterChip(
+                                selected  = selectedType == type.key,
+                                onClick   = { selectedType = type.key },
+                                label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
+                                modifier  = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // Unit field — shown only for numeric types
+                    AnimatedVisibility(
+                        visible = isNumericType,
+                        enter   = expandVertically() + fadeIn(),
+                        exit    = shrinkVertically() + fadeOut()
+                    ) {
+                        OutlinedTextField(
+                            value         = numericUnit,
+                            onValueChange = { numericUnit = it },
+                            label         = { Text("Unit / Key (optional)") },
+                            placeholder   = { Text("e.g. °C, bpm, kg…") },
+                            singleLine    = true,
+                            modifier      = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
 
                 Text("Icon", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -505,13 +759,13 @@ private fun EditAppearanceDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
-                // ── Numeric toggle ────────────────────────────────────────────
+                // ── Numeric range settings ────────────────────────────────────
                 HorizontalDivider()
                 // System categories (Flow, Symptoms) keep text mode; disable toggle for them
                 if (!category.isSystem) {
                     NumericSettingsSection(
-                        isNumeric        = isNumeric,
-                        onToggle         = { isNumeric = it },
+                        isNumeric        = isNumericType,
+                        onToggle         = { /* type controlled by chip selector above */ },
                         minText          = minText,
                         onMinChange      = { minText = it },
                         maxText          = maxText,
@@ -532,10 +786,11 @@ private fun EditAppearanceDialog(
                         onClick = {
                             if (canSave) onSave(
                                 name, selectedIconKey, selectedToken,
-                                isNumeric,
+                                selectedType,
                                 minText.toFloatOrNull() ?: 0f,
                                 maxText.toFloatOrNull() ?: 10f,
-                                allowDecimals
+                                allowDecimals,
+                                numericUnit.trim()
                             )
                         },
                         enabled = canSave
@@ -633,7 +888,6 @@ private fun NumericSettingsSection(
 
 // ── Shared picker components ──────────────────────────────────────────────────
 
-/** Grid of all [CategoryIcon] options; highlights the currently selected one. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
@@ -667,11 +921,6 @@ private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
     }
 }
 
-/**
- * Determines if a colour token represents a custom HSV-picked colour.
- * A "custom" token is one that is 8 chars long AND is not one of the 12
- * [CATEGORY_COLOR_OPTIONS] hex keys AND is not a [CategoryColor] enum key.
- */
 private fun isCustomColorToken(token: String): Boolean {
     if (token.length != 8) return false
     val categoryColorKeys = CategoryColor.entries.map { it.key }.toSet()
@@ -680,30 +929,16 @@ private fun isCustomColorToken(token: String): Boolean {
     return token !in extendedHexKeys
 }
 
-/**
- * Two-section colour picker:
- *
- * 1. **Themed** — four labelled swatches from [MaterialTheme.colorScheme] that
- *    follow the user's chosen palette and light/dark mode automatically.
- *
- * 2. **More colours** — twelve fixed-ARGB swatches plus a custom colour slot
- *    at the end that opens a full HSV colour picker.
- *
- * [selectedToken] is either a [CategoryColor] key ("primary", …) or an 8-char
- * uppercase hex string produced by [Int.toHexColorKey] ("FFE53935", …).
- */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Unit) {
     var showFullPicker by rememberSaveable { mutableStateOf(false) }
 
-    // Determine if the current token is a custom colour
     val hasCustomColor by remember(selectedToken) {
         derivedStateOf { isCustomColorToken(selectedToken) }
     }
 
     if (showFullPicker) {
-        // Determine initial colour for the picker
         val initialColor = if (hasCustomColor) {
             runCatching { android.graphics.Color.parseColor("#$selectedToken") }
                 .getOrDefault(android.graphics.Color.RED)
@@ -722,7 +957,7 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-        // ── Themed swatches ───────────────────────────────────────────────────
+        // Themed swatches
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment     = Alignment.CenterVertically,
@@ -768,7 +1003,7 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
             }
         }
 
-        // ── Extended palette ──────────────────────────────────────────────────
+        // Extended palette
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Text(
             text  = "More colours",
@@ -784,7 +1019,6 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                 val hexKey        = argb.toHexColorKey()
                 val isSelected    = hexKey == selectedToken
                 val swatchColor   = Color(argb)
-                // Luminance check: choose black or white icon tint without MaterialTheme
                 val onSwatchColor = if (swatchColor.luminance() > 0.35f) Color(0xFF1C1B1F) else Color.White
 
                 Box(
@@ -811,11 +1045,10 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                 }
             }
 
-            // Custom colour slot at the end of the extended palette
+            // Custom colour slot
             val primaryColor = MaterialTheme.colorScheme.primary
             val outlineColor = MaterialTheme.colorScheme.outline
             if (hasCustomColor) {
-                // Show filled circle with selected custom colour + selection ring
                 val customArgb = runCatching { selectedToken.toLong(16).toInt() }.getOrDefault(0)
                 val customColor = Color(customArgb)
                 val onCustomColor = if (customColor.luminance() > 0.35f) Color(0xFF1C1B1F) else Color.White
@@ -836,7 +1069,6 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                     )
                 }
             } else {
-                // Show empty dashed-border circle with "+" icon
                 Box(
                     modifier = Modifier
                         .size(38.dp)
@@ -846,7 +1078,6 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                     Canvas(modifier = Modifier.size(38.dp)) {
                         val strokePx = 2.dp.toPx()
                         val radius = (size.minDimension / 2f) - strokePx / 2f
-                        // Draw dashed circle border
                         drawCircle(
                             color  = outlineColor,
                             radius = radius,
@@ -878,15 +1109,13 @@ private fun FullColorPickerDialog(
     onDismiss: () -> Unit,
     onColorSelected: (String) -> Unit
 ) {
-    // Extract initial HSV from the given ARGB int
     val initHsv = FloatArray(3)
     android.graphics.Color.colorToHSV(initialColor, initHsv)
 
-    var hue        by remember { mutableStateOf(initHsv[0]) }        // 0..360
-    var saturation by remember { mutableStateOf(initHsv[1]) }        // 0..1
-    var value      by remember { mutableStateOf(initHsv[2]) }        // 0..1
+    var hue        by remember { mutableStateOf(initHsv[0]) }
+    var saturation by remember { mutableStateOf(initHsv[1]) }
+    var value      by remember { mutableStateOf(initHsv[2]) }
 
-    // Hex field state
     val currentArgb by remember(hue, saturation, value) {
         derivedStateOf {
             android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value))
@@ -897,7 +1126,6 @@ private fun FullColorPickerDialog(
     }
     var hexError by remember { mutableStateOf(false) }
 
-    // When user types a valid hex, update HSV state
     fun applyHexInput(input: String) {
         hexInput = input.uppercase().filter { it.isLetterOrDigit() }.take(6)
         if (hexInput.length == 6) {
@@ -930,7 +1158,6 @@ private fun FullColorPickerDialog(
             ) {
                 Text("Custom Colour", style = MaterialTheme.typography.headlineSmall)
 
-                // Saturation/Value panel
                 SaturationValuePanel(
                     hue        = hue,
                     saturation = saturation,
@@ -938,13 +1165,8 @@ private fun FullColorPickerDialog(
                     onChanged  = { s, v -> saturation = s; value = v }
                 )
 
-                // Hue slider
-                HueSlider(
-                    hue       = hue,
-                    onChanged = { hue = it }
-                )
+                HueSlider(hue = hue, onChanged = { hue = it })
 
-                // Preview + hex input
                 Row(
                     verticalAlignment     = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -966,7 +1188,6 @@ private fun FullColorPickerDialog(
                     )
                 }
 
-                // Buttons
                 Row(
                     modifier              = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -975,7 +1196,7 @@ private fun FullColorPickerDialog(
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
                     Button(onClick = {
-                        val argb  = currentArgb
+                        val argb   = currentArgb
                         val hexKey = "FF%06X".format(argb and 0xFFFFFF)
                         onColorSelected(hexKey)
                     }) { Text("Done") }
@@ -994,7 +1215,6 @@ private fun SaturationValuePanel(
     value: Float,
     onChanged: (saturation: Float, value: Float) -> Unit
 ) {
-    // Pure hue colour (sat=1, val=1) for the horizontal gradient end
     val hueColor = Color(android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f)))
 
     Box(
@@ -1013,46 +1233,29 @@ private fun SaturationValuePanel(
                         onChanged(s, v)
                     }
                     updateFromOffset(down.position)
-                    drag(down.id) { change ->
-                        updateFromOffset(change.position)
-                    }
+                    drag(down.id) { change -> updateFromOffset(change.position) }
                 }
             }
     ) {
-        // White → hue-colour gradient (horizontal)
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(
-                    Brush.horizontalGradient(listOf(Color.White, hueColor))
-                )
+                .background(Brush.horizontalGradient(listOf(Color.White, hueColor)))
         )
-        // Transparent → Black gradient (vertical)
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(
-                    Brush.verticalGradient(listOf(Color.Transparent, Color.Black))
-                )
+                .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
         )
-        // Thumb
         val thumbX = saturation
         val thumbY = 1f - value
         Canvas(modifier = Modifier.matchParentSize()) {
             val cx = thumbX * size.width
             val cy = thumbY * size.height
-            drawCircle(
-                color  = Color.White,
-                radius = 10.dp.toPx(),
-                center = Offset(cx, cy),
-                style  = Stroke(width = 2.dp.toPx())
-            )
-            drawCircle(
-                color  = Color.Black,
-                radius = 12.dp.toPx(),
-                center = Offset(cx, cy),
-                style  = Stroke(width = 1.dp.toPx())
-            )
+            drawCircle(color = Color.White, radius = 10.dp.toPx(), center = Offset(cx, cy),
+                style = Stroke(width = 2.dp.toPx()))
+            drawCircle(color = Color.Black, radius = 12.dp.toPx(), center = Offset(cx, cy),
+                style = Stroke(width = 1.dp.toPx()))
         }
     }
 }
@@ -1060,25 +1263,13 @@ private fun SaturationValuePanel(
 // ── Hue slider ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HueSlider(
-    hue: Float,
-    onChanged: (Float) -> Unit
-) {
+private fun HueSlider(hue: Float, onChanged: (Float) -> Unit) {
     val hueColors = remember {
         listOf(
-            Color(0xFFFF0000), // 0°   red
-            Color(0xFFFF8000), // 30°  orange
-            Color(0xFFFFFF00), // 60°  yellow
-            Color(0xFF80FF00), // 90°  yellow-green
-            Color(0xFF00FF00), // 120° green
-            Color(0xFF00FF80), // 150° spring green
-            Color(0xFF00FFFF), // 180° cyan
-            Color(0xFF0080FF), // 210° azure
-            Color(0xFF0000FF), // 240° blue
-            Color(0xFF8000FF), // 270° violet
-            Color(0xFFFF00FF), // 300° magenta
-            Color(0xFFFF0080), // 330° rose
-            Color(0xFFFF0000), // 360° red again
+            Color(0xFFFF0000), Color(0xFFFF8000), Color(0xFFFFFF00), Color(0xFF80FF00),
+            Color(0xFF00FF00), Color(0xFF00FF80), Color(0xFF00FFFF), Color(0xFF0080FF),
+            Color(0xFF0000FF), Color(0xFF8000FF), Color(0xFFFF00FF), Color(0xFFFF0080),
+            Color(0xFFFF0000),
         )
     }
 
@@ -1096,29 +1287,18 @@ private fun HueSlider(
                         onChanged(h)
                     }
                     updateFromOffset(down.position)
-                    drag(down.id) { change ->
-                        updateFromOffset(change.position)
-                    }
+                    drag(down.id) { change -> updateFromOffset(change.position) }
                 }
             }
     ) {
-        // Thumb
         val thumbX = hue / 360f
         Canvas(modifier = Modifier.matchParentSize()) {
             val cx = thumbX * size.width
             val cy = size.height / 2f
-            drawCircle(
-                color  = Color.White,
-                radius = 10.dp.toPx(),
-                center = Offset(cx, cy),
-                style  = Stroke(width = 2.dp.toPx())
-            )
-            drawCircle(
-                color  = Color.Black,
-                radius = 12.dp.toPx(),
-                center = Offset(cx, cy),
-                style  = Stroke(width = 1.dp.toPx())
-            )
+            drawCircle(color = Color.White, radius = 10.dp.toPx(), center = Offset(cx, cy),
+                style = Stroke(width = 2.dp.toPx()))
+            drawCircle(color = Color.Black, radius = 12.dp.toPx(), center = Offset(cx, cy),
+                style = Stroke(width = 1.dp.toPx()))
         }
     }
 }

@@ -45,10 +45,11 @@ data class AppPreferences(
     /** Whether to show ovulation day and fertility-window markers on the calendar. */
     val showOvulationMarkers: Boolean = true,
     /**
-     * The name of the [com.mapgie.goflo.ui.theme.BannerStyle] enum entry selected
-     * by the user for the home-screen banner decoration.
-     * Defaults to "PLAIN" (no decoration) so existing installs are unaffected.
+     * When true the colour picker switches every standard palette to its WCAG AAA
+     * accessible variant (deeper/lighter primary colours, higher-contrast outlines).
+     * MAX_CONTRAST and BLUE_ORANGE are unaffected — they are already maximum-contrast.
      */
+    val wcagMode: Boolean = false,
     val bannerStyle: String = "PLAIN",
     /**
      * True once the one-time migration of period flow data into TrackingLog has
@@ -72,6 +73,7 @@ class AppPreferencesStore(private val context: Context) {
         val QUICK_LOG_CATEGORY_ID = longPreferencesKey("quick_log_category_id")
         val SHOW_PERIOD_PREDICTION = booleanPreferencesKey("show_period_prediction")
         val SHOW_OVULATION_MARKERS = booleanPreferencesKey("show_ovulation_markers")
+        val WCAG_MODE = booleanPreferencesKey("wcag_mode")
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
     }
@@ -84,6 +86,7 @@ class AppPreferencesStore(private val context: Context) {
             quickLogCategoryId = prefs[Keys.QUICK_LOG_CATEGORY_ID] ?: -1L,
             showPeriodPrediction = prefs[Keys.SHOW_PERIOD_PREDICTION] ?: true,
             showOvulationMarkers = prefs[Keys.SHOW_OVULATION_MARKERS] ?: true,
+            wcagMode = prefs[Keys.WCAG_MODE] ?: false,
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
             reminder = ReminderSettings(
@@ -157,6 +160,10 @@ class AppPreferencesStore(private val context: Context) {
      */
     suspend fun setQuickLogCategoryId(categoryId: Long) {
         context.dataStore.edit { it[Keys.QUICK_LOG_CATEGORY_ID] = categoryId }
+    }
+
+    suspend fun setWcagMode(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.WCAG_MODE] = enabled }
     }
 
     suspend fun setBannerStyle(style: String) {

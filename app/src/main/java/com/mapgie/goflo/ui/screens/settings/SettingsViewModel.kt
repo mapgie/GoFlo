@@ -50,7 +50,7 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SecuritySettings())
 
     val trackingCategories: StateFlow<List<TrackingCategory>> =
-        trackingRepository.getAllCategories()
+        trackingRepository.getActiveCategories()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val isBiometricAvailable: Boolean =
@@ -67,7 +67,7 @@ class SettingsViewModel(
 
     fun setTheme(theme: String) = viewModelScope.launch { store.setTheme(theme) }
 
-    fun setBannerStyle(style: String) = viewModelScope.launch { store.setBannerStyle(style) }
+    fun setWcagMode(enabled: Boolean) = viewModelScope.launch { store.setWcagMode(enabled) }
 
     // ── App icon ───────────────────────────────────────────────────────────────
 

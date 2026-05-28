@@ -44,6 +44,16 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.renameCategory(categoryId, newName) }
     }
 
+    fun updateNumericSettings(min: Float, max: Float, allowDecimals: Boolean, unit: String) {
+        viewModelScope.launch {
+            repository.updateNumericSettings(categoryId, min, max, allowDecimals, unit)
+        }
+    }
+
+    fun updateUnit(unit: String) {
+        viewModelScope.launch { repository.updateNumericUnit(categoryId, unit) }
+    }
+
     fun addValue(label: String) {
         if (label.isBlank()) return
         viewModelScope.launch { repository.addValueToCategory(categoryId, label) }
@@ -59,6 +69,22 @@ class ManageCategoryValuesViewModel(
      */
     fun renameValue(value: TrackingValue, newLabel: String, fixHistorical: Boolean) {
         viewModelScope.launch { repository.renameValue(value, newLabel, fixHistorical) }
+    }
+
+    fun archiveCategory() {
+        val cat = uiState.value.category ?: return
+        if (cat.isSystem) return
+        viewModelScope.launch { repository.archiveCategory(categoryId) }
+    }
+
+    fun unarchiveCategory() {
+        viewModelScope.launch { repository.unarchiveCategory(categoryId) }
+    }
+
+    fun deleteCategory() {
+        val cat = uiState.value.category ?: return
+        if (cat.isSystem) return
+        viewModelScope.launch { repository.deleteCategory(cat) }
     }
 
     class Factory(

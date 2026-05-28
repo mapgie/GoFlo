@@ -70,6 +70,22 @@ enum class CategoryIcon(
 fun String.toCategoryIcon(): CategoryIcon =
     CategoryIcon.entries.firstOrNull { it.key == this } ?: CategoryIcon.CATEGORY
 
+// ── Category type ─────────────────────────────────────────────────────────────
+
+/**
+ * The input model for a tracking category.
+ *
+ * [key] is persisted in the database and must NOT be renamed.
+ */
+enum class CategoryType(val key: String, val displayName: String) {
+    DEFAULT       ("default",        "Default"),
+    NUMERIC_SLIDER("numeric_slider", "Numeric (Slider)"),
+    NUMERIC_FREE  ("numeric_free",   "Numeric (Input)"),
+}
+
+fun String.toCategoryType(): CategoryType =
+    CategoryType.entries.firstOrNull { it.key == this } ?: CategoryType.DEFAULT
+
 // ── Semantic colour tokens ────────────────────────────────────────────────────
 
 /**
@@ -107,7 +123,7 @@ val CATEGORY_COLOR_OPTIONS: List<Int> = listOf(
     (0xFF00897BL).toInt(),  // Teal 600
     (0xFF43A047L).toInt(),  // Green 600
     (0xFFF4511EL).toInt(),  // Deep Orange 600
-    (0xFFE65100L).toInt(),  // Orange 900
+    (0xFFFFCB0FL).toInt(),  // Amber
     (0xFF8D6E63L).toInt(),  // Brown 400
     (0xFF546E7AL).toInt(),  // Blue Grey 600
 )

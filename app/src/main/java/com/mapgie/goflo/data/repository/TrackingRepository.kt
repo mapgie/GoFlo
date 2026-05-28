@@ -30,6 +30,9 @@ class TrackingRepository(
     fun getAllCategories(): Flow<List<TrackingCategory>> =
         categoryDao.getAllCategories()
 
+    fun getActiveCategories(): Flow<List<TrackingCategory>> =
+        categoryDao.getActiveCategories()
+
     fun getCategoryById(id: Long): Flow<TrackingCategory?> =
         categoryDao.getCategoryById(id)
 
@@ -40,23 +43,25 @@ class TrackingRepository(
         name: String,
         iconName: String = "category",
         colorToken: String = "secondary",
-        isNumeric: Boolean = false,
+        categoryType: String = "default",
         numericMin: Float = 0f,
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
+        numericUnit: String = "",
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
         return categoryDao.insertCategory(
             TrackingCategory(
-                name         = name.trim(),
-                displayOrder = maxOrder + 1,
-                iconName     = iconName,
-                colorToken   = colorToken,
-                isNumeric    = isNumeric,
-                numericMin   = numericMin,
-                numericMax   = numericMax,
+                name          = name.trim(),
+                displayOrder  = maxOrder + 1,
+                iconName      = iconName,
+                colorToken    = colorToken,
+                categoryType  = categoryType,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
                 allowDecimals = allowDecimals,
+                numericUnit   = numericUnit,
             )
         )
     }
@@ -66,7 +71,7 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(name = newName.trim()))
     }
 
-    /** Updates only the icon and colour token of an existing category. */
+    /** Updates icon and colour only — name and type are immutable from this path. */
     suspend fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(cat.copy(iconName = iconName, colorToken = colorToken))
@@ -81,10 +86,11 @@ class TrackingRepository(
         name: String,
         iconName: String,
         colorToken: String,
-        isNumeric: Boolean,
+        categoryType: String,
         numericMin: Float,
         numericMax: Float,
         allowDecimals: Boolean,
+        numericUnit: String = "",
     ) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(
@@ -92,13 +98,51 @@ class TrackingRepository(
                 name          = name.trim(),
                 iconName      = iconName,
                 colorToken    = colorToken,
-                isNumeric     = isNumeric,
+                categoryType  = categoryType,
                 numericMin    = numericMin,
                 numericMax    = numericMax,
                 allowDecimals = allowDecimals,
+                numericUnit   = numericUnit,
             )
         )
     }
+
+    /** Updates the numeric range settings for a category (slider type only). */
+    suspend fun updateNumericSettings(
+        id: Long,
+        numericMin: Float,
+        numericMax: Float,
+        allowDecimals: Boolean,
+        numericUnit: String,
+    ) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(
+            cat.copy(
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+                numericUnit   = numericUnit,
+            )
+        )
+    }
+
+    /** Updates just the unit/key label for a numeric category. */
+    suspend fun updateNumericUnit(id: Long, unit: String) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(cat.copy(numericUnit = unit.trim()))
+    }
+
+    suspend fun archiveCategory(id: Long) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        if (cat.isSystem) return
+        categoryDao.updateCategory(cat.copy(isArchived = true))
+    }
+
+    suspend fun unarchiveCategory(id: Long) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(cat.copy(isArchived = false))
+    }
+
 
     suspend fun deleteCategory(category: TrackingCategory) {
         if (category.isSystem) return   // Guard: system categories cannot be deleted

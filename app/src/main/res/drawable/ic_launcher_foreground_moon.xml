@@ -5,27 +5,46 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
     <!--
-        Clean crescent moon using exact Pythagorean geometry so the arc
-        endpoints lie precisely on their respective circles — no rounding
-        artefacts.
+        Crescent moon — adaptive-icon safe zone 18–90.
 
-        Outer circle  centre (57, 54)  r = 33
-        Pythagorean triple 15-36-39 scaled to ≈33:
-          Exact point set: use 16-30-34 triple on outer circle centred (54,54) r=34
-          (78-54)=24, (24-54)=-30 → hyp=√(576+900)=√1476≈38.4  not exact.
+        Outer circle  centre (52, 52)  r = 28
+        Bite circle   centre (62, 52)  r = 24
+        d = 10
 
-        Instead, use outer r=30 centred (54,54) and the 18-24-30 triple:
-          Δx=24, Δy=18 → (54+24, 54-18)=(78,36) and (54+24, 54+18)=(78,72)
-          Distance check: √(24²+18²)=√(576+324)=√900=30 ✓ EXACT
+        Intersection x (from outer centre) = (d² + r1² − r2²) / 2d
+          = (100 + 784 − 576) / 20 = 15.4
+        Intersection y = ±√(784 − 237.2) ≈ ±23.4
 
-        Bite circle passes through the same two points with r≈26, centred at
-        ≈(59,54) — the arc renderer auto-adjusts tiny floating-point gaps.
+        Intersection points ≈ (67, 29)  and  (67, 75)
 
-        Both arcs use sweep=1 (clockwise, matching Material conventions):
-          • Outer arc (large, CW): left "back" of the crescent
-          • Inner arc (small, CW): concave "bite" edge
+        Outer arc  (67,29)→(67,75): large CCW  (large-arc=1, sweep=0)
+           goes left around the outer circle through (24, 52)
+        Bite arc   (67,75)→(67,29): small CW   (large-arc=0, sweep=1)
+           cuts back through the right of the bite circle
     -->
+
+    <!-- Crescent body — warm ivory so it pops on the deep-indigo background -->
     <path
-        android:fillColor="#3949AB"
-        android:pathData="M78,36 A30,30 0 1,1 78,72 A26,26 0 0,1 78,36 Z" />
+        android:fillColor="#FFF8E1"
+        android:pathData="M67,29 A28,28 0 1,0 67,75 A24,24 0 0,1 67,29 Z" />
+
+    <!-- Top highlight sheen -->
+    <path
+        android:fillColor="#30FFFFFF"
+        android:pathData="M67,29 A28,28 0 0,0 38,28 L50,46 Z" />
+
+    <!-- Stars — tiny filled circles scattered beside the crescent
+         drawn with the zero-length-arc trick: M cx,cy a r,r 0 1,0 0.01,0 Z -->
+    <path
+        android:fillColor="#FFFDE7"
+        android:pathData="M29,30 a2.5,2.5 0 1,0 0.01,0 Z" />
+    <path
+        android:fillColor="#FFFDE7"
+        android:pathData="M21,54 a1.8,1.8 0 1,0 0.01,0 Z" />
+    <path
+        android:fillColor="#FFFDE7"
+        android:pathData="M35,74 a1.5,1.5 0 1,0 0.01,0 Z" />
+    <path
+        android:fillColor="#FFFDE7"
+        android:pathData="M42,22 a1.2,1.2 0 1,0 0.01,0 Z" />
 </vector>
