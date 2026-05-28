@@ -118,14 +118,23 @@ fun ManageCategoriesScreen(
         AddCategoryDialog(
             onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit ->
                 viewModel.addCategory(
-                    name         = name,
-                    iconName     = iconName,
-                    colorToken   = colorToken,
-                    categoryType = categoryType,
-                    numericUnit  = numericUnit,
+                    name          = name,
+                    iconName      = iconName,
+                    colorToken    = colorToken,
+                    categoryType  = categoryType,
+                    numericMin    = numericMin,
+                    numericMax    = numericMax,
+                    allowDecimals = allowDecimals,
+                    numericUnit   = numericUnit,
                     onCreated    = { newId ->
                         showAddDialog = false
-                        onNavigateToCategory(newId)
+                        // Numeric categories have all settings configured in the creation
+                        // dialog; navigating to the values screen would only confuse the
+                        // user with a redundant "Save" prompt. Default categories need to
+                        // go there so the user can add their value options.
+                        if (categoryType == CategoryType.DEFAULT.key) {
+                            onNavigateToCategory(newId)
+                        }
                     }
                 )
             },

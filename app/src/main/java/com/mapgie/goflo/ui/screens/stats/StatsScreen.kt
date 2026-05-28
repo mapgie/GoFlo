@@ -195,12 +195,25 @@ private fun TimeRangePicker(
                 )
             }
             if (rangeLabel != null) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = rangeLabel,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.height(2.dp))
+                // Tapping the range label reopens the picker so the user can jump to
+                // a different month or year without having to re-tap the chip first.
+                TextButton(
+                    onClick = {
+                        when (selectedRange) {
+                            is TimeRange.CalendarYear  -> showYearDialog  = true
+                            is TimeRange.SpecificMonth -> showMonthDialog = true
+                            else -> {}
+                        }
+                    },
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = rangeLabel,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }

@@ -14,10 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -60,6 +63,15 @@ fun CalendarGrid(
 ) {
     var displayMonth by rememberSaveable { mutableStateOf(YearMonth.now()) }
     val currentMonth = YearMonth.now()
+    var showMonthPicker by rememberSaveable { mutableStateOf(false) }
+
+    if (showMonthPicker) {
+        MonthPickerDialog(
+            current = displayMonth,
+            onSelect = { displayMonth = it; showMonthPicker = false },
+            onDismiss = { showMonthPicker = false }
+        )
+    }
 
     Column(modifier = modifier) {
         MonthHeader(
@@ -67,7 +79,8 @@ fun CalendarGrid(
             onPrev = { displayMonth = displayMonth.minusMonths(1) },
             onNext = { displayMonth = displayMonth.plusMonths(1) },
             showTodayButton = displayMonth != currentMonth,
-            onJumpToToday = { displayMonth = currentMonth }
+            onJumpToToday = { displayMonth = currentMonth },
+            onMonthNameClick = { showMonthPicker = true }
         )
         Spacer(Modifier.height(8.dp))
         DayOfWeekRow()
@@ -93,6 +106,7 @@ private fun MonthHeader(
     onNext: () -> Unit,
     showTodayButton: Boolean,
     onJumpToToday: () -> Unit,
+    onMonthNameClick: () -> Unit,
 ) {
     Column {
         Row(
@@ -103,10 +117,13 @@ private fun MonthHeader(
             IconButton(onClick = onPrev) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous month")
             }
-            Text(
-                text = "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
-                style = MaterialTheme.typography.titleMedium
-            )
+            TextButton(onClick = onMonthNameClick) {
+                Text(
+                    text = "${month.month.getDisplayName(TextStyle.FULL, Locale.getDefault())} ${month.year}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
             IconButton(onClick = onNext) {
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next month")
             }
@@ -125,6 +142,45 @@ private fun MonthHeader(
             }
         }
     }
+}
+
+private val monthPickerFmt = DateTimeFormatter.ofPattern("MMMM yyyy")
+
+/** Scrollable month list spanning 3 years back and 1 year forward from today. */
+@Composable
+private fun MonthPickerDialog(
+    current: YearMonth,
+    onSelect: (YearMonth) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val now = YearMonth.now()
+    val months = remember {
+        (-12..36).map { now.plusMonths(it.toLong()) }.reversed()
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Jump to month") },
+        text = {
+            LazyColumn {
+                items(months) { ym ->
+                    TextButton(
+                        onClick = { onSelect(ym) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = ym.format(monthPickerFmt),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (ym == current) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable

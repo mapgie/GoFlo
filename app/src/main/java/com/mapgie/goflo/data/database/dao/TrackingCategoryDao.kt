@@ -34,6 +34,10 @@ interface TrackingCategoryDao {
     @Query("SELECT * FROM tracking_categories WHERE isSystem = 1 AND name = :name LIMIT 1")
     suspend fun getSystemCategoryByName(name: String): TrackingCategory?
 
+    /** Returns the first category (any type) with the given name, or null. Used for import matching. */
+    @Query("SELECT * FROM tracking_categories WHERE name = :name LIMIT 1")
+    suspend fun getCategoryByName(name: String): TrackingCategory?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategory(category: TrackingCategory): Long
 

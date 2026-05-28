@@ -33,17 +33,23 @@ class ManageCategoriesViewModel(
         iconName: String,
         colorToken: String,
         categoryType: String = "default",
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
         numericUnit: String = "",
         onCreated: (Long) -> Unit = {},
     ) {
         if (name.isBlank()) return
         viewModelScope.launch {
             val id = repository.addCategory(
-                name         = name,
-                iconName     = iconName,
-                colorToken   = colorToken,
-                categoryType = categoryType,
-                numericUnit  = numericUnit,
+                name          = name,
+                iconName      = iconName,
+                colorToken    = colorToken,
+                categoryType  = categoryType,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+                numericUnit   = numericUnit,
             )
             onCreated(id)
         }
