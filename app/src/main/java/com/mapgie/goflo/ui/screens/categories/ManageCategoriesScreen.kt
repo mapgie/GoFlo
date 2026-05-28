@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -54,6 +55,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -79,6 +81,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -113,7 +116,7 @@ fun ManageCategoriesScreen(
 
     if (showAddDialog) {
         AddCategoryDialog(
-            onAdd = { name, iconName, colorToken, categoryType, numericUnit ->
+            onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit ->
                 viewModel.addCategory(
                     name         = name,
                     iconName     = iconName,
@@ -135,9 +138,17 @@ fun ManageCategoriesScreen(
     if (categoryToEditAppearance != null) {
         EditAppearanceDialog(
             category = categoryToEditAppearance,
-            onSave = { iconName, colorToken ->
-                viewModel.updateCategoryAppearance(
-                    categoryToEditAppearance.id, iconName, colorToken
+            onSave = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit ->
+                viewModel.updateCategoryNameAndAppearance(
+                    id            = categoryToEditAppearance.id,
+                    name          = name,
+                    iconName      = iconName,
+                    colorToken    = colorToken,
+                    categoryType  = categoryType,
+                    numericMin    = numericMin,
+                    numericMax    = numericMax,
+                    allowDecimals = allowDecimals,
+                    numericUnit   = numericUnit,
                 )
                 pendingEditAppearance = null
             },
@@ -467,7 +478,8 @@ private fun buildCategorySubtitle(category: TrackingCategory): String = buildStr
 @Composable
 private fun AddCategoryDialog(
     onAdd: (name: String, iconName: String, colorToken: String,
-            categoryType: String, numericUnit: String) -> Unit,
+            categoryType: String, numericMin: Float, numericMax: Float,
+            allowDecimals: Boolean, numericUnit: String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name             by rememberSaveable { mutableStateOf("") }
@@ -475,11 +487,19 @@ private fun AddCategoryDialog(
     var numericUnit      by rememberSaveable { mutableStateOf("") }
     var selectedIconKey  by rememberSaveable { mutableStateOf(CategoryIcon.CATEGORY.key) }
     var selectedToken    by rememberSaveable { mutableStateOf(CategoryColor.SECONDARY.key) }
+    var minText          by rememberSaveable { mutableStateOf("0") }
+    var maxText          by rememberSaveable { mutableStateOf("10") }
+    var allowDecimals    by rememberSaveable { mutableStateOf(false) }
 
     val isNumericType = selectedType != CategoryType.DEFAULT.key
 
-    val canAdd by remember(name) {
-        derivedStateOf { name.isNotBlank() }
+    val canAdd by remember(name, isNumericType, minText, maxText) {
+        derivedStateOf {
+            name.isNotBlank() && (!isNumericType || (
+                minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
+                (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
+            ))
+        }
     }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -551,6 +571,31 @@ private fun AddCategoryDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
+                // ── Numeric range settings ────────────────────────────────────
+                AnimatedVisibility(
+                    visible = isNumericType,
+                    enter   = expandVertically() + fadeIn(),
+                    exit    = shrinkVertically() + fadeOut()
+                ) {
+                    HorizontalDivider()
+                }
+                AnimatedVisibility(
+                    visible = isNumericType,
+                    enter   = expandVertically() + fadeIn(),
+                    exit    = shrinkVertically() + fadeOut()
+                ) {
+                    NumericSettingsSection(
+                        isNumeric        = isNumericType,
+                        onToggle         = { /* type controlled by chip selector above */ },
+                        minText          = minText,
+                        onMinChange      = { minText = it },
+                        maxText          = maxText,
+                        onMaxChange      = { maxText = it },
+                        allowDecimals    = allowDecimals,
+                        onDecimalsToggle = { allowDecimals = it }
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -562,7 +607,11 @@ private fun AddCategoryDialog(
                         onClick = {
                             if (canAdd) onAdd(
                                 name, selectedIconKey, selectedToken,
-                                selectedType, numericUnit.trim()
+                                selectedType,
+                                minText.toFloatOrNull() ?: 0f,
+                                maxText.toFloatOrNull() ?: 10f,
+                                allowDecimals,
+                                numericUnit.trim()
                             )
                         },
                         enabled = canAdd
@@ -578,14 +627,37 @@ private fun AddCategoryDialog(
 @Composable
 private fun EditAppearanceDialog(
     category: TrackingCategory,
-    onSave: (iconName: String, colorToken: String) -> Unit,
+    onSave: (name: String, iconName: String, colorToken: String,
+             categoryType: String, numericMin: Float, numericMax: Float,
+             allowDecimals: Boolean, numericUnit: String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    var name            by rememberSaveable { mutableStateOf(category.name) }
     var selectedIconKey by rememberSaveable { mutableStateOf(category.iconName) }
     var selectedToken   by rememberSaveable { mutableStateOf(category.colorToken) }
+    var selectedType    by rememberSaveable { mutableStateOf(category.categoryType) }
+    var numericUnit     by rememberSaveable { mutableStateOf(category.numericUnit) }
+    var minText         by rememberSaveable {
+        mutableStateOf(if (category.allowDecimals) "%.1f".format(category.numericMin) else category.numericMin.toInt().toString())
+    }
+    var maxText         by rememberSaveable {
+        mutableStateOf(if (category.allowDecimals) "%.1f".format(category.numericMax) else category.numericMax.toInt().toString())
+    }
+    var allowDecimals   by rememberSaveable { mutableStateOf(category.allowDecimals) }
+
+    val isNumericType = selectedType != CategoryType.DEFAULT.key
 
     val previewBubble = selectedToken.toCategoryColor()
     val previewIcon   = selectedToken.toCategoryOnColor()
+
+    val canSave by remember(name, isNumericType, minText, maxText) {
+        derivedStateOf {
+            name.isNotBlank() && (!isNumericType || (
+                minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
+                (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
+            ))
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -632,6 +704,53 @@ private fun EditAppearanceDialog(
 
                 HorizontalDivider()
 
+                // Name
+                OutlinedTextField(
+                    value         = name,
+                    onValueChange = { name = it },
+                    label         = { Text("Name") },
+                    singleLine    = true,
+                    modifier      = Modifier.fillMaxWidth()
+                )
+
+                // Type selector (non-system only)
+                if (!category.isSystem) {
+                    Text(
+                        "Type",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        CategoryType.entries.forEach { type ->
+                            FilterChip(
+                                selected  = selectedType == type.key,
+                                onClick   = { selectedType = type.key },
+                                label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
+                                modifier  = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // Unit field — shown only for numeric types
+                    AnimatedVisibility(
+                        visible = isNumericType,
+                        enter   = expandVertically() + fadeIn(),
+                        exit    = shrinkVertically() + fadeOut()
+                    ) {
+                        OutlinedTextField(
+                            value         = numericUnit,
+                            onValueChange = { numericUnit = it },
+                            label         = { Text("Unit / Key (optional)") },
+                            placeholder   = { Text("e.g. °C, bpm, kg…") },
+                            singleLine    = true,
+                            modifier      = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
                 Text("Icon", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryIconGrid(selectedKey = selectedIconKey, onSelect = { selectedIconKey = it })
@@ -640,6 +759,22 @@ private fun EditAppearanceDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
+                // ── Numeric range settings ────────────────────────────────────
+                HorizontalDivider()
+                // System categories (Flow, Symptoms) keep text mode; disable toggle for them
+                if (!category.isSystem) {
+                    NumericSettingsSection(
+                        isNumeric        = isNumericType,
+                        onToggle         = { /* type controlled by chip selector above */ },
+                        minText          = minText,
+                        onMinChange      = { minText = it },
+                        maxText          = maxText,
+                        onMaxChange      = { maxText = it },
+                        allowDecimals    = allowDecimals,
+                        onDecimalsToggle = { allowDecimals = it }
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -647,7 +782,104 @@ private fun EditAppearanceDialog(
                 ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = { onSave(selectedIconKey, selectedToken) }) { Text("Save") }
+                    Button(
+                        onClick = {
+                            if (canSave) onSave(
+                                name, selectedIconKey, selectedToken,
+                                selectedType,
+                                minText.toFloatOrNull() ?: 0f,
+                                maxText.toFloatOrNull() ?: 10f,
+                                allowDecimals,
+                                numericUnit.trim()
+                            )
+                        },
+                        enabled = canSave
+                    ) { Text("Save") }
+                }
+            }
+        }
+    }
+}
+
+// ── Numeric settings section ──────────────────────────────────────────────────
+
+/**
+ * Reusable block shown in both the Add and Edit dialogs for configuring numeric mode.
+ * Renders a toggle row and, when [isNumeric] is true, animated min/max/decimal fields.
+ */
+@Composable
+private fun NumericSettingsSection(
+    isNumeric: Boolean,
+    onToggle: (Boolean) -> Unit,
+    minText: String,
+    onMinChange: (String) -> Unit,
+    maxText: String,
+    onMaxChange: (String) -> Unit,
+    allowDecimals: Boolean,
+    onDecimalsToggle: (Boolean) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Toggle row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Numeric input", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Use a slider instead of text options",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(checked = isNumeric, onCheckedChange = onToggle)
+        }
+
+        // Expanded fields — animated
+        AnimatedVisibility(
+            visible = isNumeric,
+            enter = expandVertically() + fadeIn(),
+            exit  = shrinkVertically() + fadeOut()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Min / Max side-by-side
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value         = minText,
+                        onValueChange = { onMinChange(it) },
+                        label         = { Text("Min") },
+                        singleLine    = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier      = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value         = maxText,
+                        onValueChange = { onMaxChange(it) },
+                        label         = { Text("Max") },
+                        singleLine    = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier      = Modifier.weight(1f)
+                    )
+                }
+                // Decimal toggle
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Allow decimals", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Slider snaps to 0.1 steps instead of whole numbers",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = allowDecimals, onCheckedChange = onDecimalsToggle)
                 }
             }
         }

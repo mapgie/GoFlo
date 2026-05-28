@@ -50,8 +50,32 @@ class ManageCategoriesViewModel(
     }
 
     fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
+        viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
+    }
+
+    fun updateCategoryNameAndAppearance(
+        id: Long,
+        name: String,
+        iconName: String,
+        colorToken: String,
+        categoryType: String = "default",
+        numericMin: Float = 0f,
+        numericMax: Float = 10f,
+        allowDecimals: Boolean = false,
+        numericUnit: String = "",
+    ) {
         viewModelScope.launch {
-            repository.updateCategoryAppearance(id, iconName, colorToken)
+            repository.updateCategoryFullSettings(
+                id            = id,
+                name          = name,
+                iconName      = iconName,
+                colorToken    = colorToken,
+                categoryType  = categoryType,
+                numericMin    = numericMin,
+                numericMax    = numericMax,
+                allowDecimals = allowDecimals,
+                numericUnit   = numericUnit,
+            )
         }
     }
 
