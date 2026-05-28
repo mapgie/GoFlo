@@ -93,7 +93,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 1. Warning banner
             item {
                 StatsWarningBanner(
                     isExpanded = bannerExpanded,
@@ -101,7 +100,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 )
             }
 
-            // 2. Time range picker
             item {
                 TimeRangePicker(
                     selectedRange = state.timeRange,
@@ -109,7 +107,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 )
             }
 
-            // 3. Category picker
             item {
                 CategoryPickerSection(
                     categories = state.categories,
@@ -120,7 +117,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 )
             }
 
-            // 4. Chart type selector (only when ≥1 category selected)
             if (state.selectedCategory1 != null) {
                 item {
                     ChartTypeSelector(
@@ -132,7 +128,6 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 }
             }
 
-            // 5. Chart area
             item {
                 ChartArea(
                     chartData = state.chartData,
@@ -191,7 +186,6 @@ private fun TimeRangePicker(
                 }
             }
 
-            // Show selected range label
             val rangeLabel = when (selectedRange) {
                 is TimeRange.AllTime -> null
                 is TimeRange.YearToDate -> "January 1 – Today"
@@ -211,7 +205,6 @@ private fun TimeRangePicker(
         }
     }
 
-    // Year picker dialog
     if (showYearDialog) {
         val years = (today.year downTo maxOf(2020, today.year - 10)).toList()
         AlertDialog(
@@ -241,7 +234,6 @@ private fun TimeRangePicker(
         )
     }
 
-    // Month picker dialog
     if (showMonthDialog) {
         val months = (0 until 36).map { YearMonth.now().minusMonths(it.toLong()) }
         val monthFmt = DateTimeFormatter.ofPattern("MMMM yyyy")
@@ -308,7 +300,6 @@ private fun CategoryPickerSection(
                 }
             }
 
-            // Selection indicator chips
             if (selectedCat1 != null || selectedCat2 != null) {
                 Row(
                     modifier = Modifier.padding(top = 4.dp),
@@ -412,25 +403,21 @@ private fun ChartTypeSelector(
 
     val options = buildList {
         when {
-            // Single numeric category
             cat1.isNumeric && cat2 == null -> {
                 add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart,  "Average"))
                 add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.BarChart,   "Distribution"))
             }
-            // Mixed or two categories where at least one is numeric — offer time-based charts
             eitherNumeric -> {
                 add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,  "Over Time"))
                 if (cat2 != null)
                     add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart, "Compare"))
             }
-            // Two text categories
             cat2 != null -> {
                 add(ChartOption(ChartType.PIE,              Icons.Default.DonutLarge,  "Distribution"))
                 add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,    "Over Time"))
                 add(ChartOption(ChartType.COMBO,            Icons.Default.TableChart,  "Combinations"))
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart,   "Compare"))
             }
-            // Single text category
             else -> {
                 add(ChartOption(ChartType.PIE,         Icons.Default.DonutLarge, "Distribution"))
                 add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart,   "Over Time"))

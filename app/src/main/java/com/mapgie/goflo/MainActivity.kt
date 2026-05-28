@@ -104,7 +104,7 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             val appPrefs by app.preferencesStore.preferences.collectAsState(initial = initialPrefs)
             val currentTheme = runCatching { AppTheme.valueOf(appPrefs.theme) }.getOrDefault(AppTheme.CORAL)
 
-            GoFloTheme(appTheme = currentTheme, wcag = appPrefs.wcagMode) {
+            GoFloTheme(appTheme = currentTheme) {
                 when (appState) {
                     AppState.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -282,7 +282,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 )
             }
 
-            // ── Tracking categories management ────────────────────────────────
+            // ── Tracking categories management ────────────────────────────────────
 
             composable(Screen.ManageCategories.route) {
                 val vm: ManageCategoriesViewModel = viewModel(
@@ -312,7 +312,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme) {
                 )
             }
 
-            // ── Per-day category logging ──────────────────────────────────────
+            // ── Per-day category logging ─────────────────────────────────────────
 
             composable(
                 route = Screen.LogCategory.route,

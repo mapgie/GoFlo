@@ -299,7 +299,7 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
     // ── Time bucket helpers ───────────────────────────────────────────────────
 
     /**
-     * Groups [logs] into time buckets. Uses weekly buckets for ranges ≤ 90 days,
+     * Groups [logs] into time buckets. Uses weekly buckets for ranges <= 90 days,
      * monthly buckets otherwise.
      */
     private fun groupByTimeBucket(

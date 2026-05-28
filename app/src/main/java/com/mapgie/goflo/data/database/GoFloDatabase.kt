@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 7,
+    version = 6,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -47,7 +47,7 @@ abstract class GoFloDatabase : RoomDatabase() {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
                     "CREATE TABLE IF NOT EXISTS `custom_symptoms` " +
-                        "(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)"
+                        "`(`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL)"
                 )
             }
         }
@@ -170,45 +170,6 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * Replaces [isNumeric] boolean with [categoryType] string, and adds
-         * [numericUnit] and [isArchived].  Table reconstruction is required
-         * because SQLite (API 26) cannot drop columns directly.
-         *
-         * Existing numeric categories (isNumeric=1) are migrated to
-         * categoryType='numeric_slider'.  All other data is preserved.
-         */
-        val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
-                    """CREATE TABLE `tracking_categories_new`
-                       (`id`           INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-                        `name`         TEXT NOT NULL,
-                        `isSystem`     INTEGER NOT NULL DEFAULT 0,
-                        `displayOrder` INTEGER NOT NULL DEFAULT 0,
-                        `iconName`     TEXT NOT NULL DEFAULT 'category',
-                        `colorToken`   TEXT NOT NULL DEFAULT 'secondary',
-                        `categoryType` TEXT NOT NULL DEFAULT 'default',
-                        `numericMin`   REAL NOT NULL DEFAULT 0.0,
-                        `numericMax`   REAL NOT NULL DEFAULT 10.0,
-                        `allowDecimals` INTEGER NOT NULL DEFAULT 0,
-                        `numericUnit`  TEXT NOT NULL DEFAULT '',
-                        `isArchived`   INTEGER NOT NULL DEFAULT 0)"""
-                )
-                database.execSQL(
-                    """INSERT INTO tracking_categories_new
-                       (id, name, isSystem, displayOrder, iconName, colorToken,
-                        categoryType, numericMin, numericMax, allowDecimals)
-                       SELECT id, name, isSystem, displayOrder, iconName, colorToken,
-                           CASE WHEN isNumeric=1 THEN 'numeric_slider' ELSE 'default' END,
-                           numericMin, numericMax, allowDecimals
-                       FROM tracking_categories"""
-                )
-                database.execSQL("DROP TABLE tracking_categories")
-                database.execSQL("ALTER TABLE tracking_categories_new RENAME TO tracking_categories")
-            }
-        }
-
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -280,14 +241,14 @@ abstract class GoFloDatabase : RoomDatabase() {
         }
 
         /**
-         * Seeds system categories with ALL current (v7) columns.
+         * Seeds system categories with ALL current (v5) columns.
          * Called only from [RoomDatabase.Callback.onCreate] for fresh installs.
          */
         private fun seedSystemCategories(database: SupportSQLiteDatabase) {
             // Flow — water drop icon, primary colour token
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`) " +
-                "VALUES ('Flow', 1, 0, 'water', 'primary', 'default')"
+                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`) " +
+                "VALUES ('Flow', 1, 0, 'water', 'primary')"
             )
             val flowIdCursor = database.query("SELECT last_insert_rowid()")
             flowIdCursor.moveToFirst()
@@ -303,8 +264,8 @@ abstract class GoFloDatabase : RoomDatabase() {
 
             // Symptoms — healing icon, tertiary (accent) colour token
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`) " +
-                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary', 'default')"
+                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`) " +
+                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary')"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
             symptomIdCursor.moveToFirst()
@@ -327,7 +288,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .addCallback(object : Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
