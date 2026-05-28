@@ -84,6 +84,7 @@ class LogCategoryViewModel(
         // Load existing log for this date+category (or by logId for edit mode)
         val existingEntry = when {
             existingLogId != null -> repository.getLogById(existingLogId)
+            category?.allowMultiple == true -> null   // always create new when allowMultiple
             else -> repository.getExistingLog(date, categoryId)
         }
 
@@ -154,10 +155,11 @@ class LogCategoryViewModel(
         viewModelScope.launch {
             runCatching {
                 repository.saveLog(
-                    date = state.date,
-                    categoryId = categoryId,
+                    date           = state.date,
+                    categoryId     = categoryId,
                     selectedValues = valuesToSave,
-                    notes = state.notes
+                    notes          = state.notes,
+                    allowMultiple  = state.category?.allowMultiple ?: false
                 )
                 _uiState.update { it.copy(saved = true) }
             }.onFailure { e ->

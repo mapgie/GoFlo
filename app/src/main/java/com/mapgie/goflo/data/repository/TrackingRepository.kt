@@ -54,6 +54,7 @@ class TrackingRepository(
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
@@ -68,6 +69,7 @@ class TrackingRepository(
                 numericMax    = numericMax,
                 allowDecimals = allowDecimals,
                 numericUnit   = numericUnit,
+                allowMultiple = allowMultiple,
             )
         )
     }
@@ -97,6 +99,7 @@ class TrackingRepository(
         numericMax: Float,
         allowDecimals: Boolean,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
     ) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(
@@ -109,6 +112,7 @@ class TrackingRepository(
                 numericMax    = numericMax,
                 allowDecimals = allowDecimals,
                 numericUnit   = numericUnit,
+                allowMultiple = allowMultiple,
             )
         )
     }
@@ -220,7 +224,8 @@ class TrackingRepository(
 
     /**
      * Saves (upserts) a tracking log for the given date + category.
-     * If a log already exists for that (date, category) pair, it is updated in-place.
+     * If a log already exists for that (date, category) pair, it is updated in-place,
+     * unless [allowMultiple] is true — in which case a new log is always inserted.
      *
      * @return the ID of the saved log.
      */
@@ -228,13 +233,18 @@ class TrackingRepository(
         date: LocalDate,
         categoryId: Long,
         selectedValues: Set<String>,
-        notes: String
+        notes: String,
+        allowMultiple: Boolean = false,
     ): Long {
         val dateStr = date.toString()
-        val existing = logDao.getLogForDateAndCategory(dateStr, categoryId)
-        val logId = if (existing != null) {
-            logDao.updateLog(existing.copy(notes = notes))
-            existing.id
+        val logId = if (!allowMultiple) {
+            val existing = logDao.getLogForDateAndCategory(dateStr, categoryId)
+            if (existing != null) {
+                logDao.updateLog(existing.copy(notes = notes))
+                existing.id
+            } else {
+                logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes))
+            }
         } else {
             logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes))
         }

@@ -303,12 +303,16 @@ fun ManageCategoryValuesScreen(
                 modifier  = Modifier.padding(padding),
                 onSave    = { min, max, decimals, unit ->
                     viewModel.updateNumericSettings(min, max, decimals, unit)
+                    onNavigateBack()
                 }
             )
             "numeric_free" -> NumericFreeSettings(
                 category = category,
                 modifier = Modifier.padding(padding),
-                onSave   = { unit -> viewModel.updateUnit(unit) }
+                onSave   = { unit ->
+                    viewModel.updateUnit(unit)
+                    onNavigateBack()
+                }
             )
             else -> DefaultCategoryValues(
                 state             = state,

@@ -19,6 +19,15 @@ Rules:
 
 ---
 
+## [0.12.3-beta.1] - 2026-05-28
+
+### Fixed
+- **Numeric category toggle stuck ON** — the redundant "Numeric input" toggle inside the category creation and edit dialogs is removed; the type selector (Default / Numeric Slider / Numeric Input) already controls this, and the toggle had no effect.
+- **No way to log a category multiple times per day** — a new "Allow multiple per day" setting (in both the create and edit dialogs) lets numeric and text categories be logged more than once on the same day; existing categories default to single-entry behaviour.
+- **Save in category settings didn't navigate back** — tapping Save on the Numeric Slider and Numeric Input settings screens now returns to the category list immediately.
+
+---
+
 ## [0.12.2-beta.1] - 2026-05-28
 
 ### Fixed

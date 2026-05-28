@@ -37,6 +37,7 @@ class ManageCategoriesViewModel(
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
         onCreated: (Long) -> Unit = {},
     ) {
         if (name.isBlank()) return
@@ -50,6 +51,7 @@ class ManageCategoriesViewModel(
                 numericMax    = numericMax,
                 allowDecimals = allowDecimals,
                 numericUnit   = numericUnit,
+                allowMultiple = allowMultiple,
             )
             onCreated(id)
         }
@@ -69,6 +71,7 @@ class ManageCategoriesViewModel(
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
     ) {
         viewModelScope.launch {
             repository.updateCategoryFullSettings(
@@ -81,6 +84,7 @@ class ManageCategoriesViewModel(
                 numericMax    = numericMax,
                 allowDecimals = allowDecimals,
                 numericUnit   = numericUnit,
+                allowMultiple = allowMultiple,
             )
         }
     }
