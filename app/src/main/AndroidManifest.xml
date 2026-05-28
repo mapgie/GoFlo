@@ -126,6 +126,23 @@
         </receiver>
 
         <!--
+            GoFlo Quick Log widget (2×2 cells).
+            Displays up to four active tracking categories; tapping one opens the
+            app's per-day log screen for that category.
+        -->
+        <receiver
+            android:name=".widget.QuickLogWidget"
+            android:exported="true"
+            android:label="GoFlo Quick Log">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_log_widget_info" />
+        </receiver>
+
+        <!--
             FileProvider for data export. Exposes files from cacheDir/exports/ via a
             content:// URI so the share sheet can deliver the export file to any target
             app without granting broad storage permissions.
