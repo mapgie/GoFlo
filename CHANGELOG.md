@@ -19,36 +19,30 @@ Rules:
 
 ---
 
+## [0.12.2-beta.1] - 2026-05-28
+
+### Fixed
+- **Changelog line breaks** — hard-wrapped continuation lines in changelog entries no longer render as separate text items in the "What's New" dialog; each bullet is now a single unbroken line.
+- **No way to revert custom launcher icon** — the icon picker now shows a "GoFlo" option (the original coral drop icon) at the top so users can switch back to the default after choosing a discreet icon.
+
+---
+
 ## [0.12.1-beta.1] - 2026-05-28
 
 ### Fixed
-- **Launcher "app has a bug" pop-up** — `AppIconManager.applyIcon` now checks the current
-  component state before calling `setComponentEnabledSetting`; no-ops when the state is
-  already correct so the launcher is never notified on every cold start.
-- **Changelog showing raw markdown** — the "What's New" dialog now renders `### headings`,
-  `- bullets`, and `**bold**` text instead of displaying raw syntax characters.
-- **Delete All Data only deleted periods** — the action now also removes all tracking log
-  entries. Category definitions and their value options are preserved.
-- **Import only imported periods** — importing a v2 JSON file now also restores tracking
-  logs; categories are matched by name and created if missing; existing logs are skipped
-  in merge mode.
-- **Numeric category → management screen shown unnecessarily** — after creating a numeric
-  category all settings are already captured in the creation dialog; the app no longer
-  navigates to the values management screen. Default categories still navigate there so
-  the user can add their value options.
-- **Numeric category creation discarded min/max/decimals** — the values entered in the
-  creation dialog are now passed through to the repository correctly.
+- **Launcher "app has a bug" pop-up** — `AppIconManager.applyIcon` now checks the current component state before calling `setComponentEnabledSetting`; no-ops when the state is already correct so the launcher is never notified on every cold start.
+- **Changelog showing raw markdown** — the "What's New" dialog now renders `### headings`, `- bullets`, and `**bold**` text instead of displaying raw syntax characters.
+- **Delete All Data only deleted periods** — the action now also removes all tracking log entries. Category definitions and their value options are preserved.
+- **Import only imported periods** — importing a v2 JSON file now also restores tracking logs; categories are matched by name and created if missing; existing logs are skipped in merge mode.
+- **Numeric category → management screen shown unnecessarily** — after creating a numeric category all settings are already captured in the creation dialog; the app no longer navigates to the values management screen. Default categories still navigate there so the user can add their value options.
+- **Numeric category creation discarded min/max/decimals** — the values entered in the creation dialog are now passed through to the repository correctly.
 
 ### Changed
-- **Export dialog** — the "What to include" section now shows chips instead of checkboxes,
-  matching the date-range and format sections and preventing content overflow.
+- **Export dialog** — the "What to include" section now shows chips instead of checkboxes, matching the date-range and format sections and preventing content overflow.
 
 ### Added
-- **Home screen — tap month name to jump** — tapping the month/year label in the calendar
-  header opens a scrollable month picker (3 years back, 1 year forward) for fast navigation.
-- **Stats screen — tap range label to re-pick** — when Year or Month view is active,
-  tapping the displayed range label reopens the picker without requiring a re-tap of the
-  segmented button.
+- **Home screen — tap month name to jump** — tapping the month/year label in the calendar header opens a scrollable month picker (3 years back, 1 year forward) for fast navigation.
+- **Stats screen — tap range label to re-pick** — when Year or Month view is active, tapping the displayed range label reopens the picker without requiring a re-tap of the segmented button.
 
 ---
 
@@ -90,70 +84,42 @@ Rules:
 ## [0.9.1-beta.1] - 2026-05-24
 
 ### Fixed
-- **Crash on theme change** — changing the colour theme no longer crashes.  The
-  root cause was `PackageManager.setComponentEnabledSetting()` being called
-  five times in rapid succession inside a `LaunchedEffect(currentTheme)` every
-  time the user tapped a new palette, which could destabilise the launcher on
-  some devices.  The app icon is now managed entirely separately from the
-  colour theme.
+- **Crash on theme change** — changing the colour theme no longer crashes.  The root cause was `PackageManager.setComponentEnabledSetting()` being called five times in rapid succession inside a `LaunchedEffect(currentTheme)` every time the user tapped a new palette, which could destabilise the launcher on some devices.  The app icon is now managed entirely separately from the colour theme.
 
 ### Added
-- **App icon picker** (Settings → Appearance) — choose your launcher icon
-  independently of the colour theme:
+- **App icon picker** (Settings → Appearance) — choose your launcher icon independently of the colour theme:
   - *Drop icons* — five colour-tinted variants (Coral, Teal, Sage, Dark, Blue)
-  - *Discreet icons* — **Leaf**, **Moon**, and **Star** shapes that give no
-    hint the app is a period tracker; ideal for privacy on a shared or
-    visible home screen
-  - *Your own icon* — pick any image from the gallery; GoFlo creates a
-    pinned home-screen shortcut with a 512 × 512 px crop of that image as
-    the icon, which can then replace the original in the launcher's app
-    drawer.  On-screen instructions cover image format (PNG or JPEG),
-    recommended size (512 × 512 px), and how to hide the original icon.
+  - *Discreet icons* — **Leaf**, **Moon**, and **Star** shapes that give no hint the app is a period tracker; ideal for privacy on a shared or visible home screen
+  - *Your own icon* — pick any image from the gallery; GoFlo creates a pinned home-screen shortcut with a 512 × 512 px crop of that image as the icon, which can then replace the original in the launcher's app drawer.  On-screen instructions cover image format (PNG or JPEG), recommended size (512 × 512 px), and how to hide the original icon.
 
 ---
 
 ## [0.9.0-beta.1] - 2026-05-24
 
 ### Added
-- **Custom tracking categories** — create any category (Mood, Discharge, Weather…) with
-  user-defined value options; log entries per day via the FAB or long-pressing a calendar day
-- **Flow & Symptoms as system categories** — pre-seeded with their existing values; editable
-  but not deletable; the start of a unified per-day tracking model
-- **Manage Categories screen** (Settings → Tracking Categories) — add, rename, and delete
-  categories and their values; system categories show a lock icon
-- **Value rename dialog** — choose "Fix everywhere" (updates all past log entries) or
-  "Rename option only" (leaves historical entries unchanged); ideal for typo corrections
-- **Day Log bottom sheet** — tap any calendar day with data to see a summary of the period
-  entry and all tracking logs for that date; Edit buttons for each section
+- **Custom tracking categories** — create any category (Mood, Discharge, Weather…) with user-defined value options; log entries per day via the FAB or long-pressing a calendar day
+- **Flow & Symptoms as system categories** — pre-seeded with their existing values; editable but not deletable; the start of a unified per-day tracking model
+- **Manage Categories screen** (Settings → Tracking Categories) — add, rename, and delete categories and their values; system categories show a lock icon
+- **Value rename dialog** — choose "Fix everywhere" (updates all past log entries) or "Rename option only" (leaves historical entries unchanged); ideal for typo corrections
+- **Day Log bottom sheet** — tap any calendar day with data to see a summary of the period entry and all tracking logs for that date; Edit buttons for each section
 - **"Log more…" button** inside the Day Log sheet — opens the log-type picker for that day
-- **Quick Log setting** (Settings) — choose whether the FAB short-press opens Log Period
-  or any custom tracking category
-- **Calendar tracking dots** — days with tracking entries (but no period) show a
-  secondary-colour dot for at-a-glance visibility
+- **Quick Log setting** (Settings) — choose whether the FAB short-press opens Log Period or any custom tracking category
+- **Calendar tracking dots** — days with tracking entries (but no period) show a secondary-colour dot for at-a-glance visibility
 
 ### Changed
-- **FAB redesigned** — pill-shaped "Log…" button; short-press = Quick Log,
-  long-press = menu listing Log Period + each tracking category
-- **Calendar tap behaviour** — tapping a day that already has data opens the Day Log
-  summary sheet instead of jumping straight to the log form
+- **FAB redesigned** — pill-shaped "Log…" button; short-press = Quick Log, long-press = menu listing Log Period + each tracking category
+- **Calendar tap behaviour** — tapping a day that already has data opens the Day Log summary sheet instead of jumping straight to the log form
 - **Calendar long-press** — long-pressing any day now runs Quick Log for that specific date
-- **DB bumped to version 3** — migration creates four new tracking tables; existing data
-  is untouched; fresh installs seed Flow and Symptoms system categories automatically
+- **DB bumped to version 3** — migration creates four new tracking tables; existing data is untouched; fresh installs seed Flow and Symptoms system categories automatically
 
 ---
 
 ## [0.8.3-beta.1] - 2026-05-23
 
 ### Changed
-- **Settings screen reorganised** — sections now collapse/expand with an animated
-  chevron, reducing visual clutter; order changed to priority-first:
-  Reminders → Cycle → Appearance → Security & Privacy → Data → About
-- **Compact theme picker** — replaced the stacked chip rows with a three-segment
-  Light / Dark / Auto mode control and three tappable colour circles
-  (Coral / Teal / Sage); Accessibility themes (High Contrast, Blue & Orange)
-  remain as chips below a divider; palette row hides automatically in Auto mode
-- **Data section** — Export JSON and Export CSV promoted to a side-by-side row;
-  Delete All Data separated from safe actions by a divider
+- **Settings screen reorganised** — sections now collapse/expand with an animated chevron, reducing visual clutter; order changed to priority-first: Reminders → Cycle → Appearance → Security & Privacy → Data → About
+- **Compact theme picker** — replaced the stacked chip rows with a three-segment Light / Dark / Auto mode control and three tappable colour circles (Coral / Teal / Sage); Accessibility themes (High Contrast, Blue & Orange) remain as chips below a divider; palette row hides automatically in Auto mode
+- **Data section** — Export JSON and Export CSV promoted to a side-by-side row; Delete All Data separated from safe actions by a divider
 - **About section** — Privacy Policy and Licences promoted to a side-by-side row
 
 ---
@@ -161,53 +127,24 @@ Rules:
 ## [0.8.2-beta.1] - 2026-05-23
 
 ### Changed
-- **Swipe-to-delete UX** — replaced the confirmation dialog with a Snackbar +
-  Undo pattern; swiping right-to-left now removes the card immediately and shows
-  a 10-second "Period deleted · Undo" snackbar; tapping Undo restores the period
-  with no DB write; the DB deletion is committed only after the snackbar times out
+- **Swipe-to-delete UX** — replaced the confirmation dialog with a Snackbar + Undo pattern; swiping right-to-left now removes the card immediately and shows a 10-second "Period deleted · Undo" snackbar; tapping Undo restores the period with no DB write; the DB deletion is committed only after the snackbar times out
 
 ### Technical
-- `HistoryViewModel`: replaced single `deletePeriod()` with three-stage lifecycle
-  — `stageDeletion()` (hide from list), `undoDeletion()` (restore), `commitDeletion()`
-  (DB write); the `periods` StateFlow now combines with `_pendingDeleteIds` to
-  filter out staged entries; `symptomTrends` continues to use the raw repository
-  flow so trends are unaffected by transient pending-delete state
-- `HistoryScreen`: `SwipeToDismissBox.confirmValueChange` returns `true` for
-  `EndToStart` (card slides off); `LaunchedEffect(state.currentValue)` calls
-  `onDelete` when settled; snackbar coroutine launched on screen-level
-  `rememberCoroutineScope` so it survives card composable disposal;
-  `Modifier.animateItem()` on each card for smooth list collapse on removal
+- `HistoryViewModel`: replaced single `deletePeriod()` with three-stage lifecycle — `stageDeletion()` (hide from list), `undoDeletion()` (restore), `commitDeletion()` (DB write); the `periods` StateFlow now combines with `_pendingDeleteIds` to filter out staged entries; `symptomTrends` continues to use the raw repository flow so trends are unaffected by transient pending-delete state
+- `HistoryScreen`: `SwipeToDismissBox.confirmValueChange` returns `true` for `EndToStart` (card slides off); `LaunchedEffect(state.currentValue)` calls `onDelete` when settled; snackbar coroutine launched on screen-level `rememberCoroutineScope` so it survives card composable disposal; `Modifier.animateItem()` on each card for smooth list collapse on removal
 
 ---
 
 ## [0.8.1-beta.1] - 2026-05-23
 
 ### Fixed
-- **Security — widget PIN bypass**: the home screen widget now shows a neutral
-  placeholder ("GoFlo — tap to open") instead of cycle data when PIN lock is
-  enabled; sensitive health data is no longer visible on the home screen without
-  authentication (regression introduced in 0.8.0-beta.1)
-- **Security — CSV formula injection**: `exportAsCsv()` now prefixes any
-  free-text field (notes, custom symptoms) whose first character is `=`, `+`,
-  `-`, `@`, `\t`, or `\r` with a tab so spreadsheet apps never interpret the
-  content as a formula (DDE/CSV injection defence)
-- **Widget — custom cycle length ignored**: the widget now reads
-  `AppPreferencesStore.preferredCycleLength` and uses the user-set override
-  instead of always falling back to the auto-calculated average
-- **"Set end date" button**: tapping "Set end date" in the no-end-date
-  confirmation dialog now immediately opens the end-date picker; previously it
-  only dismissed the dialog, leaving the user to manually find the picker
-- **Cycle slider — DataStore write on every drag frame**: the cycle-length
-  slider now uses a local `Float` state while dragging and writes to DataStore
-  only in `onValueChangeFinished`; eliminates dozens of disk writes per second
-  during drag
-- **Unmanaged CoroutineScope in widget**: `GoFloWidget.updateAllWidgets()` now
-  uses a module-level `CoroutineScope(SupervisorJob() + Dispatchers.IO)` instead
-  of creating a new orphaned scope on every call
-- **No validation guard on `setPreferredCycleLength`**: the DataStore setter now
-  `require`s that the value is either 0 (auto) or within 21–45, throwing
-  `IllegalArgumentException` on out-of-range input to prevent silent prediction
-  corruption
+- **Security — widget PIN bypass**: the home screen widget now shows a neutral placeholder ("GoFlo — tap to open") instead of cycle data when PIN lock is enabled; sensitive health data is no longer visible on the home screen without authentication (regression introduced in 0.8.0-beta.1)
+- **Security — CSV formula injection**: `exportAsCsv()` now prefixes any free-text field (notes, custom symptoms) whose first character is `=`, `+`, `-`, `@`, `\t`, or `\r` with a tab so spreadsheet apps never interpret the content as a formula (DDE/CSV injection defence)
+- **Widget — custom cycle length ignored**: the widget now reads `AppPreferencesStore.preferredCycleLength` and uses the user-set override instead of always falling back to the auto-calculated average
+- **"Set end date" button**: tapping "Set end date" in the no-end-date confirmation dialog now immediately opens the end-date picker; previously it only dismissed the dialog, leaving the user to manually find the picker
+- **Cycle slider — DataStore write on every drag frame**: the cycle-length slider now uses a local `Float` state while dragging and writes to DataStore only in `onValueChangeFinished`; eliminates dozens of disk writes per second during drag
+- **Unmanaged CoroutineScope in widget**: `GoFloWidget.updateAllWidgets()` now uses a module-level `CoroutineScope(SupervisorJob() + Dispatchers.IO)` instead of creating a new orphaned scope on every call
+- **No validation guard on `setPreferredCycleLength`**: the DataStore setter now `require`s that the value is either 0 (auto) or within 21–45, throwing `IllegalArgumentException` on out-of-range input to prevent silent prediction corruption
 
 ---
 
@@ -216,144 +153,95 @@ Rules:
 ### Added
 - **Home screen widget** — a 2×1 cell AppWidget showing cycle status at a glance:
   - While a period is active: "Period · day N" + "Avg cycle: N days"
-  - Otherwise: "Period in N days" / "Period due today" / "Period due tomorrow" +
-    "Day N of ~N"
+  - Otherwise: "Period in N days" / "Period due today" / "Period due tomorrow" + "Day N of ~N"
   - No data logged yet: "Tap to get started"
   - Tapping the widget opens the app
-  - Updated every 30 minutes by the OS (the system minimum); data is read from
-    Room on `Dispatchers.IO` via `goAsync()` so the main thread is never blocked
-  - Registered in AndroidManifest as `.widget.GoFloWidget` with
-    `@xml/widget_info` (minWidth 180 dp, targetCellWidth 2, minSdk 26 compat)
-  - Background: dark semi-transparent rounded rectangle (`widget_background.xml`)
-    visible on both dark and light launcher wallpapers
+  - Updated every 30 minutes by the OS (the system minimum); data is read from Room on `Dispatchers.IO` via `goAsync()` so the main thread is never blocked
+  - Registered in AndroidManifest as `.widget.GoFloWidget` with `@xml/widget_info` (minWidth 180 dp, targetCellWidth 2, minSdk 26 compat)
+  - Background: dark semi-transparent rounded rectangle (`widget_background.xml`) visible on both dark and light launcher wallpapers
 
 ---
 
 ## [0.7.0-beta.1] - 2026-05-23
 
 ### Added
-- **CSV export** — Settings → Data → Export Data (CSV) serialises all period logs
-  to a standard CSV file (RFC 4180) with columns: start_date, end_date,
-  duration_days, flow_level, symptoms (semicolon-separated), notes; shared via the
-  Android share sheet using the existing FileProvider; compatible with spreadsheet
-  apps and data analysis tools
-- **Swipe-to-delete in History** — swipe any period card right-to-left to reveal a
-  red trash background; releasing past the threshold shows a confirmation dialog
-  ("Delete / Cancel"); the card always snaps back so no accidental deletes occur
-- **Symptom trends** — a "Symptom Trends" card appears at the top of the History
-  screen once ≥3 periods are logged; shows up to 5 most-common symptoms with their
-  occurrence count, percentage-of-periods, and a thin progress bar for quick
-  visual comparison
+- **CSV export** — Settings → Data → Export Data (CSV) serialises all period logs to a standard CSV file (RFC 4180) with columns: start_date, end_date, duration_days, flow_level, symptoms (semicolon-separated), notes; shared via the Android share sheet using the existing FileProvider; compatible with spreadsheet apps and data analysis tools
+- **Swipe-to-delete in History** — swipe any period card right-to-left to reveal a red trash background; releasing past the threshold shows a confirmation dialog ("Delete / Cancel"); the card always snaps back so no accidental deletes occur
+- **Symptom trends** — a "Symptom Trends" card appears at the top of the History screen once ≥3 periods are logged; shows up to 5 most-common symptoms with their occurrence count, percentage-of-periods, and a thin progress bar for quick visual comparison
 
 ---
 
 ## [0.6.0-beta.1] - 2026-05-23
 
 ### Added
-- **Cycle length personalisation** — Settings → Cycle section with a toggle to
-  switch between "Auto" (calculated from logged history) and a custom fixed length
-  (21–45 days, controlled by a slider); preference is persisted in DataStore and
-  feeds HomeViewModel via a combined flow so the calendar and all cycle predictions
-  update instantly without restart
-- **Ovulation window (±2 days)** — the calendar now marks the two days before and
-  after the peak ovulation day with a softer 4 dp, 50%-alpha dot; the home screen
-  Cycle Info card now shows the full five-day range (e.g. "May 20 – May 24")
-  instead of a single date; TalkBack announces surrounding days as "fertility
-  window" and the peak day as "ovulation day"
+- **Cycle length personalisation** — Settings → Cycle section with a toggle to switch between "Auto" (calculated from logged history) and a custom fixed length (21–45 days, controlled by a slider); preference is persisted in DataStore and feeds HomeViewModel via a combined flow so the calendar and all cycle predictions update instantly without restart
+- **Ovulation window (±2 days)** — the calendar now marks the two days before and after the peak ovulation day with a softer 4 dp, 50%-alpha dot; the home screen Cycle Info card now shows the full five-day range (e.g. "May 20 – May 24") instead of a single date; TalkBack announces surrounding days as "fertility window" and the peak day as "ovulation day"
 
 ---
 
 ## [0.5.1-beta.1] - 2026-05-23
 
 ### Fixed
-- **Accessibility**: bottom navigation bar icons now have content descriptions
-  ("Home", "History", "Settings") so TalkBack announces them correctly
-- **End-date warning**: tapping Save on the Log Period screen without setting an
-  end date now shows a confirmation dialog ("Save as ongoing / Set end date")
-  explaining that ongoing entries are excluded from average cycle calculations
+- **Accessibility**: bottom navigation bar icons now have content descriptions ("Home", "History", "Settings") so TalkBack announces them correctly
+- **End-date warning**: tapping Save on the Log Period screen without setting an end date now shows a confirmation dialog ("Save as ongoing / Set end date") explaining that ongoing entries are excluded from average cycle calculations
 
 ### Added
-- **Privacy Policy** button in Settings → About navigates to the full privacy &
-  medical disclaimer — previously the disclaimer was only shown on install/update
+- **Privacy Policy** button in Settings → About navigates to the full privacy & medical disclaimer — previously the disclaimer was only shown on install/update
 
 ---
 
 ## [0.5.0-beta.1] - 2026-05-23
 
 ### Added
-- **10 themes** — Settings → Appearance now shows a grouped theme picker with a
-  colour-swatch dot on each chip so you can preview the hue before selecting:
+- **10 themes** — Settings → Appearance now shows a grouped theme picker with a colour-swatch dot on each chip so you can preview the hue before selecting:
   - **Light** — Coral, Teal (was "Turquoise"), Sage (was "Green")
-  - **Dark** — Coral, Teal, Sage; each is a Material3 dark colour scheme with
-    light primary tones on deep backgrounds; status-bar icons automatically flip
-    to light when a dark theme is active
-  - **Follow system** — adopts the Teal palette in light or dark based on your
-    device's system-wide dark-mode preference
-  - **High Contrast** — Light (near-black on pure white) and Dark (pure white on
-    pure black); every contrast pair exceeds 15:1
-  - **Blue & Orange** — deuteranopia- and protanopia-safe palette; uses blue as
-    the primary colour instead of red, safe for the ~9 % of users with red-green
-    colour vision deficiency; period days render as blue circles
-- Existing "Turquoise" and "Green" preferences stored in DataStore continue to
-  resolve correctly — no data migration needed
+  - **Dark** — Coral, Teal, Sage; each is a Material3 dark colour scheme with light primary tones on deep backgrounds; status-bar icons automatically flip to light when a dark theme is active
+  - **Follow system** — adopts the Teal palette in light or dark based on your device's system-wide dark-mode preference
+  - **High Contrast** — Light (near-black on pure white) and Dark (pure white on pure black); every contrast pair exceeds 15:1
+  - **Blue & Orange** — deuteranopia- and protanopia-safe palette; uses blue as the primary colour instead of red, safe for the ~9 % of users with red-green colour vision deficiency; period days render as blue circles
+- Existing "Turquoise" and "Green" preferences stored in DataStore continue to resolve correctly — no data migration needed
 
 ### Changed
-- All 10 themes (110 measured colour pairs) verified against WCAG AA before
-  shipping; three dark-theme outline colours bumped by 2 RGB points to clear
-  the 3.0:1 UI-component threshold on dark surfaceVariant backgrounds
+- All 10 themes (110 measured colour pairs) verified against WCAG AA before shipping; three dark-theme outline colours bumped by 2 RGB points to clear the 3.0:1 UI-component threshold on dark surfaceVariant backgrounds
 
 ---
 
 ## [0.4.2-beta.1] - 2026-05-23
 
 ### Fixed
-- **WCAG AA contrast — Coral theme**: primary colour darkened from `#D9604A` to `#C15542`
-  to fix three failing contrast pairs:
+- **WCAG AA contrast — Coral theme**: primary colour darkened from `#D9604A` to `#C15542` to fix three failing contrast pairs:
   - White day-number text on period-filled circles: was 3.7:1, now **4.5:1** (threshold 4.5:1)
   - Primary on `surfaceVariant` (chip borders, ovulation dot): was 2.9:1, now **3.5:1** (threshold 3.0:1)
   - Primary on `primaryContainer` (focused outlines): was 2.8:1, now **3.5:1** (threshold 3.0:1)
   - Turquoise and Green themes were already fully compliant; no changes needed
-- `template_requirements.md`: WCAG AA checkbox now checked — all 33 measured pairs
-  pass across all three themes
+- `template_requirements.md`: WCAG AA checkbox now checked — all 33 measured pairs pass across all three themes
 
 ---
 
 ## [0.4.1-beta.1] - 2026-05-23
 
 ### Fixed
-- **Accessibility — touch targets**: calendar day cells now use the full grid cell as the tap target
-  (≥48 dp on typical phones) instead of the inner 36 dp circle, matching Android's minimum
-- **Accessibility — screen reader labels**: each calendar day now announces its full state to
-  TalkBack, e.g. "May 23, today, period day" or "May 25, predicted period, ovulation window" —
-  no longer relies on colour or shape alone
-- **Accessibility — version row**: Settings → About version row now exposes itself as a button to
-  TalkBack and shows a "Tap to see changelog" subtitle for sighted users
-- **Accessibility — ovulation dot**: dot enlarged from 4 dp to 6 dp for improved visibility at
-  small calendar cell sizes
+- **Accessibility — touch targets**: calendar day cells now use the full grid cell as the tap target (≥48 dp on typical phones) instead of the inner 36 dp circle, matching Android's minimum
+- **Accessibility — screen reader labels**: each calendar day now announces its full state to TalkBack, e.g. "May 23, today, period day" or "May 25, predicted period, ovulation window" — no longer relies on colour or shape alone
+- **Accessibility — version row**: Settings → About version row now exposes itself as a button to TalkBack and shows a "Tap to see changelog" subtitle for sighted users
+- **Accessibility — ovulation dot**: dot enlarged from 4 dp to 6 dp for improved visibility at small calendar cell sizes
 
 ### Changed
-- `README.md`: documented rationale for API 26 minimum (NotificationChannel, introduced in
-  Android 8.0, is required for the alarm-stream reminder channel)
-- `template_requirements.md`: checked off all items that were implemented but still marked `[ ]`
-  (README, CHANGELOG, LESSONS, CI workflows, build/signing, licences screen, notifications,
-  authentication, privacy — one remaining open item: WCAG AA contrast ratio verification)
+- `README.md`: documented rationale for API 26 minimum (NotificationChannel, introduced in Android 8.0, is required for the alarm-stream reminder channel)
+- `template_requirements.md`: checked off all items that were implemented but still marked `[ ]` (README, CHANGELOG, LESSONS, CI workflows, build/signing, licences screen, notifications, authentication, privacy — one remaining open item: WCAG AA contrast ratio verification)
 
 ---
 
 ## [0.4.0-beta.1] - 2026-05-23
 
 ### Added
-- Custom symptoms: tap the **+ Add** chip in the Symptoms section of Log Period to pick from your
-  saved symptom library or type a new name; new names are saved to the library for reuse
-- Custom symptom names are always stored and displayed in lowercase; the picker is case-insensitive
-  (typing "Nausea" and "nausea" resolve to the same entry)
+- Custom symptoms: tap the **+ Add** chip in the Symptoms section of Log Period to pick from your saved symptom library or type a new name; new names are saved to the library for reuse
+- Custom symptom names are always stored and displayed in lowercase; the picker is case-insensitive (typing "Nausea" and "nausea" resolve to the same entry)
 - Room DB migration 1 → 2: new `custom_symptoms` table for the user's symptom library
 
 ### Changed
-- Settings → About: version label is now a regular tap (was long-press) to open the changelog
-  dialog; the tap target is wider (full card width + vertical padding) for easier tapping
-- Built-in symptom chips now display in lowercase ("cramps", "back pain", …) for visual
-  consistency with custom symptoms
+- Settings → About: version label is now a regular tap (was long-press) to open the changelog dialog; the tap target is wider (full card width + vertical padding) for easier tapping
+- Built-in symptom chips now display in lowercase ("cramps", "back pain", …) for visual consistency with custom symptoms
 
 ---
 

@@ -35,15 +35,28 @@
         </activity>
 
         <!--
-            ── Discreet launcher icons ────────────────────────────────────────────
-            Each alias points to MainActivity and carries a shape icon that gives
-            no hint about the app's purpose.  AppIconManager.applyIcon() ensures
-            exactly one alias is enabled at a time.  The leaf alias is enabled by
-            default; all others start disabled.
+            ── Launcher icon aliases ─────────────────────────────────────────────
+            Each alias points to MainActivity and carries its own icon.
+            AppIconManager.applyIcon() ensures exactly one alias is enabled at a
+            time.  The default alias (original GoFlo icon) is enabled on fresh
+            installs; all others start disabled.
         -->
         <activity-alias
-            android:name=".MainActivityLeaf"
+            android:name=".MainActivityDefault"
             android:enabled="true"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".MainActivityLeaf"
+            android:enabled="false"
             android:exported="true"
             android:targetActivity=".MainActivity"
             android:icon="@mipmap/ic_launcher_leaf"

@@ -271,7 +271,7 @@ fun SettingsScreen(
 
     val currentIconChoice = runCatching {
         AppIconChoice.valueOf(prefs.iconChoice)
-    }.getOrDefault(AppIconChoice.LEAF)
+    }.getOrDefault(AppIconChoice.DEFAULT)
 
     var showTimePicker        by rememberSaveable { mutableStateOf(false) }
     var showRemovePinDialog   by rememberSaveable { mutableStateOf(false) }
@@ -1396,6 +1396,7 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
 
 /** Preview background colour for each icon choice (matches the adaptive-icon background). */
 private val AppIconChoice.previewBg: Color get() = when (this) {
+    AppIconChoice.DEFAULT -> Color(0xFFFFD5CBL) // original GoFlo icon background (light salmon)
     AppIconChoice.LEAF -> Color(0xFFC8E6C9L)
     AppIconChoice.MOON -> Color(0xFF1A237EL)   // deep night-sky indigo
     AppIconChoice.STAR -> Color(0xFF311B92L)   // deep purple
@@ -1403,12 +1404,14 @@ private val AppIconChoice.previewBg: Color get() = when (this) {
 
 /** Icon foreground / tint colour for each choice. */
 private val AppIconChoice.previewFg: Color get() = when (this) {
+    AppIconChoice.DEFAULT -> Color(0xFFD9604AL) // original GoFlo coral drop
     AppIconChoice.LEAF -> Color(0xFF2E7D32L)
     AppIconChoice.MOON -> Color(0xFFFFF8E1L)   // warm ivory crescent
     AppIconChoice.STAR -> Color(0xFFFFD740L)   // bright gold sparkle
 }
 
 private val AppIconChoice.previewIcon: androidx.compose.ui.graphics.vector.ImageVector get() = when (this) {
+    AppIconChoice.DEFAULT -> Icons.Filled.WaterDrop
     AppIconChoice.LEAF -> Icons.Filled.Eco
     AppIconChoice.MOON -> Icons.Filled.NightsStay
     AppIconChoice.STAR -> Icons.Filled.AutoAwesome
@@ -1423,7 +1426,25 @@ private fun AppIconPicker(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-        // ── Shape icons ───────────────────────────────────────────────────────
+        // ── Default GoFlo icon ────────────────────────────────────────────────
+        FlowRow(
+            modifier              = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            IconChoiceCell(
+                choice   = AppIconChoice.DEFAULT,
+                selected = AppIconChoice.DEFAULT == currentChoice,
+                onClick  = { onSelect(AppIconChoice.DEFAULT) }
+            )
+        }
+
+        // ── Discreet icons ────────────────────────────────────────────────────
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Text(
+            "Discreet icons",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Text(
             "These don't look like a period app, so GoFlo stays private on your home screen.",
             style = MaterialTheme.typography.bodySmall,
@@ -1433,7 +1454,7 @@ private fun AppIconPicker(
             modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            AppIconChoice.entries.forEach { choice ->
+            AppIconChoice.entries.filter { it != AppIconChoice.DEFAULT }.forEach { choice ->
                 IconChoiceCell(
                     choice   = choice,
                     selected = choice == currentChoice,
