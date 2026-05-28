@@ -49,6 +49,8 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SettingsBrightness
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.WbSunny
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,11 +61,12 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -93,7 +96,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.ChevronRight
@@ -309,6 +311,88 @@ fun SettingsScreen(
         return
     }
 
+    if (showRemovePinDialog) {
+        fun dismissRemovePin() { showRemovePinDialog = false; removePinInput = ""; removePinError = false }
+        fun addDigit(digit: Int) {
+            if (removePinInput.length >= 4) return
+            val updated = removePinInput + digit.toString()
+            removePinInput = updated
+            removePinError = false
+            if (updated.length == 4) {
+                viewModel.removePin(updated) { success ->
+                    if (success) dismissRemovePin() else { removePinInput = ""; removePinError = true }
+                }
+            }
+        }
+        BackHandler { dismissRemovePin() }
+        Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                    IconButton(onClick = { dismissRemovePin() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Cancel")
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                Text("Remove PIN lock", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Enter your current PIN to confirm",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(40.dp))
+                val dotColor = if (removePinError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    repeat(4) { index ->
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(if (index < removePinInput.length) dotColor else MaterialTheme.colorScheme.outlineVariant)
+                        )
+                    }
+                }
+                if (removePinError) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Incorrect PIN", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+                Spacer(Modifier.height(40.dp))
+                val padKeys = listOf(listOf(1, 2, 3), listOf(4, 5, 6), listOf(7, 8, 9))
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    padKeys.forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                            row.forEach { digit ->
+                                TextButton(onClick = { addDigit(digit) }, modifier = Modifier.size(72.dp)) {
+                                    Text(digit.toString(), style = MaterialTheme.typography.headlineMedium)
+                                }
+                            }
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+                        Spacer(Modifier.size(72.dp))
+                        TextButton(onClick = { addDigit(0) }, modifier = Modifier.size(72.dp)) {
+                            Text("0", style = MaterialTheme.typography.headlineMedium)
+                        }
+                        TextButton(
+                            onClick = { if (removePinInput.isNotEmpty()) { removePinInput = removePinInput.dropLast(1); removePinError = false } },
+                            modifier = Modifier.size(72.dp)
+                        ) {
+                            Text("⌫", style = MaterialTheme.typography.titleLarge)
+                        }
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+            }
+        }
+        return
+    }
+
     if (showChangelog) {
         ChangelogDialog(onDismiss = { showChangelog = false })
     }
@@ -337,49 +421,6 @@ fun SettingsScreen(
             },
             dismissButton = { TextButton(onClick = { showTimePicker = false }) { Text("Cancel") } },
             text = { TimePicker(state = timeState) }
-        )
-    }
-
-    if (showRemovePinDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showRemovePinDialog = false; removePinInput = ""; removePinError = false
-            },
-            title = { Text("Remove PIN lock") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter your current PIN to confirm.")
-                    OutlinedTextField(
-                        value          = removePinInput,
-                        onValueChange  = {
-                            if (it.length <= 6 && it.all { c -> c.isDigit() }) {
-                                removePinInput = it; removePinError = false
-                            }
-                        },
-                        label               = { Text("Current PIN") },
-                        visualTransformation = PasswordVisualTransformation(),
-                        isError             = removePinError,
-                        supportingText      = if (removePinError) ({ Text("Incorrect PIN") }) else null
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.removePin(removePinInput) { success ->
-                            if (success) {
-                                showRemovePinDialog = false; removePinInput = ""; removePinError = false
-                            } else removePinError = true
-                        }
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) { Text("Remove") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showRemovePinDialog = false; removePinInput = ""; removePinError = false
-                }) { Text("Cancel") }
-            }
         )
     }
 
