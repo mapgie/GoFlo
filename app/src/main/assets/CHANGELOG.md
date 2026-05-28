@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.12.4-beta.1] - 2026-05-28
+
+### Changed
+- **Home screen FAB → M3 speed dial** — the "Log…" pill button is replaced by an Extended FAB that expands a speed dial on tap: small FABs with labels appear above it (Log Period at top, each tracking category below), a 32 % scrim covers the rest of the screen, and the FAB icon animates between + and ✕. Tapping outside the menu or the Close button collapses it. "Log more…" from the Day Log sheet closes the sheet first, then opens the speed dial for that specific date.
+
+---
+
 ## [0.12.3-beta.1] - 2026-05-28
 
 ### Fixed
