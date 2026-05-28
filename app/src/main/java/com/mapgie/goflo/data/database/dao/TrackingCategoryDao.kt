@@ -18,6 +18,9 @@ interface TrackingCategoryDao {
     @Query("SELECT * FROM tracking_categories ORDER BY displayOrder ASC, id ASC")
     fun getAllCategories(): Flow<List<TrackingCategory>>
 
+    @Query("SELECT * FROM tracking_categories WHERE isArchived = 0 ORDER BY displayOrder ASC, id ASC")
+    fun getActiveCategories(): Flow<List<TrackingCategory>>
+
     @Query("SELECT * FROM tracking_categories WHERE id = :id")
     fun getCategoryById(id: Long): Flow<TrackingCategory?>
 
