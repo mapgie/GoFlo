@@ -55,16 +55,21 @@ object AppIconManager {
 
         ordered.forEach { c ->
             val component = ComponentName(pkg, "$pkg.${c.aliasSimpleName}")
-            val state = if (c == choice) {
+            val desiredState = if (c == choice) {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             } else {
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED
             }
             // setComponentEnabledSetting can throw if the alias is missing from the
             // manifest (e.g., in a test build) or if Android rate-limits rapid calls.
-            // Swallow safely — a stale launcher icon is preferable to a crash.
+            // Skip the call entirely when the state is already correct — some launchers
+            // display a system dialog on every PackageManager component change, which
+            // would produce a persistent pop-up if called unconditionally on every startup.
             runCatching {
-                pm.setComponentEnabledSetting(component, state, PackageManager.DONT_KILL_APP)
+                val currentState = pm.getComponentEnabledSetting(component)
+                if (currentState != desiredState) {
+                    pm.setComponentEnabledSetting(component, desiredState, PackageManager.DONT_KILL_APP)
+                }
             }
         }
     }

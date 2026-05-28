@@ -5,12 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,7 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -39,7 +39,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.export.DateRangePreset
@@ -141,97 +140,41 @@ fun ExportOptionsDialog(
                 // ── What to include ──────────────────────────────────────────
                 Text("What to include", style = MaterialTheme.typography.labelLarge)
 
-                // Periods toggle
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { includePeriods = !includePeriods }
-                        .padding(vertical = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(checked = includePeriods, onCheckedChange = { includePeriods = it })
-                    Spacer(Modifier.width(4.dp))
-                    Column {
-                        Text("Periods", style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "Cycle start/end dates & flow level",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Periods chip
+                    FilterChip(
+                        selected = includePeriods,
+                        onClick  = { includePeriods = !includePeriods },
+                        label    = { Text("Periods") }
+                    )
 
-                // Category rows
-                if (categories.isNotEmpty()) {
-                    val selectAll = selectedCategoryIds.containsAll(categories.map { it.id })
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                selectedCategoryIds = if (selectAll) emptySet()
-                                else categories.map { it.id }.toSet()
-                            }
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = selectAll,
-                            onCheckedChange = { checked ->
-                                selectedCategoryIds = if (checked) categories.map { it.id }.toSet()
-                                else emptySet()
-                            }
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            "All tracking categories",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
+                    // One chip per category
                     categories.forEach { cat ->
-                        val checked = cat.id in selectedCategoryIds
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedCategoryIds = if (checked)
-                                        selectedCategoryIds - cat.id
-                                    else
-                                        selectedCategoryIds + cat.id
-                                }
-                                .padding(start = 16.dp, top = 2.dp, bottom = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = checked,
-                                onCheckedChange = { on ->
-                                    selectedCategoryIds = if (on)
-                                        selectedCategoryIds + cat.id
-                                    else
-                                        selectedCategoryIds - cat.id
-                                }
-                            )
-                            Spacer(Modifier.width(4.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(cat.name, style = MaterialTheme.typography.bodyMedium)
-                                if (cat.isArchived) {
-                                    Text(
-                                        "Archived",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        fontStyle = FontStyle.Italic
-                                    )
+                        val selected = cat.id in selectedCategoryIds
+                        FilterChip(
+                            selected = selected,
+                            onClick  = {
+                                selectedCategoryIds = if (selected)
+                                    selectedCategoryIds - cat.id
+                                else
+                                    selectedCategoryIds + cat.id
+                            },
+                            label = {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(cat.name)
+                                    if (cat.isArchived) {
+                                        Icon(
+                                            Icons.Filled.Archive,
+                                            contentDescription = "Archived",
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
                                 }
                             }
-                            if (cat.isArchived) {
-                                Icon(
-                                    Icons.Filled.Archive,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(end = 4.dp)
-                                )
-                            }
-                        }
+                        )
                     }
                 }
 

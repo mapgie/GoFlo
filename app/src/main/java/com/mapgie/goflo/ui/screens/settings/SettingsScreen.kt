@@ -502,8 +502,8 @@ fun SettingsScreen(
             title   = { Text("Delete all data?") },
             text    = {
                 Text(
-                    "This will permanently remove all period logs, symptoms, and notes. " +
-                    "This cannot be undone."
+                    "This will permanently remove all period logs, symptoms, tracking logs, " +
+                    "and notes. Your category configuration is kept. This cannot be undone."
                 )
             },
             confirmButton = {

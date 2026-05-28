@@ -39,6 +39,9 @@ class TrackingRepository(
     fun getCategoryById(id: Long): Flow<TrackingCategory?> =
         categoryDao.getCategoryById(id)
 
+    suspend fun getCategoryByIdOnce(id: Long): TrackingCategory? =
+        categoryDao.getCategoryByIdOnce(id)
+
     fun getValuesForCategory(categoryId: Long): Flow<List<TrackingValue>> =
         categoryDao.getValuesForCategory(categoryId)
 
@@ -327,6 +330,22 @@ class TrackingRepository(
     /** System category lookup by name — used for Flow data migration. */
     suspend fun getSystemCategoryByName(name: String): TrackingCategory? =
         categoryDao.getSystemCategoryByName(name)
+
+    /** Category lookup by name (any type) — used for import matching. */
+    suspend fun getCategoryByName(name: String): TrackingCategory? =
+        categoryDao.getCategoryByName(name)
+
+    /**
+     * Permanently removes all tracking log entries and their values.
+     * Categories and their value definitions are preserved.
+     *
+     * NOTE: whenever new logged-data tables are added, this method must be
+     * updated to include them — and the same applies to exportTrackingLogs,
+     * importData (SettingsViewModel), and deleteAllData (SettingsViewModel).
+     */
+    suspend fun deleteAllLogs() {
+        logDao.deleteAllLogs()
+    }
 
     /**
      * Ensures a TrackingLog + TrackingLogValue exists for each date in [dates]

@@ -106,4 +106,8 @@ interface TrackingLogDao {
     /** The ISO-8601 date string of the most recent log entry, or null if there are none. */
     @Query("SELECT MAX(date) FROM tracking_logs")
     suspend fun getLatestLogDate(): String?
+
+    /** Permanently removes every tracking log row (values cascade via FK). */
+    @Query("DELETE FROM tracking_logs")
+    suspend fun deleteAllLogs()
 }

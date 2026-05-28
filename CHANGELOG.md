@@ -19,6 +19,39 @@ Rules:
 
 ---
 
+## [0.12.1-beta.1] - 2026-05-28
+
+### Fixed
+- **Launcher "app has a bug" pop-up** — `AppIconManager.applyIcon` now checks the current
+  component state before calling `setComponentEnabledSetting`; no-ops when the state is
+  already correct so the launcher is never notified on every cold start.
+- **Changelog showing raw markdown** — the "What's New" dialog now renders `### headings`,
+  `- bullets`, and `**bold**` text instead of displaying raw syntax characters.
+- **Delete All Data only deleted periods** — the action now also removes all tracking log
+  entries. Category definitions and their value options are preserved.
+- **Import only imported periods** — importing a v2 JSON file now also restores tracking
+  logs; categories are matched by name and created if missing; existing logs are skipped
+  in merge mode.
+- **Numeric category → management screen shown unnecessarily** — after creating a numeric
+  category all settings are already captured in the creation dialog; the app no longer
+  navigates to the values management screen. Default categories still navigate there so
+  the user can add their value options.
+- **Numeric category creation discarded min/max/decimals** — the values entered in the
+  creation dialog are now passed through to the repository correctly.
+
+### Changed
+- **Export dialog** — the "What to include" section now shows chips instead of checkboxes,
+  matching the date-range and format sections and preventing content overflow.
+
+### Added
+- **Home screen — tap month name to jump** — tapping the month/year label in the calendar
+  header opens a scrollable month picker (3 years back, 1 year forward) for fast navigation.
+- **Stats screen — tap range label to re-pick** — when Year or Month view is active,
+  tapping the displayed range label reopens the picker without requiring a re-tap of the
+  segmented button.
+
+---
+
 ## [0.11.0-beta.1] - 2026-05-27
 
 ### Added

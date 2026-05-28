@@ -397,9 +397,15 @@ class SettingsViewModel(
     }
 
     /**
-     * Reads the JSON file at [uri] (from a share-sheet / Files app pick) and
-     * imports the periods it contains. Runs on the ViewModel coroutine scope so
-     * the UI stays responsive; calls [onResult] back on the main thread.
+     * Reads the JSON file at [uri] and imports all data it contains:
+     *  - Period logs and symptoms (v1 bare-array and v2 wrapper formats)
+     *  - Tracking logs per category (v2 "tracking" key only)
+     *
+     * Runs on the ViewModel coroutine scope so the UI stays responsive;
+     * calls [onResult] back on the main thread.
+     *
+     * NOTE: if new export sections are added to exportWithOptions / buildJsonExport,
+     * this method must be updated to import them as well.
      */
     fun importData(uri: Uri, replace: Boolean, onResult: (ImportResult) -> Unit) {
         viewModelScope.launch {
@@ -414,19 +420,75 @@ class SettingsViewModel(
                 return@launch
             }
 
+            // In replace mode, wipe tracking logs before importing the new set.
+            // Period deletion is handled inside PeriodRepository.importData.
+            if (replace) {
+                trackingRepository.deleteAllLogs()
+            }
+
             val result = repository.importData(json, replace)
-            if (result is ImportResult.Success) reschedule()
+            if (result is ImportResult.Success) {
+                runCatching {
+                    if (!json.trimStart().startsWith('[')) {
+                        val root = JSONObject(json)
+                        val trackingArray = root.optJSONArray("tracking")
+                        if (trackingArray != null) {
+                            importTrackingLogs(trackingArray, replace)
+                        }
+                    }
+                } // tracking import errors are non-fatal; period result still reported
+                reschedule()
+            }
             onResult(result)
         }
     }
 
+    private suspend fun importTrackingLogs(trackingArray: JSONArray, replace: Boolean) {
+        for (i in 0 until trackingArray.length()) {
+            val catObj = trackingArray.getJSONObject(i)
+            val catName = catObj.optString("name").takeIf { it.isNotBlank() } ?: continue
+            val catType = catObj.optString("type", "default")
+            val isArchived = catObj.optBoolean("archived", false)
+
+            var category = trackingRepository.getCategoryByName(catName)
+            if (category == null) {
+                val newId = trackingRepository.addCategory(name = catName, categoryType = catType)
+                if (isArchived) trackingRepository.archiveCategory(newId)
+                category = trackingRepository.getCategoryByIdOnce(newId)
+            }
+            val categoryId = category?.id ?: continue
+
+            val logsArray = catObj.optJSONArray("logs") ?: continue
+            for (j in 0 until logsArray.length()) {
+                val logObj = logsArray.getJSONObject(j)
+                val dateStr = logObj.optString("date").takeIf { it.isNotBlank() } ?: continue
+                val date = runCatching { java.time.LocalDate.parse(dateStr) }.getOrNull() ?: continue
+
+                if (!replace && trackingRepository.getExistingLog(date, categoryId) != null) continue
+
+                val valuesArray = logObj.optJSONArray("values")
+                val values = buildSet<String> {
+                    if (valuesArray != null) {
+                        for (k in 0 until valuesArray.length()) add(valuesArray.getString(k))
+                    }
+                }
+                trackingRepository.saveLog(date, categoryId, values, logObj.optString("notes", ""))
+            }
+        }
+    }
+
     /**
-     * Permanently deletes all stored periods and symptoms, then reschedules
-     * reminders (which will cancel predictive alarms now that data is gone).
+     * Permanently deletes all stored data (periods, symptoms, and tracking logs),
+     * then reschedules reminders (which will cancel predictive alarms now that
+     * data is gone). Categories and their value definitions are preserved.
+     *
+     * NOTE: whenever new data tables are added, this method must be updated
+     * to include them — and the same applies to importData and exportWithOptions.
      */
     fun deleteAllData(onComplete: () -> Unit) {
         viewModelScope.launch {
             repository.deleteAllData()
+            trackingRepository.deleteAllLogs()
             reschedule()
             onComplete()
         }
