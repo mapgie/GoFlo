@@ -19,6 +19,21 @@ Rules:
 
 ---
 
+## [0.11.0-beta.1] - 2026-05-27
+
+### Added
+- **Configurable data export** — the two fixed "Export JSON / Export CSV" buttons are replaced by a single "Export Data" button that opens a dialog. Users can now choose a date range (all time, last 3/6/12 months, or custom from–to dates), select which categories and period data to include, and pick the output format (JSON or CSV).
+- Exported JSON (v2) wraps everything in a versioned object with separate `periods` and `tracking` sections. Import remains backward-compatible with the original array format.
+- Exported CSV separates periods and tracking logs into labelled sections within a single file.
+
+### Fixed
+- **History delete lost on navigation** — swiping to delete a period then navigating away before the Undo snackbar timed out silently cancelled the deletion; the period reappeared after an app restart. The DB delete now happens immediately inside `viewModelScope` so it completes regardless of navigation. Undo re-inserts the full period and symptoms from an in-memory cache.
+- **"All time" in Stats showed 300+ empty chart buckets** — the hardcoded `2000-01-01` start date is replaced with a live `MIN(date)` query, so the chart range starts at the user's actual first log entry.
+- **"All time" export metadata showed `null/null` date range** — the JSON `dateRange.from/to` now reflects the actual earliest log date instead of null.
+- Enabled SQLite foreign-key constraints (`PRAGMA foreign_keys = ON`) so `ON DELETE CASCADE` rules on symptom and tracking-log tables actually fire.
+
+---
+
 ## [0.10.0-beta.1] - 2026-05-27
 
 ### Added

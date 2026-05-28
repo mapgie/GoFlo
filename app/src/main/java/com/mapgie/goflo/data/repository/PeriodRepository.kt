@@ -38,6 +38,9 @@ class PeriodRepository(
     /** Reactive stream of every symptom row — used for symptom-trend analytics. */
     fun getAllSymptomsFlow(): Flow<List<SymptomEntry>> = symptomDao.getAllSymptomsFlow()
 
+    /** One-shot read of all symptoms — used for export. */
+    suspend fun getAllSymptomsOnce(): List<SymptomEntry> = symptomDao.getAllSymptoms()
+
     // ── Period write operations ───────────────────────────────────────────────
 
     suspend fun insertPeriod(
@@ -211,7 +214,11 @@ class PeriodRepository(
      */
     suspend fun importData(json: String, replace: Boolean): ImportResult {
         return try {
-            val array = JSONArray(json)
+            // Support both v1 (bare array) and v2 (wrapper object with "periods" key).
+            val array = when {
+                json.trimStart().startsWith('[') -> JSONArray(json)
+                else -> JSONObject(json).optJSONArray("periods") ?: JSONArray()
+            }
 
             if (replace) deleteAllData()
 

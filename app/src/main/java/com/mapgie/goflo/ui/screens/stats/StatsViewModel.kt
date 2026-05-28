@@ -284,10 +284,13 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
 
     // ── Date range resolution ─────────────────────────────────────────────────
 
-    private fun resolveRange(range: TimeRange): Pair<LocalDate, LocalDate> {
+    private suspend fun resolveRange(range: TimeRange): Pair<LocalDate, LocalDate> {
         val today = LocalDate.now()
         return when (range) {
-            TimeRange.AllTime -> LocalDate.of(2000, 1, 1) to today
+            TimeRange.AllTime -> {
+                val earliest = repository.getEarliestLogDate() ?: today
+                earliest to today
+            }
             TimeRange.YearToDate -> LocalDate.of(today.year, 1, 1) to today
             is TimeRange.CalendarYear ->
                 LocalDate.of(range.year, 1, 1) to LocalDate.of(range.year, 12, 31)
