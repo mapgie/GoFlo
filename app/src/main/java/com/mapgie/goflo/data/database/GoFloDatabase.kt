@@ -305,14 +305,24 @@ abstract class GoFloDatabase : RoomDatabase() {
         }
 
         /**
-         * Seeds system categories with ALL current (v7) columns.
+         * Seeds system categories with ALL current columns.
          * Called only from [RoomDatabase.Callback.onCreate] for fresh installs.
+         *
+         * Every NOT NULL column is specified explicitly: Room does not generate SQL
+         * DEFAULT clauses from Kotlin property defaults, so on a fresh install these
+         * columns have no default and an INSERT that omits them fails the NOT NULL
+         * constraint. (Upgrade users get defaults from the ALTER TABLE migrations.)
          */
         private fun seedSystemCategories(database: SupportSQLiteDatabase) {
+            val columns =
+                "(name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
+                "`numericMin`, `numericMax`, `allowDecimals`, `numericUnit`, `scaleLabels`, " +
+                "`isArchived`, `allowMultiple`, `showInLogPeriod`)"
+
             // Flow — water drop icon, primary colour token
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`) " +
-                "VALUES ('Flow', 1, 0, 'water', 'primary', 'default')"
+                "INSERT INTO tracking_categories $columns " +
+                "VALUES ('Flow', 1, 0, 'water', 'primary', 'default', 0, 10, 0, '', '', 0, 0, 0)"
             )
             val flowIdCursor = database.query("SELECT last_insert_rowid()")
             flowIdCursor.moveToFirst()
@@ -328,8 +338,8 @@ abstract class GoFloDatabase : RoomDatabase() {
 
             // Symptoms — healing icon, tertiary (accent) colour token
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`) " +
-                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary', 'default')"
+                "INSERT INTO tracking_categories $columns " +
+                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary', 'default', 0, 10, 0, '', '', 0, 0, 0)"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
             symptomIdCursor.moveToFirst()
