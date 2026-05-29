@@ -11,6 +11,9 @@ Entries within each section are ordered by risk to a new project if forgotten: b
 **`ModalBottomSheetProperties` requires all parameters explicitly in Material3 1.2.x**
 The constructor has no default values in this version — passing only `shouldDismissOnBackPress` fails to compile. Always supply all three: `securePolicy = SecureFlagPolicy.Inherit, isFocusable = true, shouldDismissOnBackPress = false`. `SecureFlagPolicy` also needs an explicit import from `androidx.compose.ui.window`.
 
+**Room generates no SQLite DEFAULTs without `@ColumnInfo(defaultValue=…)` — fresh-install seeds rot as the schema grows**
+Room emits `NOT NULL` with no SQL `DEFAULT` for every entity field that lacks a `@ColumnInfo(defaultValue=…)` annotation. Migrations protect existing users because `ALTER TABLE … ADD COLUMN … DEFAULT …` always supplies a value. The `onCreate` seed INSERT is hand-written and must list every column explicitly — omitting any `NOT NULL` column causes a constraint violation on first open, crashing the app before any screen is shown. Two defences: (1) enumerate all non-PK columns in seed INSERTs; (2) annotate every entity field with `@ColumnInfo(defaultValue=…)` so Room's generated DDL also includes SQL `DEFAULT` clauses and the two stay in sync automatically.
+
 **Commit a stable debug keystore to the repo**
 Android generates a fresh debug keystore per machine/CI runner. Without a committed keystore, every CI build has a different signature and OTA updates are blocked — users get a "conflicting package" error and must uninstall first. Commit a single debug keystore and wire it into `signingConfigs.debug`.
 
@@ -52,6 +55,9 @@ A "done today" indicator (e.g. 3 of 4 tasks complete) and a long-term progress i
 
 ### Data / State
 
+**Insert/upsert flags need a separate edit-by-ID path**
+A flag like `allowMultiple` controls whether saving a log upserts an existing row (keyed by date + category) or always inserts a new one. Neither branch handles "update this specific existing row by ID." Routing an edit through `allowMultiple = false` works only when the existing row is uniquely keyed by the natural key; using `allowMultiple = true` creates a duplicate instead. The correct pattern is a dedicated `updateInPlace(existingLog, …)` method. Callers check `existingLog != null` and take this path directly, bypassing the insert/upsert decision entirely.
+
 **Remap all foreign keys on data import**
 When importing data that generates new primary IDs (e.g. JSON/CSV restore), every foreign key referencing those IDs must also be remapped. Importing parent records with new IDs but leaving child records pointing at old IDs silently breaks relational integrity.
 
@@ -72,6 +78,13 @@ For features you know are coming (e.g. user export, audit logging, sharing), des
 
 **Chip selected states must be unambiguous at a glance**
 The default Material3 `FilterChip` selected treatment (slightly brighter text, subtle border change) requires interpretation — it fails the "readable in 100ms" bar. Override `FilterChipDefaults.filterChipColors(selectedContainerColor, selectedLabelColor)` with a high-contrast fill (e.g. amber + dark text) to make selection state immediately obvious. Encapsulate this in a shared `FormChip` wrapper so the treatment is consistent everywhere.
+
+---
+
+### Code Quality / Review
+
+**A parameter present in a function signature but never forwarded at the call site**
+A function may accept a flag (`wcag: Boolean = false`) and correctly wire it through internally, yet if the call site omits it the flag silently takes its default for every caller. Function signature looks correct, internal logic looks correct — only the gap between them is wrong. This is especially common in theming chains, feature flags, and composable parameter cascades where defaults mask the omission. When adding a parameter to a shared function, grep all call sites and verify each one explicitly passes the new argument.
 
 ---
 

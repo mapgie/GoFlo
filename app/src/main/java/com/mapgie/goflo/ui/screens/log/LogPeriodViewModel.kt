@@ -108,7 +108,8 @@ class LogPeriodViewModel(
             valuesMap[cat.id] = tr.getValuesForCategory(cat.id).first().map { it.label }
             val existing = tr.getExistingLog(date, cat.id)
             when (cat.categoryType) {
-                "numeric_slider" -> numericMap[cat.id] = existing?.values?.firstOrNull()?.toFloatOrNull()
+                "numeric_slider",
+                "increment"      -> numericMap[cat.id] = existing?.values?.firstOrNull()?.toFloatOrNull()
                 "numeric_free"   -> freeTextMap[cat.id] = existing?.values?.firstOrNull() ?: ""
                 else             -> selectionsMap[cat.id] = existing?.values?.toSet() ?: emptySet()
             }
@@ -241,6 +242,10 @@ class LogPeriodViewModel(
             "numeric_free" -> {
                 val text = (state.pinnedFreeTextValues[cat.id] ?: "").trim()
                 if (text.isEmpty()) null else setOf(text)
+            }
+            "increment" -> {
+                val count = state.pinnedNumericValues[cat.id]?.toInt() ?: 0
+                if (count <= 0) null else setOf(count.toString())
             }
             else -> {
                 val selected = state.pinnedCategorySelections[cat.id] ?: emptySet()
