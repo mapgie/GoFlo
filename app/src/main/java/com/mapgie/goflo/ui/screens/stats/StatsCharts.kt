@@ -555,50 +555,57 @@ fun ScatterPlot(data: StatsChartData.ScatterData, modifier: Modifier = Modifier)
             drawCircle(primary.copy(alpha = 0.75f), dotRadius, Offset(toCanvasX(pt.x), toCanvasY(pt.y)))
         }
 
-        // Text labels via nativeCanvas
-        val nc = drawContext.canvas.nativeCanvas
-
         fun fmtVal(v: Float) = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
 
-        val tickPaint = android.graphics.Paint().apply {
-            isAntiAlias = true
-            textSize    = 9.dp.toPx()
-            color       = onSurfaceVariant.toArgb()
+        val tickSize = 9.dp.toPx()
+        val nameSize = 10.dp.toPx()
+        val tickArgb = onSurfaceVariant.toArgb()
+        val nameArgb = onSurface.toArgb()
+
+        // Text labels via drawIntoCanvas (the correct Compose API for nativeCanvas access)
+        drawIntoCanvas { composeCanvas ->
+            val nc = composeCanvas.nativeCanvas
+
+            val tickPaint = android.graphics.Paint().apply {
+                isAntiAlias = true
+                textSize    = tickSize
+                color       = tickArgb
+            }
+            val namePaint = android.graphics.Paint().apply {
+                isAntiAlias    = true
+                textSize       = nameSize
+                color          = nameArgb
+                isFakeBoldText = true
+                textAlign      = android.graphics.Paint.Align.CENTER
+            }
+
+            // Y axis tick labels
+            tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
+            nc.drawText(fmtVal(data.yMax), plotL - 4.dp.toPx(), plotT + tickSize, tickPaint)
+            nc.drawText(fmtVal(data.yMin), plotL - 4.dp.toPx(), plotB, tickPaint)
+            if (data.yMin != data.yMax) {
+                nc.drawText(
+                    fmtVal((data.yMin + data.yMax) / 2f),
+                    plotL - 4.dp.toPx(),
+                    (plotT + plotB) / 2f + tickSize / 2f,
+                    tickPaint
+                )
+            }
+
+            // X axis tick labels
+            tickPaint.textAlign = android.graphics.Paint.Align.LEFT
+            nc.drawText(fmtVal(data.xMin), plotL, plotB + 12.dp.toPx(), tickPaint)
+            tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
+            nc.drawText(fmtVal(data.xMax), plotR, plotB + 12.dp.toPx(), tickPaint)
+
+            // Y axis name — rotated 90° counter-clockwise along the left edge
+            nc.save()
+            nc.rotate(-90f, 10.dp.toPx(), (plotT + plotB) / 2f)
+            nc.drawText(data.yAxisName, 10.dp.toPx(), (plotT + plotB) / 2f, namePaint)
+            nc.restore()
+
+            // X axis name — centred below the X axis
+            nc.drawText(data.xAxisName, (plotL + plotR) / 2f, size.height - 4.dp.toPx(), namePaint)
         }
-        val namePaint = android.graphics.Paint().apply {
-            isAntiAlias    = true
-            textSize       = 10.dp.toPx()
-            color          = onSurface.toArgb()
-            isFakeBoldText = true
-            textAlign      = android.graphics.Paint.Align.CENTER
-        }
-
-        // Y axis tick labels (right-aligned, beside the axis)
-        tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
-        nc.drawText(fmtVal(data.yMax), plotL - 4.dp.toPx(), plotT + tickPaint.textSize, tickPaint)
-        nc.drawText(fmtVal(data.yMin), plotL - 4.dp.toPx(), plotB, tickPaint)
-        if (data.yMin != data.yMax) {
-            nc.drawText(
-                fmtVal((data.yMin + data.yMax) / 2f),
-                plotL - 4.dp.toPx(),
-                (plotT + plotB) / 2f + tickPaint.textSize / 2f,
-                tickPaint
-            )
-        }
-
-        // X axis tick labels
-        tickPaint.textAlign = android.graphics.Paint.Align.LEFT
-        nc.drawText(fmtVal(data.xMin), plotL, plotB + 12.dp.toPx(), tickPaint)
-        tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
-        nc.drawText(fmtVal(data.xMax), plotR, plotB + 12.dp.toPx(), tickPaint)
-
-        // Y axis name — rotated 90° counter-clockwise along the left edge
-        nc.save()
-        nc.rotate(-90f, 10.dp.toPx(), (plotT + plotB) / 2f)
-        nc.drawText(data.yAxisName, 10.dp.toPx(), (plotT + plotB) / 2f, namePaint)
-        nc.restore()
-
-        // X axis name — centred below the X axis
-        nc.drawText(data.xAxisName, (plotL + plotR) / 2f, size.height - 4.dp.toPx(), namePaint)
     }
 }
