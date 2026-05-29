@@ -22,15 +22,24 @@ Rules:
 ## [0.13.1-beta.1] - 2026-05-29
 
 ### Added
-- **Slider scale labels** — each whole-number step on a Slider category can now be given a text label (e.g. 1 = Good, 3 = Neutral, 5 = Bad). Labels are set in Settings → Tracking Categories → [category] and appear below the current value on both the log screen and the Log Period screen. Stats distribution charts also use these labels on the value axis.
-- **Plus One in Log Period** — increment-type categories that are pinned to the Log Period screen now show a counter with + and − buttons, matching the dedicated log screen.
+- **Plus One in Log Period** — increment-type categories pinned to the Log Period screen now show a counter with + and − buttons, matching the dedicated log screen.
 
 ### Fixed
-- **App crash on fresh install** — a SQLite NOT NULL constraint violation in the database seed function caused the app to crash immediately after installation. Room's generated schema has no DEFAULT clauses for columns without `@ColumnInfo(defaultValue=…)`, so all columns must be supplied explicitly in the initial INSERT; the seed now provides values for all 14 non-PK columns. Upgrading from v0.12.5 is unaffected.
+- **App crash on fresh install** — a SQLite NOT NULL constraint violation in the database seed function caused the app to crash immediately after installation. Room's generated schema has no DEFAULT clauses for columns without `@ColumnInfo(defaultValue=…)`, so all columns must be supplied explicitly in the initial INSERT; the seed now provides values for all 14 non-PK columns. Upgrading from v0.12.5 or v0.13.0 is unaffected.
 - **WCAG accessible toggle had no effect** — the WCAG mode flag was never passed to `GoFloTheme`, so toggling it in Settings did not change the colour scheme. Enabling "WCAG accessible" now correctly applies the high-contrast palette variant.
 - **Plus One category in "Manage category" screen** — opening the settings screen for a Plus One category showed the text-values editor ("+ Add a value") instead of an informational message. It now explains that Plus One categories use a running count rather than predefined values.
 - **Editing a tracking log added a new entry** — tapping Edit on a log entry from the Day Log sheet and saving wrote a second log row instead of updating the existing one. The log screen now updates the original row in-place regardless of the "Allow multiple per day" setting.
 - **Default launcher icon reset** — the icon preference defaulted to "LEAF" but the manifest enables "DEFAULT" on installation, causing the icon to switch to the Leaf variant on every cold start. The preference now defaults to "DEFAULT".
+
+---
+
+## [0.13.0-beta.1] - 2026-05-29
+
+### Added
+- **Slider scale labels** — each whole-number step on a Slider category can now be given a text label (e.g. 1 = Good, 3 = Neutral, 5 = Bad). Labels are set in Settings → Tracking Categories → [category] and appear below the current value on both the log screen and the Log Period screen. Stats distribution charts also use these labels on the value axis.
+
+### Changed
+- Database schema bumped to v10 (backward-compatible `ALTER TABLE` migration adding `scaleLabels` column; existing data is untouched).
 
 ---
 
