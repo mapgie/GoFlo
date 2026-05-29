@@ -79,12 +79,41 @@ fun String.toCategoryIcon(): CategoryIcon =
  */
 enum class CategoryType(val key: String, val displayName: String) {
     DEFAULT       ("default",        "Default"),
-    NUMERIC_SLIDER("numeric_slider", "Numeric (Slider)"),
+    NUMERIC_SLIDER("numeric_slider", "Slider scale"),
     NUMERIC_FREE  ("numeric_free",   "Numeric (Input)"),
+    INCREMENT     ("increment",      "Plus One"),
 }
 
 fun String.toCategoryType(): CategoryType =
     CategoryType.entries.firstOrNull { it.key == this } ?: CategoryType.DEFAULT
+
+// ── Slider scale labels ───────────────────────────────────────────────────────
+
+/**
+ * Encodes a sparse map of whole-number slider steps to optional text labels into
+ * the storage string used by [TrackingCategory.scaleLabels].
+ *
+ * Format: newline-separated `value=label` pairs, sorted by value. Blank labels are
+ * dropped. Labels are single-line, so `=` only splits on its first occurrence and
+ * may safely appear inside a label.
+ */
+fun Map<Int, String>.encodeScaleLabels(): String =
+    entries
+        .filter { it.value.isNotBlank() }
+        .sortedBy { it.key }
+        .joinToString("\n") { "${it.key}=${it.value.trim()}" }
+
+/** Decodes the [TrackingCategory.scaleLabels] storage string back into a step→label map. */
+fun String.decodeScaleLabels(): Map<Int, String> {
+    if (isBlank()) return emptyMap()
+    return split('\n').mapNotNull { line ->
+        val sep = line.indexOf('=')
+        if (sep <= 0) return@mapNotNull null
+        val key = line.substring(0, sep).toIntOrNull() ?: return@mapNotNull null
+        val label = line.substring(sep + 1)
+        if (label.isBlank()) null else key to label
+    }.toMap()
+}
 
 // ── Semantic colour tokens ────────────────────────────────────────────────────
 

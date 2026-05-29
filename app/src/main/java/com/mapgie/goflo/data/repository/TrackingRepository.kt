@@ -128,6 +128,7 @@ class TrackingRepository(
         numericMax: Float,
         allowDecimals: Boolean,
         numericUnit: String,
+        scaleLabels: String = "",
     ) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(
@@ -136,6 +137,7 @@ class TrackingRepository(
                 numericMax    = numericMax,
                 allowDecimals = allowDecimals,
                 numericUnit   = numericUnit,
+                scaleLabels   = scaleLabels,
             )
         )
     }
@@ -261,6 +263,32 @@ class TrackingRepository(
 
     suspend fun deleteLog(log: TrackingLog) {
         logDao.deleteLog(log)
+    }
+
+    /**
+     * Increments the running count stored for an "increment" (Plus One) category on
+     * [date] by [delta], creating the log if it doesn't exist yet. The single value
+     * label holds the whole-number count. Existing notes are preserved.
+     *
+     * @return the new count after applying [delta] (never below 0).
+     */
+    suspend fun incrementLog(date: LocalDate, categoryId: Long, delta: Int = 1): Int {
+        val dateStr = date.toString()
+        val existing = logDao.getLogForDateAndCategory(dateStr, categoryId)
+        val logId: Long
+        val current: Int
+        if (existing != null) {
+            logId = existing.id
+            current = logDao.getLogValuesForLogOnce(logId)
+                .firstOrNull()?.valueLabel?.toIntOrNull() ?: 0
+        } else {
+            logId = logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId))
+            current = 0
+        }
+        val newCount = (current + delta).coerceAtLeast(0)
+        logDao.deleteLogValuesForLog(logId)
+        logDao.insertLogValue(TrackingLogValue(logId = logId, valueLabel = newCount.toString()))
+        return newCount
     }
 
     /** Returns the existing log (with values) for a specific (date, category), or null. */

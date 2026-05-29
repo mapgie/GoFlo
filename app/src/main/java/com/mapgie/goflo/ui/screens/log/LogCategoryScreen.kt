@@ -11,12 +11,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.components.SelectableChip
+import com.mapgie.goflo.ui.util.decodeScaleLabels
 import java.time.format.DateTimeFormatter
 
 private val displayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy")
@@ -81,6 +85,11 @@ private fun NumericSliderSection(
     val minLabel = if (category.allowDecimals) "%.1f".format(min) else min.toInt().toString()
     val maxLabel = if (category.allowDecimals) "%.1f".format(max) else max.toInt().toString()
 
+    // Optional label for the current whole-number value (e.g. 3 → "Neutral")
+    val scaleLabel = if (!category.allowDecimals)
+        category.scaleLabels.decodeScaleLabels()[sliderValue.toInt()]
+    else null
+
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
@@ -96,11 +105,20 @@ private fun NumericSliderSection(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    displayValue,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        displayValue,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (scaleLabel != null) {
+                        Text(
+                            scaleLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
 
             Slider(
@@ -159,6 +177,68 @@ private fun NumericFreeInputSection(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier        = Modifier.fillMaxWidth()
             )
+        }
+    }
+}
+
+/**
+ * One-tap counter input for "increment" (Plus One) categories.
+ *
+ * Shows the running count for the day with a prominent "Add one" button and a
+ * smaller decrement control to correct mistakes. The count is held in the
+ * view-model's numericValue and persisted as a whole number on save.
+ */
+@Composable
+private fun IncrementSection(
+    category: TrackingCategory,
+    count: Int,
+    onIncrement: () -> Unit,
+    onDecrement: () -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                category.name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    count.toString(),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (category.numericUnit.isNotBlank()) {
+                    Text(
+                        category.numericUnit,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onDecrement, enabled = count > 0) {
+                    Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                }
+                Button(onClick = onIncrement) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Add one")
+                }
+            }
         }
     }
 }
@@ -259,6 +339,16 @@ fun LogCategoryScreen(
                         category = cat,
                         value = state.numericFreeText,
                         onValueChange = viewModel::setNumericFreeText
+                    )
+                }
+                "increment" -> {
+                    IncrementSection(
+                        category = cat,
+                        count = state.numericValue?.toInt() ?: 0,
+                        onIncrement = { viewModel.setNumericValue((state.numericValue ?: 0f) + 1f) },
+                        onDecrement = {
+                            viewModel.setNumericValue(((state.numericValue ?: 0f) - 1f).coerceAtLeast(0f))
+                        }
                     )
                 }
                 else -> {

@@ -965,29 +965,19 @@ fun SettingsScreen(
             }
 
             // ═══════════════════════════════════════════════════════════════════
-            // FEEDBACK & SUPPORT
+            // HELP & FEEDBACK
             // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("Feedback & Support")
-
-            Text(
-                "GoFlo is open source. Bug reports, feedback and pull requests are all welcome.",
-                style    = MaterialTheme.typography.bodySmall,
-                color    = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
-            )
+            SettingsSectionHeader("Help & Feedback")
 
             SettingsNavCard(
-                title    = "Report an Issue or Feedback",
-                subtitle = "Open GitHub Issues",
+                title    = "Report a bug or suggest a feature",
+                subtitle = "Opens GitHub Issues",
                 icon     = Icons.Outlined.BugReport,
                 onClick  = { openUrl(context, "https://github.com/mapgie/GoFlo/issues") }
             )
 
-            SettingsNavCard(
-                title    = "Support GoFlo",
-                subtitle = "Sponsor on GitHub",
-                icon     = Icons.Outlined.FavoriteBorder,
-                onClick  = { openUrl(context, "https://github.com/sponsors/mapgie") }
+            SupportCard(
+                onSupport = { openUrl(context, "https://github.com/sponsors/mapgie") }
             )
 
             // ═══════════════════════════════════════════════════════════════════
@@ -1215,6 +1205,50 @@ private fun SettingsNavCard(
                 contentDescription = null,
                 tint               = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+// ── Support card ───────────────────────────────────────────────────────────────
+
+/**
+ * A visually distinct "buy me a coffee" style card with a filled Support button,
+ * set apart from the plain navigation rows to give the ask a gentle, friendly tone.
+ */
+@Composable
+private fun SupportCard(onSupport: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors   = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+        )
+    ) {
+        Row(
+            modifier              = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment     = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector        = Icons.Outlined.FavoriteBorder,
+                contentDescription = null,
+                tint               = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier           = Modifier.size(22.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "Enjoying GoFlo?",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+                Text(
+                    "GoFlo is free and open source. A little support keeps it going.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+                )
+            }
+            Button(onClick = onSupport) { Text("Support") }
         }
     }
 }
