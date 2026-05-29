@@ -1,5 +1,7 @@
 package com.mapgie.goflo.ui.screens.settings
 
+import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,7 +43,9 @@ import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NotificationsNone
@@ -953,6 +957,32 @@ fun SettingsScreen(
             }
 
             // ═══════════════════════════════════════════════════════════════════
+            // FEEDBACK & SUPPORT
+            // ═══════════════════════════════════════════════════════════════════
+            SettingsSectionHeader("Feedback & Support")
+
+            Text(
+                "GoFlo is open source. Bug reports, feedback and pull requests are all welcome.",
+                style    = MaterialTheme.typography.bodySmall,
+                color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+            )
+
+            SettingsNavCard(
+                title    = "Report an Issue or Feedback",
+                subtitle = "Open GitHub Issues",
+                icon     = Icons.Outlined.BugReport,
+                onClick  = { openUrl(context, "https://github.com/mapgie/GoFlo/issues") }
+            )
+
+            SettingsNavCard(
+                title    = "Support GoFlo",
+                subtitle = "Sponsor on GitHub",
+                icon     = Icons.Outlined.FavoriteBorder,
+                onClick  = { openUrl(context, "https://github.com/sponsors/mapgie") }
+            )
+
+            // ═══════════════════════════════════════════════════════════════════
             // ABOUT
             // ═══════════════════════════════════════════════════════════════════
             SettingsSectionHeader("About")
@@ -1122,6 +1152,13 @@ private fun SettingsSectionHeader(title: String) {
         color    = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp)
     )
+}
+
+// ── External link helper ───────────────────────────────────────────────────────
+
+/** Opens [url] in the user's browser (or matching app) via an ACTION_VIEW intent. */
+private fun openUrl(context: Context, url: String) {
+    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 }
 
 // ── Navigation card (forward-chevron rows) ─────────────────────────────────────

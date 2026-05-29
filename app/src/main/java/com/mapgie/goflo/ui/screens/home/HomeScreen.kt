@@ -117,12 +117,23 @@ fun HomeScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(
-                        text  = "GoFlo",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontFamily = ComfortaaFamily
+                    Row(
+                        verticalAlignment     = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text  = "GoFlo",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontFamily = ComfortaaFamily
+                            )
                         )
-                    )
+                        Text(
+                            text     = "Beta",
+                            style    = MaterialTheme.typography.labelMedium,
+                            color    = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor    = MaterialTheme.colorScheme.primaryContainer,
