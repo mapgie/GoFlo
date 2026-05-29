@@ -475,11 +475,15 @@ private fun buildCategorySubtitle(category: TrackingCategory): String = buildStr
     if (category.showInLogPeriod) append("Log with period · ")
     when (category.categoryType) {
         "numeric_slider" -> {
-            append("Numeric · Slider")
+            append("Slider scale")
             if (category.numericUnit.isNotBlank()) append(" (${category.numericUnit})")
         }
         "numeric_free" -> {
             append("Numeric · Input")
+            if (category.numericUnit.isNotBlank()) append(" (${category.numericUnit})")
+        }
+        "increment" -> {
+            append("Plus One · tap to add")
             if (category.numericUnit.isNotBlank()) append(" (${category.numericUnit})")
         }
         else -> append("Tap to manage values")
@@ -509,10 +513,12 @@ private fun AddCategoryDialog(
     var showInLogPeriod  by rememberSaveable { mutableStateOf(false) }
 
     val isNumericType = selectedType != CategoryType.DEFAULT.key
+    // Only the slider type uses a min/max range — free input and increment do not.
+    val isSliderType = selectedType == CategoryType.NUMERIC_SLIDER.key
 
-    val canAdd by remember(name, isNumericType, minText, maxText) {
+    val canAdd by remember(name, isSliderType, minText, maxText) {
         derivedStateOf {
-            name.isNotBlank() && (!isNumericType || (
+            name.isNotBlank() && (!isSliderType || (
                 minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
                 (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
             ))
@@ -548,21 +554,21 @@ private fun AddCategoryDialog(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement   = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     CategoryType.entries.forEach { type ->
                         FilterChip(
                             selected  = selectedType == type.key,
                             onClick   = { selectedType = type.key },
-                            label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
-                            modifier  = Modifier.weight(1f)
+                            label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
 
-                // Unit field — shown only for numeric types
+                // Unit field — shown for any numeric/counter type
                 AnimatedVisibility(
                     visible = isNumericType,
                     enter   = expandVertically() + fadeIn(),
@@ -572,7 +578,7 @@ private fun AddCategoryDialog(
                         value         = numericUnit,
                         onValueChange = { numericUnit = it },
                         label         = { Text("Unit / Key (optional)") },
-                        placeholder   = { Text("e.g. °C, bpm, kg…") },
+                        placeholder   = { Text("e.g. °C, bpm, coffees…") },
                         singleLine    = true,
                         modifier      = Modifier.fillMaxWidth()
                     )
@@ -588,16 +594,16 @@ private fun AddCategoryDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
-                // ── Numeric range settings ────────────────────────────────────
+                // ── Numeric range settings (slider only) ──────────────────────
                 AnimatedVisibility(
-                    visible = isNumericType,
+                    visible = isSliderType,
                     enter   = expandVertically() + fadeIn(),
                     exit    = shrinkVertically() + fadeOut()
                 ) {
                     HorizontalDivider()
                 }
                 AnimatedVisibility(
-                    visible = isNumericType,
+                    visible = isSliderType,
                     enter   = expandVertically() + fadeIn(),
                     exit    = shrinkVertically() + fadeOut()
                 ) {
@@ -677,6 +683,7 @@ private fun AddCategoryDialog(
 
 // ── Edit appearance dialog ────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditAppearanceDialog(
     category: TrackingCategory,
@@ -702,13 +709,15 @@ private fun EditAppearanceDialog(
     var showInLogPeriod by rememberSaveable { mutableStateOf(category.showInLogPeriod) }
 
     val isNumericType = selectedType != CategoryType.DEFAULT.key
+    // Only the slider type uses a min/max range — free input and increment do not.
+    val isSliderType = selectedType == CategoryType.NUMERIC_SLIDER.key
 
     val previewBubble = selectedToken.toCategoryColor()
     val previewIcon   = selectedToken.toCategoryOnColor()
 
-    val canSave by remember(name, isNumericType, minText, maxText) {
+    val canSave by remember(name, isSliderType, minText, maxText) {
         derivedStateOf {
-            name.isNotBlank() && (!isNumericType || (
+            name.isNotBlank() && (!isSliderType || (
                 minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
                 (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
             ))
@@ -776,16 +785,16 @@ private fun EditAppearanceDialog(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Row(
+                    FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement   = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         CategoryType.entries.forEach { type ->
                             FilterChip(
                                 selected  = selectedType == type.key,
                                 onClick   = { selectedType = type.key },
-                                label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) },
-                                modifier  = Modifier.weight(1f)
+                                label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) }
                             )
                         }
                     }
@@ -819,14 +828,14 @@ private fun EditAppearanceDialog(
                 // System categories (Flow, Symptoms) keep text mode; show only for non-system numeric types
                 if (!category.isSystem) {
                     AnimatedVisibility(
-                        visible = isNumericType,
+                        visible = isSliderType,
                         enter   = expandVertically() + fadeIn(),
                         exit    = shrinkVertically() + fadeOut()
                     ) {
                         HorizontalDivider()
                     }
                     AnimatedVisibility(
-                        visible = isNumericType,
+                        visible = isSliderType,
                         enter   = expandVertically() + fadeIn(),
                         exit    = shrinkVertically() + fadeOut()
                     ) {

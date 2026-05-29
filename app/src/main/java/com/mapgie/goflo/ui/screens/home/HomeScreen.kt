@@ -35,10 +35,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,20 +72,35 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val dayLogData by viewModel.dayLogData.collectAsState()
+    val quickLogMessage by viewModel.quickLogMessage.collectAsState()
 
     // Speed dial state
     var showLogMenu by rememberSaveable { mutableStateOf(false) }
     // Date to use when menu is opened from "Log more…" on a specific calendar day
     var logMenuTargetDate by remember { mutableStateOf<LocalDate?>(null) }
 
+    // Confirmation snackbar for instant ("Plus One") quick logs
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(quickLogMessage) {
+        quickLogMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearQuickLogMessage()
+        }
+    }
+
     // ── Quick Log helper ──────────────────────────────────────────────────────
 
     fun handleQuickLog(date: LocalDate) {
+        val id = state.quickLogCategoryId
+        val cat = state.trackingCategories.firstOrNull { it.id == id }
         when {
-            state.quickLogCategoryId == -1L ->
+            id == -1L ->
                 onNavigate(Screen.LogPeriod.newEntryForDate(date))
+            cat?.categoryType == "increment" ->
+                // Instantly add one for the tapped day; no screen navigation.
+                viewModel.incrementCategory(id, date)
             else ->
-                onNavigate(Screen.LogCategory.newEntry(state.quickLogCategoryId, date))
+                onNavigate(Screen.LogCategory.newEntry(id, date))
         }
     }
 
@@ -141,6 +159,7 @@ fun HomeScreen(
                 )
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             val targetDate = logMenuTargetDate ?: LocalDate.now()
             SpeedDial(

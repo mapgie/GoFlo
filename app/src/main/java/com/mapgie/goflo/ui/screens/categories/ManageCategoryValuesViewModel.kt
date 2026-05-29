@@ -44,9 +44,15 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.renameCategory(categoryId, newName) }
     }
 
-    fun updateNumericSettings(min: Float, max: Float, allowDecimals: Boolean, unit: String) {
+    fun updateNumericSettings(
+        min: Float,
+        max: Float,
+        allowDecimals: Boolean,
+        unit: String,
+        scaleLabels: String = "",
+    ) {
         viewModelScope.launch {
-            repository.updateNumericSettings(categoryId, min, max, allowDecimals, unit)
+            repository.updateNumericSettings(categoryId, min, max, allowDecimals, unit, scaleLabels)
         }
     }
 
