@@ -261,6 +261,24 @@ class TrackingRepository(
         return logId
     }
 
+    /**
+     * Updates an existing log entry in-place, replacing its values and notes.
+     * Used when editing a specific log by ID — bypasses the allowMultiple flag so
+     * editing never creates a duplicate entry.
+     */
+    suspend fun updateLogInPlace(
+        existingLog: TrackingLog,
+        selectedValues: Set<String>,
+        notes: String
+    ): Long {
+        logDao.updateLog(existingLog.copy(notes = notes))
+        logDao.deleteLogValuesForLog(existingLog.id)
+        selectedValues.forEach { label ->
+            logDao.insertLogValue(TrackingLogValue(logId = existingLog.id, valueLabel = label))
+        }
+        return existingLog.id
+    }
+
     suspend fun deleteLog(log: TrackingLog) {
         logDao.deleteLog(log)
     }

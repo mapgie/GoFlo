@@ -161,13 +161,18 @@ class LogCategoryViewModel(
 
         viewModelScope.launch {
             runCatching {
-                repository.saveLog(
-                    date           = state.date,
-                    categoryId     = categoryId,
-                    selectedValues = valuesToSave,
-                    notes          = state.notes,
-                    allowMultiple  = state.category?.allowMultiple ?: false
-                )
+                val existingLog = state.existingLog
+                if (existingLog != null) {
+                    repository.updateLogInPlace(existingLog, valuesToSave, state.notes)
+                } else {
+                    repository.saveLog(
+                        date           = state.date,
+                        categoryId     = categoryId,
+                        selectedValues = valuesToSave,
+                        notes          = state.notes,
+                        allowMultiple  = state.category?.allowMultiple ?: false
+                    )
+                }
                 _uiState.update { it.copy(saved = true) }
             }.onFailure { e ->
                 _uiState.update { it.copy(error = e.message) }

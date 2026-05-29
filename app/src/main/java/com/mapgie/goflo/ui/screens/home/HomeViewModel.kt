@@ -176,6 +176,9 @@ class HomeViewModel(
     private val _quickLogMessage = MutableStateFlow<String?>(null)
     val quickLogMessage: StateFlow<String?> = _quickLogMessage.asStateFlow()
 
+    private data class LastIncrementInfo(val categoryId: Long, val date: LocalDate)
+    private var lastIncrement: LastIncrementInfo? = null
+
     /**
      * Instantly adds one to an "increment" category for [date] (today by default)
      * without opening the log screen, then surfaces a brief confirmation message.
@@ -184,8 +187,17 @@ class HomeViewModel(
         viewModelScope.launch {
             val cat = trackingRepository.getCategoryByIdOnce(categoryId) ?: return@launch
             val newCount = trackingRepository.incrementLog(date, categoryId)
+            lastIncrement = LastIncrementInfo(categoryId, date)
             val unit = if (cat.numericUnit.isNotBlank()) " ${cat.numericUnit}" else ""
             _quickLogMessage.value = "${cat.name}: $newCount$unit"
+        }
+    }
+
+    fun undoLastIncrement() {
+        val last = lastIncrement ?: return
+        lastIncrement = null
+        viewModelScope.launch {
+            trackingRepository.incrementLog(last.date, last.categoryId, delta = -1)
         }
     }
 

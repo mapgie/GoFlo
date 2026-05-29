@@ -305,14 +305,23 @@ abstract class GoFloDatabase : RoomDatabase() {
         }
 
         /**
-         * Seeds system categories with ALL current (v7) columns.
+         * Seeds system categories with ALL current (v10) columns.
          * Called only from [RoomDatabase.Callback.onCreate] for fresh installs.
+         *
+         * All NOT NULL columns without SQLite DEFAULT clauses must be supplied
+         * explicitly — Room 2.6.1 does not add DEFAULT clauses when the entity
+         * has no @ColumnInfo(defaultValue=…) annotation, so omitting any column
+         * causes a NOT NULL constraint violation on Android.
          */
         private fun seedSystemCategories(database: SupportSQLiteDatabase) {
             // Flow — water drop icon, primary colour token
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`) " +
-                "VALUES ('Flow', 1, 0, 'water', 'primary', 'default')"
+                "INSERT INTO tracking_categories " +
+                "(name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
+                "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
+                "isArchived, allowMultiple, showInLogPeriod) " +
+                "VALUES ('Flow', 1, 0, 'water', 'primary', 'default', " +
+                "0.0, 10.0, 0, '', '', 0, 0, 0)"
             )
             val flowIdCursor = database.query("SELECT last_insert_rowid()")
             flowIdCursor.moveToFirst()
@@ -328,8 +337,12 @@ abstract class GoFloDatabase : RoomDatabase() {
 
             // Symptoms — healing icon, tertiary (accent) colour token
             database.execSQL(
-                "INSERT INTO tracking_categories (name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`) " +
-                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary', 'default')"
+                "INSERT INTO tracking_categories " +
+                "(name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
+                "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
+                "isArchived, allowMultiple, showInLogPeriod) " +
+                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary', 'default', " +
+                "0.0, 10.0, 0, '', '', 0, 0, 0)"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
             symptomIdCursor.moveToFirst()

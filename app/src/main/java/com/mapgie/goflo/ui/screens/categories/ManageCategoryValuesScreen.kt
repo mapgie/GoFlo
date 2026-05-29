@@ -318,6 +318,7 @@ fun ManageCategoryValuesScreen(
                     onNavigateBack()
                 }
             )
+            "increment" -> IncrementCategoryInfo(modifier = Modifier.padding(padding))
             else -> DefaultCategoryValues(
                 state             = state,
                 modifier          = Modifier.padding(padding),
@@ -377,6 +378,29 @@ private fun DefaultCategoryValues(
         Button(onClick = onAddValue, modifier = Modifier.fillMaxWidth()) {
             Text("+ Add a value")
         }
+    }
+}
+
+// ── Plus One (increment) category info ────────────────────────────────────────
+
+@Composable
+private fun IncrementCategoryInfo(modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            "Plus One category",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            "Plus One categories don't use predefined values — each log records a running count " +
+            "for the day. Use the + button on the home screen or the log screen to add to today's total.",
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
