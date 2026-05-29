@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.model.FlowLevel
+import com.mapgie.goflo.ui.components.BetaFeedbackBanner
 import com.mapgie.goflo.ui.navigation.Screen
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -87,11 +89,18 @@ fun HistoryScreen(
             }
         }
     ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+        ) {
+            BetaFeedbackBanner()
         if (periods.isEmpty()) {
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(bottom = padding.calculateBottomPadding())
                     .padding(32.dp),
                 verticalArrangement = Arrangement.Center
             ) {
@@ -109,9 +118,10 @@ fun HistoryScreen(
             }
         } else {
             LazyColumn(
-                contentPadding = padding,
+                contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
                 modifier = Modifier
-                    .fillMaxSize()
+                    .fillMaxWidth()
+                    .weight(1f)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -150,6 +160,7 @@ fun HistoryScreen(
                 }
                 item { Spacer(Modifier.height(4.dp)) }
             }
+        }
         }
     }
 }
