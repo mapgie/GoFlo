@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.ui.components.BetaFeedbackBanner
 import com.mapgie.goflo.ui.components.StatsWarningBanner
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
@@ -84,16 +85,24 @@ fun StatsScreen(viewModel: StatsViewModel) {
             )
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = innerPadding.calculateTopPadding() + 12.dp,
-                bottom = innerPadding.calculateBottomPadding() + 16.dp,
-                start = 16.dp,
-                end = 16.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding())
         ) {
+            BetaFeedbackBanner()
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = PaddingValues(
+                    top = 12.dp,
+                    bottom = innerPadding.calculateBottomPadding() + 16.dp,
+                    start = 16.dp,
+                    end = 16.dp
+                ),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
             item {
                 StatsWarningBanner(
                     isExpanded = bannerExpanded,
@@ -134,6 +143,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     chartData = state.chartData,
                     hasCategorySelected = state.selectedCategory1 != null
                 )
+            }
             }
         }
     }

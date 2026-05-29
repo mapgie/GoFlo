@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.mapgie.goflo.AppIconChoice
+import com.mapgie.goflo.ui.components.BetaFeedbackBanner
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -563,8 +564,15 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(top = padding.calculateTopPadding())
+        ) {
+        BetaFeedbackBanner()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
                 .verticalScroll(rememberScrollState())
+                .padding(bottom = padding.calculateBottomPadding())
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -1040,6 +1048,7 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(8.dp))
+        }
         }
     }
 }
