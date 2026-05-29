@@ -29,7 +29,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -503,109 +502,101 @@ fun NumericDistributionChart(data: StatsChartData.NumericDistributionData) {
 
 // ── Scatter plot ───────────────────────────────────────────────────────────────────────────
 
-/**
- * Canvas scatter plot: cat1 values on the X axis, cat2 values on the Y axis.
- * One circle per day where both categories were logged in the selected range.
- * Axis tick labels and category name labels are drawn via nativeCanvas.
- */
 @Composable
 fun ScatterPlot(data: StatsChartData.ScatterData, modifier: Modifier = Modifier) {
     val primary          = MaterialTheme.colorScheme.primary
     val outline          = MaterialTheme.colorScheme.outlineVariant
-    val onSurface        = MaterialTheme.colorScheme.onSurface
-    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val labelStyle       = MaterialTheme.typography.labelSmall
+    val labelColor       = MaterialTheme.colorScheme.onSurfaceVariant
 
-    Canvas(modifier = modifier.fillMaxWidth().height(280.dp)) {
-        val leftPad   = 52.dp.toPx()
-        val bottomPad = 44.dp.toPx()
-        val rightPad  = 12.dp.toPx()
-        val topPad    = 12.dp.toPx()
+    fun fmtVal(v: Float) = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
 
-        val plotL = leftPad
-        val plotR = size.width - rightPad
-        val plotT = topPad
-        val plotB = size.height - bottomPad
-        val plotW = plotR - plotL
-        val plotH = plotB - plotT
+    val xRange = (data.xMax - data.xMin).coerceAtLeast(0.001f)
+    val yRange = (data.yMax - data.yMin).coerceAtLeast(0.001f)
+    val midY   = (data.yMin + data.yMax) / 2f
+    val midX   = (data.xMin + data.xMax) / 2f
 
-        val xRange = (data.xMax - data.xMin).coerceAtLeast(0.001f)
-        val yRange = (data.yMax - data.yMin).coerceAtLeast(0.001f)
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Y axis name above the plot
+        Text(
+            text = "↑  ${data.yAxisName}",
+            style = labelStyle,
+            color = labelColor,
+            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+        )
 
-        fun toCanvasX(v: Float) = plotL + (v - data.xMin) / xRange * plotW
-        fun toCanvasY(v: Float) = plotB - (v - data.yMin) / yRange * plotH
-
-        // Faint grid lines
-        for (frac in listOf(0.25f, 0.5f, 0.75f)) {
-            drawLine(outline.copy(alpha = 0.3f),
-                Offset(plotL, plotT + frac * plotH), Offset(plotR, plotT + frac * plotH),
-                strokeWidth = 0.5.dp.toPx())
-            drawLine(outline.copy(alpha = 0.3f),
-                Offset(plotL + frac * plotW, plotT), Offset(plotL + frac * plotW, plotB),
-                strokeWidth = 0.5.dp.toPx())
-        }
-
-        // Axes
-        val axisStroke = 1.5.dp.toPx()
-        drawLine(outline, Offset(plotL, plotT), Offset(plotL, plotB), strokeWidth = axisStroke)
-        drawLine(outline, Offset(plotL, plotB), Offset(plotR, plotB), strokeWidth = axisStroke)
-
-        // Data points
-        val dotRadius = 4.5.dp.toPx()
-        data.points.forEach { pt ->
-            drawCircle(primary.copy(alpha = 0.75f), dotRadius, Offset(toCanvasX(pt.x), toCanvasY(pt.y)))
-        }
-
-        fun fmtVal(v: Float) = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
-
-        val tickSize = 9.dp.toPx()
-        val nameSize = 10.dp.toPx()
-        val tickArgb = onSurfaceVariant.toArgb()
-        val nameArgb = onSurface.toArgb()
-
-        // Text labels via drawIntoCanvas (the correct Compose API for nativeCanvas access)
-        drawIntoCanvas { composeCanvas ->
-            val nc = composeCanvas.nativeCanvas
-
-            val tickPaint = android.graphics.Paint().apply {
-                isAntiAlias = true
-                textSize    = tickSize
-                color       = tickArgb
-            }
-            val namePaint = android.graphics.Paint().apply {
-                isAntiAlias    = true
-                textSize       = nameSize
-                color          = nameArgb
-                isFakeBoldText = true
-                textAlign      = android.graphics.Paint.Align.CENTER
+        // Y tick labels + canvas
+        Row(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+            Column(
+                modifier = Modifier.width(44.dp).fillMaxHeight().padding(end = 4.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(fmtVal(data.yMax), style = labelStyle, color = labelColor, textAlign = TextAlign.End)
+                if (data.yMin != data.yMax) {
+                    Text(fmtVal(midY), style = labelStyle, color = labelColor, textAlign = TextAlign.End)
+                }
+                Text(fmtVal(data.yMin), style = labelStyle, color = labelColor, textAlign = TextAlign.End)
             }
 
-            // Y axis tick labels
-            tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
-            nc.drawText(fmtVal(data.yMax), plotL - 4.dp.toPx(), plotT + tickSize, tickPaint)
-            nc.drawText(fmtVal(data.yMin), plotL - 4.dp.toPx(), plotB, tickPaint)
-            if (data.yMin != data.yMax) {
-                nc.drawText(
-                    fmtVal((data.yMin + data.yMax) / 2f),
-                    plotL - 4.dp.toPx(),
-                    (plotT + plotB) / 2f + tickSize / 2f,
-                    tickPaint
-                )
+            Canvas(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                val plotW = size.width
+                val plotH = size.height
+
+                fun toCanvasX(v: Float) = (v - data.xMin) / xRange * plotW
+                fun toCanvasY(v: Float) = plotH - (v - data.yMin) / yRange * plotH
+
+                // Faint grid lines
+                for (frac in listOf(0.25f, 0.5f, 0.75f)) {
+                    drawLine(
+                        outline.copy(alpha = 0.3f),
+                        Offset(0f, frac * plotH), Offset(plotW, frac * plotH),
+                        strokeWidth = 0.5.dp.toPx()
+                    )
+                    drawLine(
+                        outline.copy(alpha = 0.3f),
+                        Offset(frac * plotW, 0f), Offset(frac * plotW, plotH),
+                        strokeWidth = 0.5.dp.toPx()
+                    )
+                }
+
+                // Axes
+                val axisStroke = 1.5.dp.toPx()
+                drawLine(outline, Offset(0f, 0f), Offset(0f, plotH), strokeWidth = axisStroke)
+                drawLine(outline, Offset(0f, plotH), Offset(plotW, plotH), strokeWidth = axisStroke)
+
+                // Data points
+                val dotRadius = 4.5.dp.toPx()
+                data.points.forEach { pt ->
+                    drawCircle(
+                        primary.copy(alpha = 0.75f),
+                        dotRadius,
+                        Offset(toCanvasX(pt.x), toCanvasY(pt.y))
+                    )
+                }
             }
-
-            // X axis tick labels
-            tickPaint.textAlign = android.graphics.Paint.Align.LEFT
-            nc.drawText(fmtVal(data.xMin), plotL, plotB + 12.dp.toPx(), tickPaint)
-            tickPaint.textAlign = android.graphics.Paint.Align.RIGHT
-            nc.drawText(fmtVal(data.xMax), plotR, plotB + 12.dp.toPx(), tickPaint)
-
-            // Y axis name — rotated 90° counter-clockwise along the left edge
-            nc.save()
-            nc.rotate(-90f, 10.dp.toPx(), (plotT + plotB) / 2f)
-            nc.drawText(data.yAxisName, 10.dp.toPx(), (plotT + plotB) / 2f, namePaint)
-            nc.restore()
-
-            // X axis name — centred below the X axis
-            nc.drawText(data.xAxisName, (plotL + plotR) / 2f, size.height - 4.dp.toPx(), namePaint)
         }
+
+        // X axis tick labels
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 44.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(fmtVal(data.xMin), style = labelStyle, color = labelColor)
+            if (data.xMin != data.xMax) {
+                Text(fmtVal(midX), style = labelStyle, color = labelColor)
+            }
+            Text(fmtVal(data.xMax), style = labelStyle, color = labelColor)
+        }
+
+        // X axis name
+        Text(
+            text = "${data.xAxisName}  →",
+            style = labelStyle,
+            color = labelColor,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 2.dp)
+        )
     }
 }
