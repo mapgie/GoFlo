@@ -19,7 +19,7 @@ Rules:
 
 ---
 
-## [0.13.0-beta.1] - 2026-05-29
+## [0.13.1-beta.1] - 2026-05-29
 
 ### Added
 - **Slider scale labels** — each whole-number step on a Slider category can now be given a text label (e.g. 1 = Good, 3 = Neutral, 5 = Bad). Labels are set in Settings → Tracking Categories → [category] and appear below the current value on both the log screen and the Log Period screen. Stats distribution charts also use these labels on the value axis.
