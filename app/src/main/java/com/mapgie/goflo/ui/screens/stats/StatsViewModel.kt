@@ -39,6 +39,8 @@ enum class ChartType {
     NUMERIC_AVERAGE,
     /** Frequency histogram of each discrete numeric value. Only valid when cat1 is numeric. */
     NUMERIC_DISTRIBUTION,
+    /** Scatter plot of cat1 (X) vs cat2 (Y). Only valid when both categories are numeric. */
+    SCATTER,
 }
 
 // ── Chart data models ─────────────────────────────────────────────────────────
@@ -53,6 +55,8 @@ data class NumericBucket(val label: String, val average: Float, val count: Int)
 
 /** One bar in a numeric distribution histogram. */
 data class NumericHistBar(val label: String, val count: Int)
+
+data class ScatterPoint(val x: Float, val y: Float)
 
 sealed class StatsChartData {
     data object Empty : StatsChartData()
@@ -76,6 +80,15 @@ sealed class StatsChartData {
     data class NumericDistributionData(
         val bars: List<NumericHistBar>,
         val categoryName: String,
+    ) : StatsChartData()
+    data class ScatterData(
+        val points: List<ScatterPoint>,
+        val xAxisName: String,
+        val yAxisName: String,
+        val xMin: Float,
+        val xMax: Float,
+        val yMin: Float,
+        val yMax: Float,
     ) : StatsChartData()
 }
 
@@ -131,7 +144,8 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     val cat1 = state.selectedCategory1
                     val newType = when {
                         state.chartType == ChartType.COMBO ||
-                        state.chartType == ChartType.DUAL_TIME_SERIES ->
+                        state.chartType == ChartType.DUAL_TIME_SERIES ||
+                        state.chartType == ChartType.SCATTER ->
                             if (cat1?.isNumeric == true) ChartType.NUMERIC_AVERAGE else ChartType.PIE
                         else -> state.chartType
                     }
@@ -151,7 +165,9 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     )
                 }
                 state.selectedCategory2 == null -> {
-                    state.copy(selectedCategory2 = category, chartData = StatsChartData.Empty)
+                    val newType = if (category.isNumeric && state.selectedCategory1?.isNumeric == true)
+                        ChartType.SCATTER else state.chartType
+                    state.copy(selectedCategory2 = category, chartType = newType, chartData = StatsChartData.Empty)
                 }
                 else -> state // Both slots full — ignore
             }
@@ -274,6 +290,33 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                             .sortedBy { it.key.toFloatOrNull() ?: Float.MAX_VALUE }
                             .map { NumericHistBar(it.key, it.value) }
                         StatsChartData.NumericDistributionData(bars, cat1.name)
+                    }
+                }
+
+                ChartType.SCATTER -> {
+                    if (cat2 == null || !cat1.isNumeric || !cat2.isNumeric) {
+                        StatsChartData.Empty
+                    } else {
+                        val logs1 = repository.getLogsForCategoryInRange(cat1.id, start, end)
+                        val logs2 = repository.getLogsForCategoryInRange(cat2.id, start, end)
+                        val byDate1 = logs1.associateBy { it.date }
+                        val byDate2 = logs2.associateBy { it.date }
+                        val points = mutableListOf<ScatterPoint>()
+                        for (date in (byDate1.keys intersect byDate2.keys)) {
+                            val x = repository.getValuesForLog(byDate1[date]!!.id).firstOrNull()?.toFloatOrNull() ?: continue
+                            val y = repository.getValuesForLog(byDate2[date]!!.id).firstOrNull()?.toFloatOrNull() ?: continue
+                            points.add(ScatterPoint(x, y))
+                        }
+                        if (points.isEmpty()) StatsChartData.Empty
+                        else StatsChartData.ScatterData(
+                            points    = points,
+                            xAxisName = cat1.name,
+                            yAxisName = cat2.name,
+                            xMin = points.minOf { it.x },
+                            xMax = points.maxOf { it.x },
+                            yMin = points.minOf { it.y },
+                            yMax = points.maxOf { it.y },
+                        )
                     }
                 }
             }

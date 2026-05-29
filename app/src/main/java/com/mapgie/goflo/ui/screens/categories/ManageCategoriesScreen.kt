@@ -116,16 +116,18 @@ fun ManageCategoriesScreen(
 
     if (showAddDialog) {
         AddCategoryDialog(
-            onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit ->
+            onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple, showInLogPeriod ->
                 viewModel.addCategory(
-                    name          = name,
-                    iconName      = iconName,
-                    colorToken    = colorToken,
-                    categoryType  = categoryType,
-                    numericMin    = numericMin,
-                    numericMax    = numericMax,
-                    allowDecimals = allowDecimals,
-                    numericUnit   = numericUnit,
+                    name            = name,
+                    iconName        = iconName,
+                    colorToken      = colorToken,
+                    categoryType    = categoryType,
+                    numericMin      = numericMin,
+                    numericMax      = numericMax,
+                    allowDecimals   = allowDecimals,
+                    numericUnit     = numericUnit,
+                    allowMultiple   = allowMultiple,
+                    showInLogPeriod = showInLogPeriod,
                     onCreated    = { newId ->
                         showAddDialog = false
                         // Numeric categories have all settings configured in the creation
@@ -147,17 +149,19 @@ fun ManageCategoriesScreen(
     if (categoryToEditAppearance != null) {
         EditAppearanceDialog(
             category = categoryToEditAppearance,
-            onSave = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit ->
+            onSave = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple, showInLogPeriod ->
                 viewModel.updateCategoryNameAndAppearance(
-                    id            = categoryToEditAppearance.id,
-                    name          = name,
-                    iconName      = iconName,
-                    colorToken    = colorToken,
-                    categoryType  = categoryType,
-                    numericMin    = numericMin,
-                    numericMax    = numericMax,
-                    allowDecimals = allowDecimals,
-                    numericUnit   = numericUnit,
+                    id              = categoryToEditAppearance.id,
+                    name            = name,
+                    iconName        = iconName,
+                    colorToken      = colorToken,
+                    categoryType    = categoryType,
+                    numericMin      = numericMin,
+                    numericMax      = numericMax,
+                    allowDecimals   = allowDecimals,
+                    numericUnit     = numericUnit,
+                    allowMultiple   = allowMultiple,
+                    showInLogPeriod = showInLogPeriod,
                 )
                 pendingEditAppearance = null
             },
@@ -468,6 +472,7 @@ private fun CategoryRow(
 private fun buildCategorySubtitle(category: TrackingCategory): String = buildString {
     if (category.isSystem) append("Built-in · ")
     if (category.isArchived) append("Archived · ")
+    if (category.showInLogPeriod) append("Log with period · ")
     when (category.categoryType) {
         "numeric_slider" -> {
             append("Numeric · Slider")
@@ -488,7 +493,8 @@ private fun buildCategorySubtitle(category: TrackingCategory): String = buildStr
 private fun AddCategoryDialog(
     onAdd: (name: String, iconName: String, colorToken: String,
             categoryType: String, numericMin: Float, numericMax: Float,
-            allowDecimals: Boolean, numericUnit: String) -> Unit,
+            allowDecimals: Boolean, numericUnit: String, allowMultiple: Boolean,
+            showInLogPeriod: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name             by rememberSaveable { mutableStateOf("") }
@@ -499,6 +505,8 @@ private fun AddCategoryDialog(
     var minText          by rememberSaveable { mutableStateOf("0") }
     var maxText          by rememberSaveable { mutableStateOf("10") }
     var allowDecimals    by rememberSaveable { mutableStateOf(false) }
+    var allowMultiple    by rememberSaveable { mutableStateOf(false) }
+    var showInLogPeriod  by rememberSaveable { mutableStateOf(false) }
 
     val isNumericType = selectedType != CategoryType.DEFAULT.key
 
@@ -594,8 +602,6 @@ private fun AddCategoryDialog(
                     exit    = shrinkVertically() + fadeOut()
                 ) {
                     NumericSettingsSection(
-                        isNumeric        = isNumericType,
-                        onToggle         = { /* type controlled by chip selector above */ },
                         minText          = minText,
                         onMinChange      = { minText = it },
                         maxText          = maxText,
@@ -603,6 +609,42 @@ private fun AddCategoryDialog(
                         allowDecimals    = allowDecimals,
                         onDecimalsToggle = { allowDecimals = it }
                     )
+                }
+
+                // Allow multiple per day (all category types)
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Log this category more than once on the same day",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = allowMultiple, onCheckedChange = { allowMultiple = it })
+                }
+
+                // Log with period
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Log with period", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Show this category on the Log Period screen",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = showInLogPeriod, onCheckedChange = { showInLogPeriod = it })
                 }
 
                 Row(
@@ -620,7 +662,9 @@ private fun AddCategoryDialog(
                                 minText.toFloatOrNull() ?: 0f,
                                 maxText.toFloatOrNull() ?: 10f,
                                 allowDecimals,
-                                numericUnit.trim()
+                                numericUnit.trim(),
+                                allowMultiple,
+                                showInLogPeriod
                             )
                         },
                         enabled = canAdd
@@ -638,7 +682,8 @@ private fun EditAppearanceDialog(
     category: TrackingCategory,
     onSave: (name: String, iconName: String, colorToken: String,
              categoryType: String, numericMin: Float, numericMax: Float,
-             allowDecimals: Boolean, numericUnit: String) -> Unit,
+             allowDecimals: Boolean, numericUnit: String, allowMultiple: Boolean,
+             showInLogPeriod: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name            by rememberSaveable { mutableStateOf(category.name) }
@@ -653,6 +698,8 @@ private fun EditAppearanceDialog(
         mutableStateOf(if (category.allowDecimals) "%.1f".format(category.numericMax) else category.numericMax.toInt().toString())
     }
     var allowDecimals   by rememberSaveable { mutableStateOf(category.allowDecimals) }
+    var allowMultiple   by rememberSaveable { mutableStateOf(category.allowMultiple) }
+    var showInLogPeriod by rememberSaveable { mutableStateOf(category.showInLogPeriod) }
 
     val isNumericType = selectedType != CategoryType.DEFAULT.key
 
@@ -769,19 +816,67 @@ private fun EditAppearanceDialog(
                 CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
                 // ── Numeric range settings ────────────────────────────────────
-                HorizontalDivider()
-                // System categories (Flow, Symptoms) keep text mode; disable toggle for them
+                // System categories (Flow, Symptoms) keep text mode; show only for non-system numeric types
                 if (!category.isSystem) {
-                    NumericSettingsSection(
-                        isNumeric        = isNumericType,
-                        onToggle         = { /* type controlled by chip selector above */ },
-                        minText          = minText,
-                        onMinChange      = { minText = it },
-                        maxText          = maxText,
-                        onMaxChange      = { maxText = it },
-                        allowDecimals    = allowDecimals,
-                        onDecimalsToggle = { allowDecimals = it }
-                    )
+                    AnimatedVisibility(
+                        visible = isNumericType,
+                        enter   = expandVertically() + fadeIn(),
+                        exit    = shrinkVertically() + fadeOut()
+                    ) {
+                        HorizontalDivider()
+                    }
+                    AnimatedVisibility(
+                        visible = isNumericType,
+                        enter   = expandVertically() + fadeIn(),
+                        exit    = shrinkVertically() + fadeOut()
+                    ) {
+                        NumericSettingsSection(
+                            minText          = minText,
+                            onMinChange      = { minText = it },
+                            maxText          = maxText,
+                            onMaxChange      = { maxText = it },
+                            allowDecimals    = allowDecimals,
+                            onDecimalsToggle = { allowDecimals = it }
+                        )
+                    }
+                }
+
+                // Allow multiple per day (all category types)
+                HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "Log this category more than once on the same day",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = allowMultiple, onCheckedChange = { allowMultiple = it })
+                }
+
+                // Log with period (non-system categories only)
+                if (!category.isSystem) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Log with period", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "Show this category on the Log Period screen",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(checked = showInLogPeriod, onCheckedChange = { showInLogPeriod = it })
+                    }
                 }
 
                 Row(
@@ -799,7 +894,9 @@ private fun EditAppearanceDialog(
                                 minText.toFloatOrNull() ?: 0f,
                                 maxText.toFloatOrNull() ?: 10f,
                                 allowDecimals,
-                                numericUnit.trim()
+                                numericUnit.trim(),
+                                allowMultiple,
+                                showInLogPeriod
                             )
                         },
                         enabled = canSave
@@ -814,83 +911,53 @@ private fun EditAppearanceDialog(
 
 /**
  * Reusable block shown in both the Add and Edit dialogs for configuring numeric mode.
- * Renders a toggle row and, when [isNumeric] is true, animated min/max/decimal fields.
+ * Shows min/max/decimal fields directly; the caller's AnimatedVisibility handles
+ * section visibility based on the selected category type.
  */
 @Composable
 private fun NumericSettingsSection(
-    isNumeric: Boolean,
-    onToggle: (Boolean) -> Unit,
-    minText: String,
-    onMinChange: (String) -> Unit,
-    maxText: String,
-    onMaxChange: (String) -> Unit,
-    allowDecimals: Boolean,
-    onDecimalsToggle: (Boolean) -> Unit,
+    minText: String, onMinChange: (String) -> Unit,
+    maxText: String, onMaxChange: (String) -> Unit,
+    allowDecimals: Boolean, onDecimalsToggle: (Boolean) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // Toggle row
+        // Min / Max side-by-side
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value         = minText,
+                onValueChange = { onMinChange(it) },
+                label         = { Text("Min") },
+                singleLine    = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier      = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value         = maxText,
+                onValueChange = { onMaxChange(it) },
+                label         = { Text("Max") },
+                singleLine    = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier      = Modifier.weight(1f)
+            )
+        }
+        // Decimal toggle
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Numeric input", style = MaterialTheme.typography.titleSmall)
+                Text("Allow decimals", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Use a slider instead of text options",
+                    "Slider snaps to 0.1 steps instead of whole numbers",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Switch(checked = isNumeric, onCheckedChange = onToggle)
-        }
-
-        // Expanded fields — animated
-        AnimatedVisibility(
-            visible = isNumeric,
-            enter = expandVertically() + fadeIn(),
-            exit  = shrinkVertically() + fadeOut()
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Min / Max side-by-side
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value         = minText,
-                        onValueChange = { onMinChange(it) },
-                        label         = { Text("Min") },
-                        singleLine    = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier      = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value         = maxText,
-                        onValueChange = { onMaxChange(it) },
-                        label         = { Text("Max") },
-                        singleLine    = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier      = Modifier.weight(1f)
-                    )
-                }
-                // Decimal toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Allow decimals", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "Slider snaps to 0.1 steps instead of whole numbers",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = allowDecimals, onCheckedChange = onDecimalsToggle)
-                }
-            }
+            Switch(checked = allowDecimals, onCheckedChange = onDecimalsToggle)
         }
     }
 }

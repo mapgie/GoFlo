@@ -37,19 +37,23 @@ class ManageCategoriesViewModel(
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
+        showInLogPeriod: Boolean = false,
         onCreated: (Long) -> Unit = {},
     ) {
         if (name.isBlank()) return
         viewModelScope.launch {
             val id = repository.addCategory(
-                name          = name,
-                iconName      = iconName,
-                colorToken    = colorToken,
-                categoryType  = categoryType,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
-                numericUnit   = numericUnit,
+                name            = name,
+                iconName        = iconName,
+                colorToken      = colorToken,
+                categoryType    = categoryType,
+                numericMin      = numericMin,
+                numericMax      = numericMax,
+                allowDecimals   = allowDecimals,
+                numericUnit     = numericUnit,
+                allowMultiple   = allowMultiple,
+                showInLogPeriod = showInLogPeriod,
             )
             onCreated(id)
         }
@@ -69,18 +73,22 @@ class ManageCategoriesViewModel(
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
+        showInLogPeriod: Boolean = false,
     ) {
         viewModelScope.launch {
             repository.updateCategoryFullSettings(
-                id            = id,
-                name          = name,
-                iconName      = iconName,
-                colorToken    = colorToken,
-                categoryType  = categoryType,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
-                numericUnit   = numericUnit,
+                id              = id,
+                name            = name,
+                iconName        = iconName,
+                colorToken      = colorToken,
+                categoryType    = categoryType,
+                numericMin      = numericMin,
+                numericMax      = numericMax,
+                allowDecimals   = allowDecimals,
+                numericUnit     = numericUnit,
+                allowMultiple   = allowMultiple,
+                showInLogPeriod = showInLogPeriod,
             )
         }
     }

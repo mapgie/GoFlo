@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.BubbleChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.ShowChart
@@ -416,9 +417,14 @@ private fun ChartTypeSelector(
 
     val options = buildList {
         when {
+            cat1.isNumeric && cat2?.isNumeric == true -> {
+                add(ChartOption(ChartType.SCATTER,          Icons.Default.BubbleChart, "Scatter"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE,  Icons.Default.ShowChart,   "Average"))
+                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart,    "Compare"))
+            }
             cat1.isNumeric && cat2 == null -> {
-                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart,  "Average"))
-                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.BarChart,   "Distribution"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart, "Average"))
+                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.BarChart,  "Distribution"))
             }
             eitherNumeric -> {
                 add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,  "Over Time"))
@@ -576,6 +582,17 @@ private fun ChartArea(
                 is StatsChartData.NumericDistributionData -> {
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
                         NumericDistributionChart(data = chartData)
+                    }
+                }
+
+                is StatsChartData.ScatterData -> {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Text(
+                            text = "${chartData.yAxisName} vs ${chartData.xAxisName}",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        ScatterPlot(data = chartData)
                     }
                 }
             }

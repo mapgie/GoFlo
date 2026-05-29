@@ -1,8 +1,14 @@
 package com.mapgie.goflo.ui.screens.home
 
-import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,30 +20,24 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
-import com.mapgie.goflo.ui.util.toCategoryColor
-import com.mapgie.goflo.ui.util.toCategoryIcon
-import com.mapgie.goflo.ui.util.toCategoryOnColor
-import androidx.compose.ui.draw.clip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,18 +47,21 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
+import com.mapgie.goflo.ui.theme.ComfortaaFamily
+import com.mapgie.goflo.ui.util.toCategoryColor
+import com.mapgie.goflo.ui.util.toCategoryIcon
+import com.mapgie.goflo.ui.util.toCategoryOnColor
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 private val displayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -67,12 +70,10 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsState()
     val dayLogData by viewModel.dayLogData.collectAsState()
 
-    // FAB long-press menu sheet
+    // Speed dial state
     var showLogMenu by rememberSaveable { mutableStateOf(false) }
-    // Date to use when the menu is opened from a long-press on a specific calendar day
+    // Date to use when menu is opened from "Log more…" on a specific calendar day
     var logMenuTargetDate by remember { mutableStateOf<LocalDate?>(null) }
-
-    val logMenuSheetState = rememberModalBottomSheetState()
 
     // ── Quick Log helper ──────────────────────────────────────────────────────
 
@@ -82,73 +83,6 @@ fun HomeScreen(
                 onNavigate(Screen.LogPeriod.newEntryForDate(date))
             else ->
                 onNavigate(Screen.LogCategory.newEntry(state.quickLogCategoryId, date))
-        }
-    }
-
-    // ── Log menu (FAB long-press) bottom sheet ────────────────────────────────
-
-    if (showLogMenu) {
-        val targetDate = logMenuTargetDate ?: LocalDate.now()
-        ModalBottomSheet(
-            onDismissRequest = { showLogMenu = false; logMenuTargetDate = null },
-            sheetState = logMenuSheetState
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                    .padding(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    "What would you like to log?",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-                HorizontalDivider()
-                Spacer(Modifier.height(4.dp))
-
-                // Log Period option
-                LogMenuOption(
-                    label = "Log Period",
-                    icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                    onClick = {
-                        showLogMenu = false
-                        logMenuTargetDate = null
-                        onNavigate(Screen.LogPeriod.newEntryForDate(targetDate))
-                    }
-                )
-
-                // One option per tracking category — icon and colour follow the current theme
-                state.trackingCategories.forEach { category ->
-                    val bubbleColor  = category.colorToken.toCategoryColor()
-                    val iconOnColor  = category.colorToken.toCategoryOnColor()
-                    LogMenuOption(
-                        label = "Log ${category.name}",
-                        icon  = {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(bubbleColor),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector        = category.iconName.toCategoryIcon().vector,
-                                    contentDescription = null,
-                                    tint               = iconOnColor,
-                                    modifier           = Modifier.size(20.dp)
-                                )
-                            }
-                        },
-                        onClick = {
-                            showLogMenu = false
-                            logMenuTargetDate = null
-                            onNavigate(Screen.LogCategory.newEntry(category.id, targetDate))
-                        }
-                    )
-                }
-            }
         }
     }
 
@@ -170,6 +104,7 @@ fun HomeScreen(
                 onNavigate(Screen.LogCategory.editEntry(categoryId, logId))
             },
             onLogMore = {
+                viewModel.clearSelectedDay()
                 logMenuTargetDate = data.date
                 showLogMenu = true
             }
@@ -196,97 +131,188 @@ fun HomeScreen(
             )
         },
         floatingActionButton = {
-            // Custom FAB using Surface (non-clickable variant) + combinedClickable so that
-            // both short-press (Quick Log) and long-press (Log menu) work reliably without
-            // conflicting gesture recognisers.
-            LogFab(
-                onClick = { handleQuickLog(LocalDate.now()) },
-                onLongClick = { logMenuTargetDate = null; showLogMenu = true }
+            val targetDate = logMenuTargetDate ?: LocalDate.now()
+            SpeedDial(
+                expanded = showLogMenu,
+                onToggle = {
+                    showLogMenu = !showLogMenu
+                    if (!showLogMenu) logMenuTargetDate = null
+                },
+                onLogPeriod = {
+                    showLogMenu = false
+                    logMenuTargetDate = null
+                    onNavigate(Screen.LogPeriod.newEntryForDate(targetDate))
+                },
+                categories = state.trackingCategories,
+                onLogCategory = { categoryId ->
+                    showLogMenu = false
+                    logMenuTargetDate = null
+                    onNavigate(Screen.LogCategory.newEntry(categoryId, targetDate))
+                }
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CalendarGrid(
-                periodDays           = state.periodDays,
-                predictedDays        = state.predictedDays,
-                ovulationDay         = state.ovulationDay,
-                ovulationWindow      = state.ovulationWindow,
-                daysWithTrackingLogs = state.trackingLogDates,
-                onDayClick = { date ->
-                    if (date in state.daysWithAnyData) {
-                        // Show summary of what's logged for this day
-                        viewModel.selectDay(date)
-                    } else {
-                        // Empty day: Quick Log
-                        handleQuickLog(date)
-                    }
-                },
-                onDayLongClick = { date ->
-                    // Long-press always opens Quick Log for that day
-                    handleQuickLog(date)
-                }
-            )
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CalendarGrid(
+                    periodDays           = state.periodDays,
+                    predictedDays        = state.predictedDays,
+                    ovulationDay         = state.ovulationDay,
+                    ovulationWindow      = state.ovulationWindow,
+                    daysWithTrackingLogs = state.trackingLogDates,
+                    onDayClick = { date ->
+                        if (date in state.daysWithAnyData) {
+                            viewModel.selectDay(date)
+                        } else {
+                            handleQuickLog(date)
+                        }
+                    },
+                    onDayLongClick = { date -> handleQuickLog(date) }
+                )
 
-            CycleInfoCard(state = state)
+                CycleInfoCard(state = state)
+            }
+
+            // Scrim — closes speed dial when tapped outside it
+            AnimatedVisibility(
+                visible = showLogMenu,
+                enter   = fadeIn(),
+                exit    = fadeOut(),
+                modifier = Modifier.matchParentSize()
+            ) {
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication        = null,
+                            onClick           = { showLogMenu = false; logMenuTargetDate = null }
+                        )
+                )
+            }
         }
     }
 }
 
-/** Extended-FAB look-alike with separate short-press and long-press handlers. */
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LogFab(onClick: () -> Unit, onLongClick: () -> Unit) {
-    // Extended FAB shape in Material3 is a full-rounded pill (very large corner radius)
-    val shape = RoundedCornerShape(50)
-    Surface(
-        modifier = Modifier
-            .shadow(elevation = 6.dp, shape = shape)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = shape,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        tonalElevation = 0.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(24.dp))
-            Text("Log…", style = MaterialTheme.typography.labelLarge)
-        }
-    }
-}
+// ── Speed dial ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun LogMenuOption(
-    label: String,
-    icon: @Composable () -> Unit,
-    onClick: () -> Unit
+private fun SpeedDial(
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    onLogPeriod: () -> Unit,
+    categories: List<com.mapgie.goflo.data.database.entities.TrackingCategory>,
+    onLogCategory: (Long) -> Unit,
 ) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        // Expanded items
+        AnimatedVisibility(
+            visible = expanded,
+            enter   = expandVertically(expandFrom = Alignment.Bottom) + fadeIn(),
+            exit    = shrinkVertically(shrinkTowards = Alignment.Bottom) + fadeOut(),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 4.dp)
+            ) {
+                // Tracking categories (reversed so first category is nearest the FAB)
+                categories.asReversed().forEach { category ->
+                    SpeedDialItem(
+                        label          = category.name,
+                        containerColor = category.colorToken.toCategoryColor(),
+                        contentColor   = category.colorToken.toCategoryOnColor(),
+                        onClick        = { onLogCategory(category.id) }
+                    ) {
+                        Icon(
+                            imageVector        = category.iconName.toCategoryIcon().vector,
+                            contentDescription = null,
+                            modifier           = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // Log Period — always at the top of the list
+                SpeedDialItem(
+                    label          = "Log Period",
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor   = MaterialTheme.colorScheme.onPrimaryContainer,
+                    onClick        = onLogPeriod
+                ) {
+                    Icon(Icons.Default.DateRange, contentDescription = null)
+                }
+            }
+        }
+
+        // Main Extended FAB
+        ExtendedFloatingActionButton(
+            onClick          = onToggle,
+            containerColor   = MaterialTheme.colorScheme.primaryContainer,
+            contentColor     = MaterialTheme.colorScheme.onPrimaryContainer,
+            icon = {
+                AnimatedContent(targetState = expanded) { open ->
+                    Icon(
+                        imageVector        = if (open) Icons.Default.Close else Icons.Default.Add,
+                        contentDescription = if (open) "Close menu" else "Open log menu"
+                    )
+                }
+            },
+            text = {
+                AnimatedContent(targetState = expanded) { open ->
+                    Text(if (open) "Close" else "Log…")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SpeedDialItem(
+    label: String,
+    containerColor: Color,
+    contentColor: Color,
+    onClick: () -> Unit,
+    icon: @Composable () -> Unit,
+) {
+    Row(
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier              = Modifier.padding(end = 4.dp)
+    ) {
+        Surface(
+            shape         = RoundedCornerShape(8.dp),
+            color         = MaterialTheme.colorScheme.surface,
+            shadowElevation = 2.dp,
+            tonalElevation  = 2.dp,
+        ) {
+            Text(
+                text     = label,
+                style    = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+        }
+        SmallFloatingActionButton(
+            onClick        = onClick,
+            containerColor = containerColor,
+            contentColor   = contentColor,
         ) {
             icon()
-            Text(label, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
+
+// ── Cycle info card ───────────────────────────────────────────────────────────
 
 @Composable
 private fun CycleInfoCard(state: HomeUiState) {

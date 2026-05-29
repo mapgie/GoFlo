@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -26,6 +27,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -33,6 +35,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -45,7 +48,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.data.model.SymptomType
 import com.mapgie.goflo.ui.components.SelectableChip
@@ -241,6 +246,21 @@ fun LogPeriodScreen(
                     )
                 }
 
+                // Pinned tracking categories
+                state.pinnedCategories.forEach { category ->
+                    SectionLabel(category.name)
+                    PinnedCategoryInput(
+                        category       = category,
+                        availableValues = state.pinnedCategoryValues[category.id] ?: emptyList(),
+                        selectedValues  = state.pinnedCategorySelections[category.id] ?: emptySet(),
+                        numericValue    = state.pinnedNumericValues[category.id],
+                        freeText        = state.pinnedFreeTextValues[category.id] ?: "",
+                        onToggleValue   = { viewModel.togglePinnedValue(category.id, it) },
+                        onNumericChange = { viewModel.setPinnedNumericValue(category.id, it) },
+                        onFreeTextChange = { viewModel.setPinnedFreeText(category.id, it) },
+                    )
+                }
+
                 // Notes
                 SectionLabel("Notes")
                 OutlinedTextField(
@@ -278,6 +298,110 @@ fun LogPeriodScreen(
                 state.error?.let {
                     Text("Error: $it", color = MaterialTheme.colorScheme.error)
                 }
+            }
+        }
+    }
+}
+
+// ── Pinned category input ─────────────────────────────────────────────────────
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PinnedCategoryInput(
+    category: TrackingCategory,
+    availableValues: List<String>,
+    selectedValues: Set<String>,
+    numericValue: Float?,
+    freeText: String,
+    onToggleValue: (String) -> Unit,
+    onNumericChange: (Float) -> Unit,
+    onFreeTextChange: (String) -> Unit,
+) {
+    when (category.categoryType) {
+        "numeric_slider" -> {
+            val min = category.numericMin
+            val max = category.numericMax
+            val sliderValue = numericValue ?: min
+            val steps = if (category.allowDecimals) 0 else {
+                val range = (max - min).toInt()
+                if (range > 1) range - 1 else 0
+            }
+            val displayValue = if (category.allowDecimals) "%.1f".format(sliderValue)
+                               else sliderValue.toInt().toString()
+            val minLabel = if (category.allowDecimals) "%.1f".format(min) else min.toInt().toString()
+            val maxLabel = if (category.allowDecimals) "%.1f".format(max) else max.toInt().toString()
+
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text(
+                            text = if (category.numericUnit.isNotBlank()) "$displayValue ${category.numericUnit}" else displayValue,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Slider(
+                        value = sliderValue,
+                        onValueChange = onNumericChange,
+                        valueRange = min..max,
+                        steps = steps,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(minLabel, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (numericValue == null) {
+                            Text("Drag to set a value", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Text(maxLabel, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+
+        "numeric_free" -> {
+            OutlinedTextField(
+                value           = freeText,
+                onValueChange   = onFreeTextChange,
+                label           = { Text(if (category.numericUnit.isNotBlank()) category.numericUnit else "Value") },
+                placeholder     = { Text("Enter a number") },
+                singleLine      = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier        = Modifier.fillMaxWidth()
+            )
+        }
+
+        else -> {
+            if (availableValues.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    availableValues.forEach { label ->
+                        SelectableChip(
+                            label    = label,
+                            selected = label in selectedValues,
+                            onClick  = { onToggleValue(label) }
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    "No values configured. Add values in Settings → Tracking Categories.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

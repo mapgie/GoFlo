@@ -54,20 +54,24 @@ class TrackingRepository(
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
+        showInLogPeriod: Boolean = false,
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
         return categoryDao.insertCategory(
             TrackingCategory(
-                name          = name.trim(),
-                displayOrder  = maxOrder + 1,
-                iconName      = iconName,
-                colorToken    = colorToken,
-                categoryType  = categoryType,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
-                numericUnit   = numericUnit,
+                name            = name.trim(),
+                displayOrder    = maxOrder + 1,
+                iconName        = iconName,
+                colorToken      = colorToken,
+                categoryType    = categoryType,
+                numericMin      = numericMin,
+                numericMax      = numericMax,
+                allowDecimals   = allowDecimals,
+                numericUnit     = numericUnit,
+                allowMultiple   = allowMultiple,
+                showInLogPeriod = showInLogPeriod,
             )
         )
     }
@@ -97,18 +101,22 @@ class TrackingRepository(
         numericMax: Float,
         allowDecimals: Boolean,
         numericUnit: String = "",
+        allowMultiple: Boolean = false,
+        showInLogPeriod: Boolean = false,
     ) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(
             cat.copy(
-                name          = name.trim(),
-                iconName      = iconName,
-                colorToken    = colorToken,
-                categoryType  = categoryType,
-                numericMin    = numericMin,
-                numericMax    = numericMax,
-                allowDecimals = allowDecimals,
-                numericUnit   = numericUnit,
+                name            = name.trim(),
+                iconName        = iconName,
+                colorToken      = colorToken,
+                categoryType    = categoryType,
+                numericMin      = numericMin,
+                numericMax      = numericMax,
+                allowDecimals   = allowDecimals,
+                numericUnit     = numericUnit,
+                allowMultiple   = allowMultiple,
+                showInLogPeriod = showInLogPeriod,
             )
         )
     }
@@ -220,7 +228,8 @@ class TrackingRepository(
 
     /**
      * Saves (upserts) a tracking log for the given date + category.
-     * If a log already exists for that (date, category) pair, it is updated in-place.
+     * If a log already exists for that (date, category) pair, it is updated in-place,
+     * unless [allowMultiple] is true — in which case a new log is always inserted.
      *
      * @return the ID of the saved log.
      */
@@ -228,13 +237,18 @@ class TrackingRepository(
         date: LocalDate,
         categoryId: Long,
         selectedValues: Set<String>,
-        notes: String
+        notes: String,
+        allowMultiple: Boolean = false,
     ): Long {
         val dateStr = date.toString()
-        val existing = logDao.getLogForDateAndCategory(dateStr, categoryId)
-        val logId = if (existing != null) {
-            logDao.updateLog(existing.copy(notes = notes))
-            existing.id
+        val logId = if (!allowMultiple) {
+            val existing = logDao.getLogForDateAndCategory(dateStr, categoryId)
+            if (existing != null) {
+                logDao.updateLog(existing.copy(notes = notes))
+                existing.id
+            } else {
+                logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes))
+            }
         } else {
             logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes))
         }
@@ -326,6 +340,10 @@ class TrackingRepository(
             )
         }
     }
+
+    /** Returns active categories marked to appear on the Log Period screen. */
+    suspend fun getShowInLogPeriodCategories(): List<TrackingCategory> =
+        categoryDao.getShowInLogPeriodCategoriesOnce()
 
     /** System category lookup by name — used for Flow data migration. */
     suspend fun getSystemCategoryByName(name: String): TrackingCategory? =

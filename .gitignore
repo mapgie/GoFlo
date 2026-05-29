@@ -24,3 +24,6 @@ __pycache__/
 
 # Gradle wrapper binary — downloaded by the wrapper script on first build
 gradle/wrapper/gradle-wrapper.jar
+
+# Claude Code runtime directories (worktrees, session state)
+.claude/

@@ -18,6 +18,8 @@ enum class AppIconChoice(
     /** Short label shown in the icon picker. */
     val displayName: String,
 ) {
+    // ── Default GoFlo icon ────────────────────────────────────────────────────
+    DEFAULT("MainActivityDefault", "GoFlo"),
     // ── Discreet icons (no period-app association) ────────────────────────────
     LEAF("MainActivityLeaf", "Leaf"),
     MOON("MainActivityMoon", "Moon"),
