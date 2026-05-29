@@ -51,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.ui.util.decodeScaleLabels
 import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.data.model.SymptomType
 import com.mapgie.goflo.ui.components.SelectableChip
@@ -330,21 +331,31 @@ private fun PinnedCategoryInput(
                                else sliderValue.toInt().toString()
             val minLabel = if (category.allowDecimals) "%.1f".format(min) else min.toInt().toString()
             val maxLabel = if (category.allowDecimals) "%.1f".format(max) else max.toInt().toString()
+            val scaleLabel = if (!category.allowDecimals)
+                category.scaleLabels.decodeScaleLabels()[sliderValue.toInt()]
+            else null
 
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalAlignment = Alignment.End
                     ) {
                         Text(
                             text = if (category.numericUnit.isNotBlank()) "$displayValue ${category.numericUnit}" else displayValue,
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
+                        if (scaleLabel != null) {
+                            Text(
+                                scaleLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     Slider(
                         value = sliderValue,

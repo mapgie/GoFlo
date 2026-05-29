@@ -14,11 +14,13 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 data class HomeUiState(
@@ -167,6 +169,27 @@ class HomeViewModel(
 
     fun selectDay(date: LocalDate) { _selectedDay.value = date }
     fun clearSelectedDay() { _selectedDay.value = null }
+
+    // ── Quick increment (Plus One categories) ───────────────────────────────────
+
+    /** Transient confirmation message after an instant increment; null when none pending. */
+    private val _quickLogMessage = MutableStateFlow<String?>(null)
+    val quickLogMessage: StateFlow<String?> = _quickLogMessage.asStateFlow()
+
+    /**
+     * Instantly adds one to an "increment" category for [date] (today by default)
+     * without opening the log screen, then surfaces a brief confirmation message.
+     */
+    fun incrementCategory(categoryId: Long, date: LocalDate = LocalDate.now()) {
+        viewModelScope.launch {
+            val cat = trackingRepository.getCategoryByIdOnce(categoryId) ?: return@launch
+            val newCount = trackingRepository.incrementLog(date, categoryId)
+            val unit = if (cat.numericUnit.isNotBlank()) " ${cat.numericUnit}" else ""
+            _quickLogMessage.value = "${cat.name}: $newCount$unit"
+        }
+    }
+
+    fun clearQuickLogMessage() { _quickLogMessage.value = null }
 
     class Factory(
         private val repository: PeriodRepository,

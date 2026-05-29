@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -43,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -53,6 +55,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingValue
+import com.mapgie.goflo.ui.util.decodeScaleLabels
+import com.mapgie.goflo.ui.util.encodeScaleLabels
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -301,8 +305,8 @@ fun ManageCategoryValuesScreen(
             "numeric_slider" -> NumericSliderSettings(
                 category  = category,
                 modifier  = Modifier.padding(padding),
-                onSave    = { min, max, decimals, unit ->
-                    viewModel.updateNumericSettings(min, max, decimals, unit)
+                onSave    = { min, max, decimals, unit, scaleLabels ->
+                    viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
                     onNavigateBack()
                 }
             )
@@ -382,7 +386,7 @@ private fun DefaultCategoryValues(
 private fun NumericSliderSettings(
     category: TrackingCategory,
     modifier: Modifier,
-    onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String) -> Unit,
+    onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String, scaleLabels: String) -> Unit,
 ) {
     var minText       by rememberSaveable {
         mutableStateOf(
@@ -399,6 +403,15 @@ private fun NumericSliderSettings(
     var allowDecimals by rememberSaveable { mutableStateOf(category.allowDecimals) }
     var unit          by rememberSaveable { mutableStateOf(category.numericUnit) }
 
+    // Optional per-step labels (e.g. 1→"Good", 5→"Bad"). Editable only for
+    // whole-number ranges with a manageable number of steps.
+    val labels = remember { mutableStateMapOf<Int, String>().apply { putAll(category.scaleLabels.decodeScaleLabels()) } }
+
+    val minInt = minText.toIntOrNull()
+    val maxInt = maxText.toIntOrNull()
+    val canLabel = !allowDecimals && minInt != null && maxInt != null &&
+        maxInt > minInt && (maxInt - minInt) <= 20
+
     val canSave by remember(minText, maxText) {
         derivedStateOf {
             minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
@@ -414,7 +427,7 @@ private fun NumericSliderSettings(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            "Numeric Slider settings",
+            "Slider scale settings",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -466,6 +479,45 @@ private fun NumericSliderSettings(
             Switch(checked = allowDecimals, onCheckedChange = { allowDecimals = it })
         }
 
+        // ── Optional per-step labels ─────────────────────────────────────────
+        HorizontalDivider()
+        Text("Value labels (optional)", style = MaterialTheme.typography.titleSmall)
+        Text(
+            "Name points on your scale (e.g. 1 = Good, 3 = Neutral, 5 = Bad). " +
+                "Labels appear in the distribution chart in Stats.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (canLabel) {
+            (minInt!!..maxInt!!).forEach { step ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        step.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.width(36.dp)
+                    )
+                    OutlinedTextField(
+                        value         = labels[step] ?: "",
+                        onValueChange = { v -> if (v.isBlank()) labels.remove(step) else labels[step] = v },
+                        label         = { Text("Label") },
+                        singleLine    = true,
+                        modifier      = Modifier.weight(1f)
+                    )
+                }
+            }
+        } else {
+            Text(
+                "Tip: use whole numbers with a range of 20 steps or fewer (decimals off) to label individual values.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
         Spacer(Modifier.height(4.dp))
 
         Button(
@@ -474,7 +526,9 @@ private fun NumericSliderSettings(
                     minText.toFloatOrNull() ?: 0f,
                     maxText.toFloatOrNull() ?: 10f,
                     allowDecimals,
-                    unit.trim()
+                    unit.trim(),
+                    if (canLabel) labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
+                    else category.scaleLabels
                 )
             },
             enabled  = canSave,

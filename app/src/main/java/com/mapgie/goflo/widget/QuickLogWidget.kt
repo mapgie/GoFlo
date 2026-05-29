@@ -6,8 +6,11 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.widget.RemoteViews
+import android.widget.Toast
 import com.mapgie.goflo.GoFloApplication
 import com.mapgie.goflo.MainActivity
 import com.mapgie.goflo.R
@@ -17,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * 2×2 home-screen widget showing up to four active tracking categories as
@@ -45,10 +49,47 @@ class QuickLogWidget : AppWidgetProvider() {
         }
     }
 
+    /**
+     * Handles the instant-increment broadcast fired by "Plus One" category buttons.
+     * Adds one to today's count without opening the app, shows a brief Toast, and
+     * refreshes the widgets. All other broadcasts defer to the default dispatch.
+     */
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action != ACTION_INCREMENT) return
+        val categoryId = intent.getLongExtra(EXTRA_CATEGORY_ID, -1L)
+        if (categoryId == -1L) return
+
+        val pendingResult = goAsync()
+        widgetScope.launch {
+            try {
+                val app = context.applicationContext as GoFloApplication
+                val category = app.trackingRepository.getCategoryByIdOnce(categoryId)
+                val newCount = app.trackingRepository.incrementLog(LocalDate.now(), categoryId)
+
+                // Refresh widgets so any state stays current.
+                val manager = AppWidgetManager.getInstance(context)
+                manager.getAppWidgetIds(ComponentName(context, QuickLogWidget::class.java))
+                    .forEach { id -> pushUpdate(context, manager, id) }
+
+                val unit = category?.numericUnit?.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""
+                val name = category?.name ?: "Logged"
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(context, "$name: $newCount$unit", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                pendingResult.finish()
+            }
+        }
+    }
+
     companion object {
 
         /** Intent extra key for the category ID — read by MainActivity to navigate directly. */
         const val EXTRA_CATEGORY_ID = "com.mapgie.goflo.EXTRA_CATEGORY_ID"
+
+        /** Broadcast action: instantly add one to a "Plus One" category from the widget. */
+        const val ACTION_INCREMENT = "com.mapgie.goflo.action.QUICK_INCREMENT"
 
         private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -124,6 +165,20 @@ class QuickLogWidget : AppWidgetProvider() {
         }
 
         private fun buildCategoryIntent(context: Context, category: TrackingCategory): PendingIntent {
+            // "Plus One" categories add one instantly via a self-broadcast instead of
+            // opening the app.
+            if (category.categoryType == "increment") {
+                val broadcast = Intent(context, QuickLogWidget::class.java).apply {
+                    action = ACTION_INCREMENT
+                    putExtra(EXTRA_CATEGORY_ID, category.id)
+                }
+                return PendingIntent.getBroadcast(
+                    context,
+                    category.id.toInt(),
+                    broadcast,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+            }
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                 putExtra(EXTRA_CATEGORY_ID, category.id)

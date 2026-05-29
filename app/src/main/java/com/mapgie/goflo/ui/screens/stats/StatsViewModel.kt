@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingLog
 import com.mapgie.goflo.data.repository.TrackingRepository
+import com.mapgie.goflo.ui.util.decodeScaleLabels
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -286,9 +287,14 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     if (counts.isEmpty()) {
                         StatsChartData.Empty
                     } else {
+                        // Map whole-number values to their optional scale label for readability.
+                        val scaleMap = cat1.scaleLabels.decodeScaleLabels()
                         val bars = counts.entries
                             .sortedBy { it.key.toFloatOrNull() ?: Float.MAX_VALUE }
-                            .map { NumericHistBar(it.key, it.value) }
+                            .map { entry ->
+                                val label = entry.key.toIntOrNull()?.let { scaleMap[it] }
+                                NumericHistBar(label ?: entry.key, entry.value)
+                            }
                         StatsChartData.NumericDistributionData(bars, cat1.name)
                     }
                 }

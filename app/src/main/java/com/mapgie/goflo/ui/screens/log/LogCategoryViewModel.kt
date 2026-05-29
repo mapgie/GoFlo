@@ -88,8 +88,10 @@ class LogCategoryViewModel(
             else -> repository.getExistingLog(date, categoryId)
         }
 
-        // For numeric categories, parse the first stored label back to Float
-        val existingNumeric: Float? = if (category?.categoryType == "numeric_slider")
+        // For slider + increment categories, parse the first stored label back to Float.
+        // (Increment reuses numericValue to hold the running count.)
+        val existingNumeric: Float? = if (category?.categoryType == "numeric_slider" ||
+            category?.categoryType == "increment")
             existingEntry?.values?.firstOrNull()?.toFloatOrNull()
         else null
 
@@ -148,6 +150,11 @@ class LogCategoryViewModel(
                 val text = state.numericFreeText.trim()
                 if (text.isEmpty()) return
                 setOf(text)
+            }
+            "increment" -> {
+                val count = state.numericValue?.toInt() ?: 0
+                if (count <= 0) return   // nothing to record; use delete to clear
+                setOf(count.toString())
             }
             else -> state.selectedValues
         }

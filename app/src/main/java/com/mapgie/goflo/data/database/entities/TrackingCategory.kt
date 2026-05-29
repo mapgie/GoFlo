@@ -18,10 +18,15 @@ import androidx.room.PrimaryKey
  * [com.mapgie.goflo.ui.util.toCategoryColor], so the bubble automatically
  * follows the user's chosen palette and light/dark mode.
  *
- * [categoryType] is one of "default" | "numeric_slider" | "numeric_free"
+ * [categoryType] is one of "default" | "numeric_slider" | "numeric_free" | "increment"
  * (see [com.mapgie.goflo.ui.util.CategoryType]).  It is immutable after creation.
  *
  * [numericUnit] is an optional suffix shown alongside numeric values (e.g. "°C").
+ *
+ * [scaleLabels] optionally maps individual whole-number slider steps to text
+ * labels (e.g. 1→"Good", 3→"Neutral", 5→"Bad").  Encoded as newline-separated
+ * "value=label" pairs; see [com.mapgie.goflo.ui.util.decodeScaleLabels].  Only
+ * meaningful for the "numeric_slider" type.
  *
  * [isArchived] hides the category from the logging UI while preserving all data.
  */
@@ -38,6 +43,7 @@ data class TrackingCategory(
     val numericMax: Float = 10f,
     val allowDecimals: Boolean = false,
     val numericUnit: String = "",
+    val scaleLabels: String = "",
     val isArchived: Boolean = false,
     val allowMultiple: Boolean = false,
     val showInLogPeriod: Boolean = false,
