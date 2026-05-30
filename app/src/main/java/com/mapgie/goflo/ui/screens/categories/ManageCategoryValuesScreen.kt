@@ -336,46 +336,50 @@ fun ManageCategoryValuesScreen(
         val category = state.category
         when (category?.categoryType) {
             "numeric_slider" -> NumericSliderSettings(
-                category              = category,
-                modifier              = Modifier.padding(padding),
-                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
-                onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
-                onUnsavedState        = { hasChanges, saveAction ->
+                category                = category,
+                modifier                = Modifier.padding(padding),
+                onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
+                onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
+                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
+                onUnsavedState          = { hasChanges, saveAction ->
                     hasUnsavedChanges = hasChanges
                     currentSaveAction = saveAction
                 },
-                onSave                = { min, max, decimals, unit, scaleLabels ->
+                onSave                  = { min, max, decimals, unit, scaleLabels ->
                     viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
                     onNavigateBack()
                 }
             )
             "numeric_free" -> NumericFreeSettings(
-                category              = category,
-                modifier              = Modifier.padding(padding),
-                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
-                onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
-                onUnsavedState        = { hasChanges, saveAction ->
+                category                = category,
+                modifier                = Modifier.padding(padding),
+                onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
+                onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
+                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
+                onUnsavedState          = { hasChanges, saveAction ->
                     hasUnsavedChanges = hasChanges
                     currentSaveAction = saveAction
                 },
-                onSave                = { unit ->
+                onSave                  = { unit ->
                     viewModel.updateUnit(unit)
                     onNavigateBack()
                 }
             )
             "increment" -> IncrementCategoryInfo(
-                category              = category,
-                modifier              = Modifier.padding(padding),
-                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) }
+                category                 = category,
+                modifier                 = Modifier.padding(padding),
+                onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
+                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) }
             )
             else -> DefaultCategoryValues(
-                state                 = state,
-                modifier              = Modifier.padding(padding),
-                onAddValue            = { showAddValue = true },
-                onRenameValue         = { renamingValue = it.id },
-                onDeleteValue         = { pendingDeleteValue = it.id },
-                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
-                onToggleAllowMultiple = { viewModel.setAllowMultiple(it) }
+                state                    = state,
+                modifier                 = Modifier.padding(padding),
+                onAddValue               = { showAddValue = true },
+                onRenameValue            = { renamingValue = it.id },
+                onDeleteValue            = { pendingDeleteValue = it.id },
+                onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
+                onToggleAllowMultiple    = { viewModel.setAllowMultiple(it) },
+                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) }
             )
         }
     }
@@ -392,6 +396,7 @@ private fun DefaultCategoryValues(
     onDeleteValue: (TrackingValue) -> Unit,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
+    onToggleTrackAgainstTime: (Boolean) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -408,6 +413,10 @@ private fun DefaultCategoryValues(
             AllowMultipleRow(
                 checked   = category.allowMultiple,
                 onChecked = onToggleAllowMultiple
+            )
+            TrackAgainstTimeRow(
+                checked   = category.trackAgainstTime,
+                onChecked = onToggleTrackAgainstTime
             )
             HorizontalDivider()
         }
@@ -454,6 +463,7 @@ private fun IncrementCategoryInfo(
     category: TrackingCategory,
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
+    onToggleTrackAgainstTime: (Boolean) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -465,6 +475,10 @@ private fun IncrementCategoryInfo(
             LogWithPeriodRow(
                 checked   = category.showInLogPeriod,
                 onChecked = onToggleLogWithPeriod
+            )
+            TrackAgainstTimeRow(
+                checked   = category.trackAgainstTime,
+                onChecked = onToggleTrackAgainstTime
             )
             HorizontalDivider()
         }
@@ -490,6 +504,7 @@ private fun NumericSliderSettings(
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
+    onToggleTrackAgainstTime: (Boolean) -> Unit,
     onUnsavedState: (hasChanges: Boolean, saveAction: (() -> Unit)?) -> Unit,
     onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String, scaleLabels: String) -> Unit,
 ) {
@@ -567,6 +582,10 @@ private fun NumericSliderSettings(
             AllowMultipleRow(
                 checked   = category.allowMultiple,
                 onChecked = onToggleAllowMultiple
+            )
+            TrackAgainstTimeRow(
+                checked   = category.trackAgainstTime,
+                onChecked = onToggleTrackAgainstTime
             )
             HorizontalDivider()
         }
@@ -690,6 +709,7 @@ private fun NumericFreeSettings(
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
+    onToggleTrackAgainstTime: (Boolean) -> Unit,
     onUnsavedState: (hasChanges: Boolean, saveAction: (() -> Unit)?) -> Unit,
     onSave: (unit: String) -> Unit,
 ) {
@@ -720,6 +740,10 @@ private fun NumericFreeSettings(
             AllowMultipleRow(
                 checked   = category.allowMultiple,
                 onChecked = onToggleAllowMultiple
+            )
+            TrackAgainstTimeRow(
+                checked   = category.trackAgainstTime,
+                onChecked = onToggleTrackAgainstTime
             )
             HorizontalDivider()
         }
@@ -778,6 +802,25 @@ private fun AllowMultipleRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
             Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
             Text(
                 "Log this category more than once on the same day",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onChecked)
+    }
+}
+
+@Composable
+private fun TrackAgainstTimeRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Track against time", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Record the time of each log entry so you can view them by time of day",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -253,6 +253,20 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds [trackAgainstTime] to tracking_categories and [loggedAt] to tracking_logs (v12).
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `trackAgainstTime` INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "ALTER TABLE tracking_logs ADD COLUMN `loggedAt` TEXT NOT NULL DEFAULT ''"
+                )
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -338,9 +352,9 @@ abstract class GoFloDatabase : RoomDatabase() {
                 "INSERT INTO tracking_categories " +
                 "(name, isSystem, systemKey, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
                 "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
-                "isArchived, allowMultiple, showInLogPeriod) " +
+                "isArchived, allowMultiple, showInLogPeriod, trackAgainstTime) " +
                 "VALUES ('Flow', 1, 'flow', 0, 'water', 'primary', 'default', " +
-                "0.0, 10.0, 0, '', '', 0, 0, 0)"
+                "0.0, 10.0, 0, '', '', 0, 0, 0, 0)"
             )
             val flowIdCursor = database.query("SELECT last_insert_rowid()")
             flowIdCursor.moveToFirst()
@@ -359,9 +373,9 @@ abstract class GoFloDatabase : RoomDatabase() {
                 "INSERT INTO tracking_categories " +
                 "(name, isSystem, systemKey, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
                 "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
-                "isArchived, allowMultiple, showInLogPeriod) " +
+                "isArchived, allowMultiple, showInLogPeriod, trackAgainstTime) " +
                 "VALUES ('Symptoms', 1, 'symptoms', 1, 'healing', 'tertiary', 'default', " +
-                "0.0, 10.0, 0, '', '', 0, 0, 0)"
+                "0.0, 10.0, 0, '', '', 0, 0, 0, 0)"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
             symptomIdCursor.moveToFirst()
@@ -384,7 +398,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

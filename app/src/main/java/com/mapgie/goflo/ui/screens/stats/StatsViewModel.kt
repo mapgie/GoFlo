@@ -166,8 +166,13 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     )
                 }
                 state.selectedCategory2 == null -> {
-                    val newType = if (category.isNumeric && state.selectedCategory1?.isNumeric == true)
-                        ChartType.SCATTER else state.chartType
+                    // Default to SCATTER for two numeric, TIME_SERIES otherwise
+                    val newType = when {
+                        category.isNumeric && state.selectedCategory1?.isNumeric == true -> ChartType.SCATTER
+                        state.chartType == ChartType.PIE || state.chartType == ChartType.NUMERIC_DISTRIBUTION ||
+                        state.chartType == ChartType.NUMERIC_AVERAGE -> ChartType.TIME_SERIES
+                        else -> state.chartType
+                    }
                     state.copy(selectedCategory2 = category, chartType = newType, chartData = StatsChartData.Empty)
                 }
                 else -> state // Both slots full — ignore

@@ -430,11 +430,13 @@ private fun ChartTypeSelector(
             cat1.isNumeric && cat2?.isNumeric == true -> {
                 add(ChartOption(ChartType.SCATTER,          Icons.Default.BubbleChart, "Scatter"))
                 add(ChartOption(ChartType.NUMERIC_AVERAGE,  Icons.Default.ShowChart,   "Average"))
+                add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,    "Over Time"))
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart,    "Compare"))
             }
             cat1.isNumeric && cat2 == null -> {
-                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart, "Average"))
-                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.BarChart,  "Distribution"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart,   "Average"))
+                add(ChartOption(ChartType.TIME_SERIES,          Icons.Default.BarChart,    "Over Time"))
+                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.DonutLarge,  "Distribution"))
             }
             eitherNumeric -> {
                 add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,  "Over Time"))

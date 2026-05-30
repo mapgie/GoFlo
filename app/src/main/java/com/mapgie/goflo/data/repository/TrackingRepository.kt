@@ -56,22 +56,24 @@ class TrackingRepository(
         numericUnit: String = "",
         allowMultiple: Boolean = false,
         showInLogPeriod: Boolean = false,
+        trackAgainstTime: Boolean = false,
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
         return categoryDao.insertCategory(
             TrackingCategory(
-                name            = name.trim(),
-                displayOrder    = maxOrder + 1,
-                iconName        = iconName,
-                colorToken      = colorToken,
-                categoryType    = categoryType,
-                numericMin      = numericMin,
-                numericMax      = numericMax,
-                allowDecimals   = allowDecimals,
-                numericUnit     = numericUnit,
-                allowMultiple   = allowMultiple,
-                showInLogPeriod = showInLogPeriod,
+                name             = name.trim(),
+                displayOrder     = maxOrder + 1,
+                iconName         = iconName,
+                colorToken       = colorToken,
+                categoryType     = categoryType,
+                numericMin       = numericMin,
+                numericMax       = numericMax,
+                allowDecimals    = allowDecimals,
+                numericUnit      = numericUnit,
+                allowMultiple    = allowMultiple,
+                showInLogPeriod  = showInLogPeriod,
+                trackAgainstTime = trackAgainstTime,
             )
         )
     }
@@ -103,22 +105,29 @@ class TrackingRepository(
         numericUnit: String = "",
         allowMultiple: Boolean = false,
         showInLogPeriod: Boolean = false,
+        trackAgainstTime: Boolean = false,
     ) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(
             cat.copy(
-                name            = name.trim(),
-                iconName        = iconName,
-                colorToken      = colorToken,
-                categoryType    = categoryType,
-                numericMin      = numericMin,
-                numericMax      = numericMax,
-                allowDecimals   = allowDecimals,
-                numericUnit     = numericUnit,
-                allowMultiple   = allowMultiple,
-                showInLogPeriod = showInLogPeriod,
+                name             = name.trim(),
+                iconName         = iconName,
+                colorToken       = colorToken,
+                categoryType     = categoryType,
+                numericMin       = numericMin,
+                numericMax       = numericMax,
+                allowDecimals    = allowDecimals,
+                numericUnit      = numericUnit,
+                allowMultiple    = allowMultiple,
+                showInLogPeriod  = showInLogPeriod,
+                trackAgainstTime = trackAgainstTime,
             )
         )
+    }
+
+    suspend fun updateTrackAgainstTime(id: Long, track: Boolean) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(cat.copy(trackAgainstTime = track))
     }
 
     /** Updates the numeric range settings for a category (slider type only). */
@@ -251,18 +260,19 @@ class TrackingRepository(
         selectedValues: Set<String>,
         notes: String,
         allowMultiple: Boolean = false,
+        loggedAt: String = "",
     ): Long {
         val dateStr = date.toString()
         val logId = if (!allowMultiple) {
             val existing = logDao.getLogForDateAndCategory(dateStr, categoryId)
             if (existing != null) {
-                logDao.updateLog(existing.copy(notes = notes))
+                logDao.updateLog(existing.copy(notes = notes, loggedAt = loggedAt))
                 existing.id
             } else {
-                logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes))
+                logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes, loggedAt = loggedAt))
             }
         } else {
-            logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes))
+            logDao.insertLog(TrackingLog(date = dateStr, categoryId = categoryId, notes = notes, loggedAt = loggedAt))
         }
         logDao.deleteLogValuesForLog(logId)
         selectedValues.forEach { label ->
@@ -279,9 +289,10 @@ class TrackingRepository(
     suspend fun updateLogInPlace(
         existingLog: TrackingLog,
         selectedValues: Set<String>,
-        notes: String
+        notes: String,
+        loggedAt: String = "",
     ): Long {
-        logDao.updateLog(existingLog.copy(notes = notes))
+        logDao.updateLog(existingLog.copy(notes = notes, loggedAt = loggedAt))
         logDao.deleteLogValuesForLog(existingLog.id)
         selectedValues.forEach { label ->
             logDao.insertLogValue(TrackingLogValue(logId = existingLog.id, valueLabel = label))
@@ -325,6 +336,16 @@ class TrackingRepository(
         val values = logDao.getLogValuesForLogOnce(log.id).map { it.valueLabel }
         val category = categoryDao.getCategoryByIdOnce(log.categoryId)
         return TrackingLogWithValues(log = log, category = category, values = values)
+    }
+
+    /** Returns all logs (with values) for the given date + category. */
+    suspend fun getLogsForDateAndCategory(date: LocalDate, categoryId: Long): List<TrackingLogWithValues> {
+        val logs = logDao.getLogsForDateAndCategory(date.toString(), categoryId)
+        val category = categoryDao.getCategoryByIdOnce(categoryId)
+        return logs.map { log ->
+            val values = logDao.getLogValuesForLogOnce(log.id).map { it.valueLabel }
+            TrackingLogWithValues(log = log, category = category, values = values)
+        }
     }
 
     /** Returns the log by ID (with values), or null. */

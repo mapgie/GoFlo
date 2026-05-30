@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingLog
 import com.mapgie.goflo.data.database.entities.TrackingValue
+import com.mapgie.goflo.data.repository.TrackingLogWithValues
 import com.mapgie.goflo.data.repository.TrackingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +18,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 data class LogCategoryUiState(
     val isLoading: Boolean = true,
@@ -38,7 +41,11 @@ data class LogCategoryUiState(
     val existingLog: TrackingLog? = null,
     val saved: Boolean = false,
     val deleted: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    /** Whether to record the current time with this log entry. Pre-set from category.trackAgainstTime. */
+    val trackTime: Boolean = false,
+    /** Timed entries already logged today for this category (used for increment+trackTime UI). */
+    val timedEntriesToday: List<TrackingLogWithValues> = emptyList(),
 )
 
 class LogCategoryViewModel(
@@ -100,6 +107,11 @@ class LogCategoryViewModel(
         else ""
 
 
+        val trackTime = category?.trackAgainstTime == true
+        val timedEntries = if (trackTime && category?.categoryType == "increment") {
+            repository.getLogsForDateAndCategory(date, categoryId)
+        } else emptyList()
+
         _uiState.update {
             it.copy(
                 isLoading = false,
@@ -113,7 +125,9 @@ class LogCategoryViewModel(
                 } ?: date,
                 notes = existingEntry?.log?.notes ?: "",
                 isEditing = existingEntry != null,
-                existingLog = existingEntry?.log
+                existingLog = existingEntry?.log,
+                trackTime = trackTime,
+                timedEntriesToday = timedEntries,
             )
         }
     }
@@ -135,10 +149,54 @@ class LogCategoryViewModel(
         _uiState.update { it.copy(notes = notes) }
     }
 
+    fun setTrackTime(track: Boolean) {
+        _uiState.update { it.copy(trackTime = track) }
+    }
+
+    /** Adds a new time-stamped increment entry immediately. Used for increment+trackAgainstTime. */
+    fun addTimedIncrement() {
+        val state = _uiState.value
+        if (state.isLoading) return
+        val time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        viewModelScope.launch {
+            runCatching {
+                repository.saveLog(
+                    date           = state.date,
+                    categoryId     = categoryId,
+                    selectedValues = setOf("1"),
+                    notes          = "",
+                    allowMultiple  = true,
+                    loggedAt       = time,
+                )
+                val updated = repository.getLogsForDateAndCategory(state.date, categoryId)
+                _uiState.update { it.copy(timedEntriesToday = updated) }
+            }.onFailure { e ->
+                _uiState.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
+    /** Deletes a specific timed entry (for increment+trackAgainstTime undo). */
+    fun deleteTimedEntry(log: TrackingLog) {
+        viewModelScope.launch {
+            runCatching {
+                repository.deleteLog(log)
+                val state = _uiState.value
+                val updated = repository.getLogsForDateAndCategory(state.date, categoryId)
+                _uiState.update { it.copy(timedEntriesToday = updated) }
+            }.onFailure { e ->
+                _uiState.update { it.copy(error = e.message) }
+            }
+        }
+    }
+
     fun save() {
         val state = _uiState.value
         if (state.isLoading) return
         val cat = state.category
+
+        // increment + trackAgainstTime: each tap is handled immediately via addTimedIncrement()
+        if (cat?.categoryType == "increment" && cat.trackAgainstTime) return
 
         // Determine the values to persist
         val valuesToSave: Set<String> = when (cat?.categoryType) {
@@ -159,18 +217,23 @@ class LogCategoryViewModel(
             else -> state.selectedValues
         }
 
+        val loggedAt = if (state.trackTime) {
+            LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+        } else ""
+
         viewModelScope.launch {
             runCatching {
                 val existingLog = state.existingLog
                 if (existingLog != null) {
-                    repository.updateLogInPlace(existingLog, valuesToSave, state.notes)
+                    repository.updateLogInPlace(existingLog, valuesToSave, state.notes, loggedAt)
                 } else {
                     repository.saveLog(
                         date           = state.date,
                         categoryId     = categoryId,
                         selectedValues = valuesToSave,
                         notes          = state.notes,
-                        allowMultiple  = state.category?.allowMultiple ?: false
+                        allowMultiple  = state.category?.allowMultiple ?: false,
+                        loggedAt       = loggedAt,
                     )
                 }
                 _uiState.update { it.copy(saved = true) }

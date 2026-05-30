@@ -52,6 +52,7 @@ data class TrackingCategory(
     val isArchived: Boolean = false,
     val allowMultiple: Boolean = false,
     val showInLogPeriod: Boolean = false,
+    val trackAgainstTime: Boolean = false,
 ) {
     val isNumeric: Boolean get() = categoryType != "default"
 }

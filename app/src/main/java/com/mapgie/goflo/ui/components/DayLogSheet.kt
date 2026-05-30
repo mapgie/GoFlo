@@ -17,10 +17,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.WaterDrop
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -28,6 +33,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +72,17 @@ fun DayLogSheet(
 ) {
     val sheetState = rememberModalBottomSheetState()
 
+    // Group logs by category — preserving first-appearance order
+    val logsByCategory = trackingLogs.groupBy { it.category?.id ?: -1L }
+    val categoryOrder = trackingLogs.map { it.category?.id ?: -1L }.distinct()
+
+    // "Display against time" toggle — only relevant if any category tracks time
+    val anyTrackAgainstTime = trackingLogs.any {
+        it.category?.trackAgainstTime == true && it.log.loggedAt.isNotEmpty()
+    }
+    var showAgainstTime by rememberSaveable { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState
@@ -77,10 +98,42 @@ fun DayLogSheet(
         ) {
             // ── Header ────────────────────────────────────────────────────────
 
-            Text(
-                text = date.format(headerFormat),
-                style = MaterialTheme.typography.titleLarge
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = date.format(headerFormat),
+                    style = MaterialTheme.typography.titleLarge
+                )
+                if (anyTrackAgainstTime) {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Options",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Display logs against time") },
+                                onClick = { showAgainstTime = !showAgainstTime; showMenu = false },
+                                leadingIcon = {
+                                    Checkbox(
+                                        checked = showAgainstTime,
+                                        onCheckedChange = null
+                                    )
+                                }
+                            )
+                        }
+                    }
+                }
+            }
 
             HorizontalDivider()
 
@@ -128,7 +181,7 @@ fun DayLogSheet(
                 HorizontalDivider()
             }
 
-            // ── Tracking logs ─────────────────────────────────────────────────
+            // ── Tracking logs (grouped by category) ───────────────────────────
 
             if (trackingLogs.isNotEmpty()) {
                 Text(
@@ -137,50 +190,97 @@ fun DayLogSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                trackingLogs.forEach { entry ->
-                    val category    = entry.category
+                categoryOrder.forEach { catId ->
+                    val entries = logsByCategory[catId] ?: return@forEach
+                    val first = entries.first()
+                    val category = first.category
                     val bubbleColor = category?.colorToken?.toCategoryColor()
                         ?: MaterialTheme.colorScheme.secondary
-                    val onBubble    = category?.colorToken?.toCategoryOnColor()
+                    val onBubble = category?.colorToken?.toCategoryOnColor()
                         ?: MaterialTheme.colorScheme.onSecondary
-                    val icon        = category?.iconName?.toCategoryIcon()?.vector
+                    val icon = category?.iconName?.toCategoryIcon()?.vector
 
-                    val displayValues = if (category != null) {
-                        entry.values.map { enrichDisplayValue(it, category) }
-                    } else {
-                        entry.values
-                    }
+                    val hasTimedEntries = showAgainstTime &&
+                        category?.trackAgainstTime == true &&
+                        entries.any { it.log.loggedAt.isNotEmpty() }
 
                     LogEntryRow(
                         icon        = icon,
                         iconColor   = bubbleColor,
                         iconOnColor = onBubble,
                         label       = category?.name ?: "Unknown",
-                        onEdit      = { onEditTrackingLog(entry.log.categoryId, entry.log.id) }
+                        onEdit      = { onEditTrackingLog(first.log.categoryId, entries.last().log.id) }
                     ) {
-                        if (displayValues.isNotEmpty()) {
-                            if (displayValues.size == 1) {
+                        if (hasTimedEntries) {
+                            // Show each entry with its timestamp on its own line
+                            entries.forEach { entry ->
+                                val timePrefix = entry.log.loggedAt.ifEmpty { null }
+                                val displayValues = if (category != null) {
+                                    entry.values.map { enrichDisplayValue(it, category) }
+                                } else {
+                                    entry.values
+                                }
+                                val valueText = displayValues.joinToString(", ")
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = if (timePrefix != null && valueText.isNotEmpty()) "$timePrefix $valueText"
+                                               else timePrefix ?: valueText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TextButton(
+                                        onClick = { onEditTrackingLog(entry.log.categoryId, entry.log.id) },
+                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                    ) {
+                                        Text(
+                                            text = "edit",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            // Collect all values from all entries and display inline
+                            val allDisplayValues = entries.flatMap { entry ->
+                                if (category != null) {
+                                    entry.values.map { enrichDisplayValue(it, category) }
+                                } else {
+                                    entry.values
+                                }
+                            }
+
+                            if (allDisplayValues.isNotEmpty()) {
+                                if (allDisplayValues.size == 1) {
+                                    Text(
+                                        text  = allDisplayValues[0],
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = bubbleColor
+                                    )
+                                } else {
+                                    Text(
+                                        text  = allDisplayValues.joinToString(" · "),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            // Show notes from the last entry that has them
+                            val notesEntry = entries.lastOrNull { it.log.notes.isNotEmpty() }
+                            if (notesEntry != null) {
                                 Text(
-                                    text  = displayValues[0],
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = bubbleColor
-                                )
-                            } else {
-                                Text(
-                                    text  = displayValues.joinToString(" · "),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
+                                    text      = "\"${notesEntry.log.notes}\"",
+                                    style     = MaterialTheme.typography.bodySmall,
+                                    fontStyle = FontStyle.Italic,
+                                    color     = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
-                        }
-
-                        if (entry.log.notes.isNotEmpty()) {
-                            Text(
-                                text      = "\"${entry.log.notes}\"",
-                                style     = MaterialTheme.typography.bodySmall,
-                                fontStyle = FontStyle.Italic,
-                                color     = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
@@ -204,11 +304,6 @@ fun DayLogSheet(
 
 /**
  * Converts a raw stored value string into a display string for the day sheet.
- *
- * - Slider categories with scale labels: the stored integer is replaced by its
- *   label text (e.g. "3" → "What's my name again?").
- * - Any numeric category with a unit: the unit is appended (e.g. "2" → "2 hours").
- * - Default / text-value categories: returned unchanged.
  */
 private fun enrichDisplayValue(value: String, category: TrackingCategory): String {
     if (category.categoryType == "numeric_slider" && category.scaleLabels.isNotBlank()) {
