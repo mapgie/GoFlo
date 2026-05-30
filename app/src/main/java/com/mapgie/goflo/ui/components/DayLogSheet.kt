@@ -260,7 +260,7 @@ private fun AttributeValueLine(
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment     = Alignment.Baseline
+        verticalAlignment     = Alignment.CenterVertically
     ) {
         Text(
             text  = attribute,

@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.13.7-beta.1] - 2026-05-30
+
+### Fixed
+- **Build error in DayLogSheet** — `Alignment.Baseline` is not a valid Compose `Row` vertical alignment; replaced with `Alignment.CenterVertically` in `AttributeValueLine`.
+
+---
+
 ## [0.13.6-beta.1] - 2026-05-30
 
 ### Changed
