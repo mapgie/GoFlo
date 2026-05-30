@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Archive
@@ -66,12 +67,21 @@ fun ManageCategoryValuesScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    var showAddValue           by rememberSaveable { mutableStateOf(false) }
-    var showRenameCategory     by rememberSaveable { mutableStateOf(false) }
-    var renamingValue          by rememberSaveable { mutableStateOf<Long?>(null) }
-    var pendingDeleteValue     by rememberSaveable { mutableStateOf<Long?>(null) }
-    var pendingArchiveCategory by rememberSaveable { mutableStateOf(false) }
-    var pendingDeleteCategory  by rememberSaveable { mutableStateOf(false) }
+    var showAddValue              by rememberSaveable { mutableStateOf(false) }
+    var showRenameCategory        by rememberSaveable { mutableStateOf(false) }
+    var renamingValue             by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingDeleteValue        by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingArchiveCategory    by rememberSaveable { mutableStateOf(false) }
+    var pendingDeleteCategory     by rememberSaveable { mutableStateOf(false) }
+    var hasUnsavedChanges         by remember { mutableStateOf(false) }
+    var showUnsavedChangesDialog  by rememberSaveable { mutableStateOf(false) }
+
+    val handleBack: () -> Unit = {
+        if (hasUnsavedChanges) showUnsavedChangesDialog = true
+        else onNavigateBack()
+    }
+
+    BackHandler(enabled = hasUnsavedChanges) { showUnsavedChangesDialog = true }
 
     LaunchedEffect(state.isLoading, state.category) {
         if (!state.isLoading && state.category == null) onNavigateBack()
@@ -207,6 +217,23 @@ fun ManageCategoryValuesScreen(
         )
     }
 
+    if (showUnsavedChangesDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedChangesDialog = false },
+            title = { Text("Unsaved changes") },
+            text = { Text("You have unsaved changes. Do you want to discard them and go back?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showUnsavedChangesDialog = false
+                    onNavigateBack()
+                }) { Text("Discard", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnsavedChangesDialog = false }) { Text("Keep editing") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -223,7 +250,7 @@ fun ManageCategoryValuesScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = handleBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -305,6 +332,7 @@ fun ManageCategoryValuesScreen(
                 modifier              = Modifier.padding(padding),
                 onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
                 onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
+                onHasUnsavedChanges   = { hasUnsavedChanges = it },
                 onSave                = { min, max, decimals, unit, scaleLabels ->
                     viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
                     onNavigateBack()
@@ -315,6 +343,7 @@ fun ManageCategoryValuesScreen(
                 modifier              = Modifier.padding(padding),
                 onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
                 onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
+                onHasUnsavedChanges   = { hasUnsavedChanges = it },
                 onSave                = { unit ->
                     viewModel.updateUnit(unit)
                     onNavigateBack()
@@ -447,26 +476,39 @@ private fun NumericSliderSettings(
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
+    onHasUnsavedChanges: (Boolean) -> Unit,
     onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String, scaleLabels: String) -> Unit,
 ) {
-    var minText       by rememberSaveable {
-        mutableStateOf(
-            if (category.allowDecimals) "%.1f".format(category.numericMin)
-            else category.numericMin.toInt().toString()
-        )
+    val originalMin = remember {
+        if (category.allowDecimals) "%.1f".format(category.numericMin)
+        else category.numericMin.toInt().toString()
     }
-    var maxText       by rememberSaveable {
-        mutableStateOf(
-            if (category.allowDecimals) "%.1f".format(category.numericMax)
-            else category.numericMax.toInt().toString()
-        )
+    val originalMax = remember {
+        if (category.allowDecimals) "%.1f".format(category.numericMax)
+        else category.numericMax.toInt().toString()
     }
-    var allowDecimals by rememberSaveable { mutableStateOf(category.allowDecimals) }
-    var unit          by rememberSaveable { mutableStateOf(category.numericUnit) }
+    val originalAllowDecimals = remember { category.allowDecimals }
+    val originalUnit = remember { category.numericUnit }
+    val originalLabels = remember { category.scaleLabels.decodeScaleLabels() }
+
+    var minText       by rememberSaveable { mutableStateOf(originalMin) }
+    var maxText       by rememberSaveable { mutableStateOf(originalMax) }
+    var allowDecimals by rememberSaveable { mutableStateOf(originalAllowDecimals) }
+    var unit          by rememberSaveable { mutableStateOf(originalUnit) }
 
     // Optional per-step labels (e.g. 1→"Good", 5→"Bad"). Editable only for
     // whole-number ranges with a manageable number of steps.
-    val labels = remember { mutableStateMapOf<Int, String>().apply { putAll(category.scaleLabels.decodeScaleLabels()) } }
+    val labels = remember { mutableStateMapOf<Int, String>().apply { putAll(originalLabels) } }
+
+    val hasChanges by remember {
+        derivedStateOf {
+            minText != originalMin || maxText != originalMax ||
+            allowDecimals != originalAllowDecimals || unit != originalUnit ||
+            labels.toMap() != originalLabels
+        }
+    }
+
+    LaunchedEffect(hasChanges) { onHasUnsavedChanges(hasChanges) }
 
     val minInt = minText.toIntOrNull()
     val maxInt = maxText.toIntOrNull()
@@ -618,9 +660,14 @@ private fun NumericFreeSettings(
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
+    onHasUnsavedChanges: (Boolean) -> Unit,
     onSave: (unit: String) -> Unit,
 ) {
-    var unit by rememberSaveable { mutableStateOf(category.numericUnit) }
+    val originalUnit = remember { category.numericUnit }
+    var unit by rememberSaveable { mutableStateOf(originalUnit) }
+
+    val hasChanges by remember { derivedStateOf { unit != originalUnit } }
+    LaunchedEffect(hasChanges) { onHasUnsavedChanges(hasChanges) }
 
     Column(
         modifier = modifier
