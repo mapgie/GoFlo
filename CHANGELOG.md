@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.13.8-beta.1] - 2026-05-30
+
+### Changed
+- **Day view shows units and scale labels** — numeric category values in the day sheet now include context alongside the number. Categories with a unit (e.g. "hours", "explosions") display as "2 hours" or "3 explosions". Slider categories with scale labels show the label text instead of the raw number (e.g. "What's my name again?" instead of "3"). Raw numbers are still used for stats charts and data storage; this is a display-only change.
+
+---
+
 ## [0.13.7-beta.1] - 2026-05-30
 
 ### Fixed
