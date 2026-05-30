@@ -42,6 +42,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -74,6 +75,7 @@ fun ManageCategoryValuesScreen(
     var pendingArchiveCategory    by rememberSaveable { mutableStateOf(false) }
     var pendingDeleteCategory     by rememberSaveable { mutableStateOf(false) }
     var hasUnsavedChanges         by remember { mutableStateOf(false) }
+    var currentSaveAction         by remember { mutableStateOf<(() -> Unit)?>(null) }
     var showUnsavedChangesDialog  by rememberSaveable { mutableStateOf(false) }
 
     val handleBack: () -> Unit = {
@@ -221,15 +223,21 @@ fun ManageCategoryValuesScreen(
         AlertDialog(
             onDismissRequest = { showUnsavedChangesDialog = false },
             title = { Text("Unsaved changes") },
-            text = { Text("You have unsaved changes. Do you want to discard them and go back?") },
+            text = { Text("Do you want to save your changes before going back?") },
             confirmButton = {
+                Button(
+                    onClick = {
+                        showUnsavedChangesDialog = false
+                        currentSaveAction?.invoke()
+                    },
+                    enabled = currentSaveAction != null
+                ) { Text("Save") }
+            },
+            dismissButton = {
                 TextButton(onClick = {
                     showUnsavedChangesDialog = false
                     onNavigateBack()
                 }) { Text("Discard", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUnsavedChangesDialog = false }) { Text("Keep editing") }
             }
         )
     }
@@ -332,7 +340,10 @@ fun ManageCategoryValuesScreen(
                 modifier              = Modifier.padding(padding),
                 onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
                 onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
-                onHasUnsavedChanges   = { hasUnsavedChanges = it },
+                onUnsavedState        = { hasChanges, saveAction ->
+                    hasUnsavedChanges = hasChanges
+                    currentSaveAction = saveAction
+                },
                 onSave                = { min, max, decimals, unit, scaleLabels ->
                     viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
                     onNavigateBack()
@@ -343,7 +354,10 @@ fun ManageCategoryValuesScreen(
                 modifier              = Modifier.padding(padding),
                 onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
                 onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
-                onHasUnsavedChanges   = { hasUnsavedChanges = it },
+                onUnsavedState        = { hasChanges, saveAction ->
+                    hasUnsavedChanges = hasChanges
+                    currentSaveAction = saveAction
+                },
                 onSave                = { unit ->
                     viewModel.updateUnit(unit)
                     onNavigateBack()
@@ -476,7 +490,7 @@ private fun NumericSliderSettings(
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
-    onHasUnsavedChanges: (Boolean) -> Unit,
+    onUnsavedState: (hasChanges: Boolean, saveAction: (() -> Unit)?) -> Unit,
     onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String, scaleLabels: String) -> Unit,
 ) {
     val originalMin = remember {
@@ -500,6 +514,18 @@ private fun NumericSliderSettings(
     // whole-number ranges with a manageable number of steps.
     val labels = remember { mutableStateMapOf<Int, String>().apply { putAll(originalLabels) } }
 
+    val minInt = minText.toIntOrNull()
+    val maxInt = maxText.toIntOrNull()
+    val canLabel = !allowDecimals && minInt != null && maxInt != null &&
+        maxInt > minInt && (maxInt - minInt) <= 20
+
+    val canSave by remember {
+        derivedStateOf {
+            minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
+            (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
+        }
+    }
+
     val hasChanges by remember {
         derivedStateOf {
             minText != originalMin || maxText != originalMax ||
@@ -508,18 +534,22 @@ private fun NumericSliderSettings(
         }
     }
 
-    LaunchedEffect(hasChanges) { onHasUnsavedChanges(hasChanges) }
-
-    val minInt = minText.toIntOrNull()
-    val maxInt = maxText.toIntOrNull()
-    val canLabel = !allowDecimals && minInt != null && maxInt != null &&
-        maxInt > minInt && (maxInt - minInt) <= 20
-
-    val canSave by remember(minText, maxText) {
-        derivedStateOf {
-            minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
-            (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
-        }
+    SideEffect {
+        onUnsavedState(
+            hasChanges,
+            if (hasChanges && canSave) {
+                {
+                    onSave(
+                        minText.toFloatOrNull() ?: 0f,
+                        maxText.toFloatOrNull() ?: 10f,
+                        allowDecimals,
+                        unit.trim(),
+                        if (canLabel) labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
+                        else category.scaleLabels
+                    )
+                }
+            } else null
+        )
     }
 
     Column(
@@ -660,14 +690,20 @@ private fun NumericFreeSettings(
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
-    onHasUnsavedChanges: (Boolean) -> Unit,
+    onUnsavedState: (hasChanges: Boolean, saveAction: (() -> Unit)?) -> Unit,
     onSave: (unit: String) -> Unit,
 ) {
     val originalUnit = remember { category.numericUnit }
     var unit by rememberSaveable { mutableStateOf(originalUnit) }
 
     val hasChanges by remember { derivedStateOf { unit != originalUnit } }
-    LaunchedEffect(hasChanges) { onHasUnsavedChanges(hasChanges) }
+
+    SideEffect {
+        onUnsavedState(
+            hasChanges,
+            if (hasChanges) ({ onSave(unit.trim()) }) else null
+        )
+    }
 
     Column(
         modifier = modifier
