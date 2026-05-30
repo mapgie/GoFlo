@@ -60,6 +60,10 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.updateNumericUnit(categoryId, unit) }
     }
 
+    fun setShowInLogPeriod(show: Boolean) {
+        viewModelScope.launch { repository.updateShowInLogPeriod(categoryId, show) }
+    }
+
     fun addValue(label: String) {
         if (label.isBlank()) return
         viewModelScope.launch { repository.addValueToCategory(categoryId, label) }

@@ -148,6 +148,11 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(numericUnit = unit.trim()))
     }
 
+    suspend fun updateShowInLogPeriod(id: Long, show: Boolean) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(cat.copy(showInLogPeriod = show))
+    }
+
     suspend fun archiveCategory(id: Long) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         if (cat.isSystem) return
