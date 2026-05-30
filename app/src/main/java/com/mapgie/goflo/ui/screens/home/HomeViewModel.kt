@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 data class HomeUiState(
     val periods: List<PeriodEntry> = emptyList(),
@@ -176,20 +178,43 @@ class HomeViewModel(
     private val _quickLogMessage = MutableStateFlow<String?>(null)
     val quickLogMessage: StateFlow<String?> = _quickLogMessage.asStateFlow()
 
-    private data class LastIncrementInfo(val categoryId: Long, val date: LocalDate)
+    private data class LastIncrementInfo(
+        val categoryId: Long,
+        val date: LocalDate,
+        /** Non-null when the tap created a timed entry; null for counter-style increments. */
+        val timedLogId: Long? = null,
+    )
     private var lastIncrement: LastIncrementInfo? = null
 
     /**
      * Instantly adds one to an "increment" category for [date] (today by default)
      * without opening the log screen, then surfaces a brief confirmation message.
+     *
+     * For categories with [trackAgainstTime] enabled, each tap saves a separate
+     * timestamped log entry. For regular increment categories, it upserts a counter.
      */
     fun incrementCategory(categoryId: Long, date: LocalDate = LocalDate.now()) {
         viewModelScope.launch {
             val cat = trackingRepository.getCategoryByIdOnce(categoryId) ?: return@launch
-            val newCount = trackingRepository.incrementLog(date, categoryId)
-            lastIncrement = LastIncrementInfo(categoryId, date)
             val unit = if (cat.numericUnit.isNotBlank()) " ${cat.numericUnit}" else ""
-            _quickLogMessage.value = "${cat.name}: $newCount$unit"
+            if (cat.trackAgainstTime) {
+                val time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+                val logId = trackingRepository.saveLog(
+                    date           = date,
+                    categoryId     = categoryId,
+                    selectedValues = setOf("1"),
+                    notes          = "",
+                    allowMultiple  = true,
+                    loggedAt       = time,
+                )
+                val count = trackingRepository.getLogsForDateAndCategory(date, categoryId).size
+                lastIncrement = LastIncrementInfo(categoryId, date, timedLogId = logId)
+                _quickLogMessage.value = "${cat.name}: $count$unit"
+            } else {
+                val newCount = trackingRepository.incrementLog(date, categoryId)
+                lastIncrement = LastIncrementInfo(categoryId, date)
+                _quickLogMessage.value = "${cat.name}: $newCount$unit"
+            }
         }
     }
 
@@ -197,7 +222,12 @@ class HomeViewModel(
         val last = lastIncrement ?: return
         lastIncrement = null
         viewModelScope.launch {
-            trackingRepository.incrementLog(last.date, last.categoryId, delta = -1)
+            if (last.timedLogId != null) {
+                val logWithValues = trackingRepository.getLogById(last.timedLogId)
+                if (logWithValues != null) trackingRepository.deleteLog(logWithValues.log)
+            } else {
+                trackingRepository.incrementLog(last.date, last.categoryId, delta = -1)
+            }
         }
     }
 
