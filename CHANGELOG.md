@@ -19,6 +19,15 @@ Rules:
 
 ---
 
+## [0.13.5-beta.1] - 2026-05-30
+
+### Changed
+- **Log Period hierarchy** — section labels now render in `onSurfaceVariant` so they recede behind entered values; slider value text promoted from `headlineMedium` to `headlineLarge` (32 sp Bold) making "2 hours", "1 Clear Head" etc. clearly primary information
+- **Tighter tracking cards** — slider and increment card padding reduced (20/16 → 16/10-12 dp); main column section gap tightened 20 → 16 dp so containers feel deliberate rather than spacious-but-empty
+- **Unified border contrast** — unselected `FilterChip` and `AssistChip` borders, `OutlinedTextField` unfocused borders, and `OutlinedButton` borders all reduced to 40 % outline opacity for a coherent visual weight across controls; selected chip border removed (transparent) to eliminate the box-inside-a-box effect
+
+---
+
 ## [0.13.4-beta.1] - 2026-05-30
 
 ### Fixed
