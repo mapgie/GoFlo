@@ -29,5 +29,7 @@ data class TrackingLog(
     /** ISO 8601 date string, e.g. "2025-05-10". */
     val date: String,
     val categoryId: Long,
-    val notes: String = ""
+    val notes: String = "",
+    /** HH:mm time of logging, e.g. "13:37". Empty when not tracked against time. */
+    val loggedAt: String = "",
 )

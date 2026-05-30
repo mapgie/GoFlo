@@ -1,5 +1,6 @@
 package com.mapgie.goflo.ui.screens.log
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,6 +84,13 @@ fun LogPeriodScreen(
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
     var showAddSymptomDialog by rememberSaveable { mutableStateOf(false) }
     var showOngoingConfirm by rememberSaveable { mutableStateOf(false) }
+    var showUnsavedChangesDialog by rememberSaveable { mutableStateOf(false) }
+
+    val handleBack: () -> Unit = {
+        if (state.hasChanges) showUnsavedChangesDialog = true else onBack()
+    }
+
+    BackHandler(enabled = state.hasChanges) { showUnsavedChangesDialog = true }
 
     if (showStartPicker && !state.isLoading) {
         DatePickerDialogWrapper(
@@ -140,6 +148,25 @@ fun LogPeriodScreen(
         )
     }
 
+    if (showUnsavedChangesDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedChangesDialog = false },
+            title = { Text("Unsaved changes") },
+            text = { Text("Do you want to save this entry before going back?") },
+            confirmButton = {
+                Button(onClick = { showUnsavedChangesDialog = false; viewModel.save() }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showUnsavedChangesDialog = false; onBack() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Discard") }
+            }
+        )
+    }
+
     if (showAddSymptomDialog) {
         AddSymptomDialog(
             librarySymptoms = librarySymptoms,
@@ -161,7 +188,7 @@ fun LogPeriodScreen(
             TopAppBar(
                 title = { Text(if (state.isEditing) "Edit Period" else "Log Period") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = handleBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -202,7 +229,7 @@ fun LogPeriodScreen(
                 }
 
                 // Flow section
-                SectionLabel("Flow")
+                SectionLabel(state.flowCategoryName)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FlowLevel.entries.forEach { level ->
                         SelectableChip(
@@ -214,7 +241,7 @@ fun LogPeriodScreen(
                 }
 
                 // Symptoms section
-                SectionLabel("Symptoms")
+                SectionLabel(state.symptomsCategoryName)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)

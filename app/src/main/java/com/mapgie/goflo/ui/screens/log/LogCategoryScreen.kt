@@ -5,12 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,16 +20,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
@@ -44,6 +50,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -243,6 +250,93 @@ private fun IncrementSection(
     }
 }
 
+/**
+ * Timed increment section for "Plus One" categories with trackAgainstTime enabled.
+ * Each tap immediately records a new log entry with the current time.
+ */
+@Composable
+private fun TimedIncrementSection(
+    category: TrackingCategory,
+    entries: List<com.mapgie.goflo.data.repository.TrackingLogWithValues>,
+    onAddOne: () -> Unit,
+    onDeleteEntry: (com.mapgie.goflo.data.database.entities.TrackingLog) -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                category.name,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            val total = entries.size
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    total.toString(),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                if (category.numericUnit.isNotBlank()) {
+                    Text(
+                        category.numericUnit,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                }
+            }
+
+            Button(onClick = onAddOne) {
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Log +1 now")
+            }
+
+            if (entries.isNotEmpty()) {
+                HorizontalDivider()
+                Text(
+                    "Logged today:",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                entries.forEach { entry ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = entry.log.loggedAt.ifEmpty { "–" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontStyle = if (entry.log.loggedAt.isEmpty()) FontStyle.Italic else FontStyle.Normal
+                        )
+                        IconButton(
+                            onClick = { onDeleteEntry(entry.log) },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Remove",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun LogCategoryScreen(
@@ -326,22 +420,31 @@ fun LogCategoryScreen(
             // ── Input area — slider / free input / chips ──────────────────────
 
             val cat = state.category
-            when (cat?.categoryType) {
-                "numeric_slider" -> {
+            when {
+                cat?.categoryType == "numeric_slider" -> {
                     NumericSliderSection(
                         category = cat,
                         value = state.numericValue,
                         onValueChange = viewModel::setNumericValue
                     )
                 }
-                "numeric_free" -> {
+                cat?.categoryType == "numeric_free" -> {
                     NumericFreeInputSection(
                         category = cat,
                         value = state.numericFreeText,
                         onValueChange = viewModel::setNumericFreeText
                     )
                 }
-                "increment" -> {
+                cat?.categoryType == "increment" && cat.trackAgainstTime -> {
+                    // Timed increment: each +1 saves immediately with timestamp
+                    TimedIncrementSection(
+                        category = cat,
+                        entries = state.timedEntriesToday,
+                        onAddOne = viewModel::addTimedIncrement,
+                        onDeleteEntry = viewModel::deleteTimedEntry
+                    )
+                }
+                cat?.categoryType == "increment" -> {
                     IncrementSection(
                         category = cat,
                         count = state.numericValue?.toInt() ?: 0,
@@ -405,29 +508,53 @@ fun LogCategoryScreen(
                 }
             }
 
-            // ── Notes ─────────────────────────────────────────────────────────────
+            // Timed increment entries are saved immediately — no notes/save button needed
+            val isTimedIncrement = cat?.categoryType == "increment" && cat.trackAgainstTime
 
-            OutlinedTextField(
-                value = state.notes,
-                onValueChange = { if (it.length <= 500) viewModel.setNotes(it) },
-                label = { Text("Notes (optional)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 4,
-                supportingText = {
-                    if (state.notes.isNotEmpty()) {
-                        Text("${state.notes.length}/500")
+            if (!isTimedIncrement) {
+                // ── Track against time checkbox ───────────────────────────────────
+
+                if (cat?.trackAgainstTime == true) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Checkbox(
+                            checked = state.trackTime,
+                            onCheckedChange = viewModel::setTrackTime
+                        )
+                        Text(
+                            text = "Track against time",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
-            )
 
-            Spacer(Modifier.height(8.dp))
+                // ── Notes ──────────────────────────────────────────────────────
 
-            Button(
-                onClick = viewModel::save,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(if (state.isEditing) "Update" else "Save")
+                OutlinedTextField(
+                    value = state.notes,
+                    onValueChange = { if (it.length <= 500) viewModel.setNotes(it) },
+                    label = { Text("Notes (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    maxLines = 4,
+                    supportingText = {
+                        if (state.notes.isNotEmpty()) {
+                            Text("${state.notes.length}/500")
+                        }
+                    }
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                Button(
+                    onClick = viewModel::save,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(if (state.isEditing) "Update" else "Save")
+                }
             }
         }
     }

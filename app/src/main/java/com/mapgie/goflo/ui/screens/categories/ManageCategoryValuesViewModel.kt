@@ -68,6 +68,10 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.updateAllowMultiple(categoryId, allowMultiple) }
     }
 
+    fun setTrackAgainstTime(track: Boolean) {
+        viewModelScope.launch { repository.updateTrackAgainstTime(categoryId, track) }
+    }
+
     fun addValue(label: String) {
         if (label.isBlank()) return
         viewModelScope.launch { repository.addValueToCategory(categoryId, label) }

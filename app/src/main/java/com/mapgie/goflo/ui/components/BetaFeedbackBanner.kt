@@ -47,7 +47,7 @@ fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
                     textDecoration = TextDecoration.Underline
                 )
             ) {
-                append("Feedback / Bug reports / Feature suggestions welcome.")
+                append("Feedback encouraged.")
             }
             pop()
         }

@@ -45,6 +45,12 @@ data class LogPeriodUiState(
     val pinnedNumericValues: Map<Long, Float?> = emptyMap(),
     /** Current text entry for each pinned numeric_free category. */
     val pinnedFreeTextValues: Map<Long, String> = emptyMap(),
+    /** User-chosen display name for the Flow system category. */
+    val flowCategoryName: String = "Flow",
+    /** User-chosen display name for the Symptoms system category. */
+    val symptomsCategoryName: String = "Symptoms",
+    /** True once the user has made at least one edit — enables the save-on-back prompt. */
+    val hasChanges: Boolean = false,
 )
 
 class LogPeriodViewModel(
@@ -85,11 +91,27 @@ class LogPeriodViewModel(
                 } else {
                     _uiState.update { it.copy(isLoading = false) }
                 }
+                loadSystemCategoryNames()
                 loadPinnedCategories()
             }
         } else {
             _uiState.update { it.copy(isLoading = false) }
-            viewModelScope.launch { loadPinnedCategories() }
+            viewModelScope.launch {
+                loadSystemCategoryNames()
+                loadPinnedCategories()
+            }
+        }
+    }
+
+    private suspend fun loadSystemCategoryNames() {
+        val tr = trackingRepository ?: return
+        val flowCat = tr.getSystemCategoryByKey("flow")
+        val symptomsCat = tr.getSystemCategoryByKey("symptoms")
+        _uiState.update {
+            it.copy(
+                flowCategoryName = flowCat?.name ?: it.flowCategoryName,
+                symptomsCategoryName = symptomsCat?.name ?: it.symptomsCategoryName,
+            )
         }
     }
 
@@ -128,25 +150,25 @@ class LogPeriodViewModel(
 
     fun setStartDate(date: LocalDate) = _uiState.update { state ->
         val end = if (state.endDate != null && date.isAfter(state.endDate)) null else state.endDate
-        state.copy(startDate = date, endDate = end)
+        state.copy(startDate = date, endDate = end, hasChanges = true)
     }
 
     fun setEndDate(date: LocalDate?) = _uiState.update {
-        it.copy(endDate = date)
+        it.copy(endDate = date, hasChanges = true)
     }
 
-    fun setFlowLevel(flow: FlowLevel) = _uiState.update { it.copy(flowLevel = flow) }
+    fun setFlowLevel(flow: FlowLevel) = _uiState.update { it.copy(flowLevel = flow, hasChanges = true) }
 
     fun toggleSymptom(symptom: SymptomType) = _uiState.update { state ->
         val updated = if (symptom in state.symptoms) state.symptoms - symptom else state.symptoms + symptom
-        state.copy(symptoms = updated)
+        state.copy(symptoms = updated, hasChanges = true)
     }
 
     /** Toggle a custom symptom in/out of the current period selection. */
     fun toggleCustomSymptom(name: String) = _uiState.update { state ->
         val lower = name.lowercase()
         val updated = if (lower in state.customSymptoms) state.customSymptoms - lower else state.customSymptoms + lower
-        state.copy(customSymptoms = updated)
+        state.copy(customSymptoms = updated, hasChanges = true)
     }
 
     /**
@@ -156,23 +178,23 @@ class LogPeriodViewModel(
     fun addAndSelectCustomSymptom(name: String) {
         val lower = name.lowercase()
         viewModelScope.launch { repository.addCustomSymptom(lower) }
-        _uiState.update { state -> state.copy(customSymptoms = state.customSymptoms + lower) }
+        _uiState.update { state -> state.copy(customSymptoms = state.customSymptoms + lower, hasChanges = true) }
     }
 
-    fun setNotes(notes: String) = _uiState.update { it.copy(notes = notes) }
+    fun setNotes(notes: String) = _uiState.update { it.copy(notes = notes, hasChanges = true) }
 
     fun togglePinnedValue(categoryId: Long, label: String) = _uiState.update { state ->
         val current = state.pinnedCategorySelections[categoryId] ?: emptySet()
         val updated = if (label in current) current - label else current + label
-        state.copy(pinnedCategorySelections = state.pinnedCategorySelections + (categoryId to updated))
+        state.copy(pinnedCategorySelections = state.pinnedCategorySelections + (categoryId to updated), hasChanges = true)
     }
 
     fun setPinnedNumericValue(categoryId: Long, value: Float) = _uiState.update { state ->
-        state.copy(pinnedNumericValues = state.pinnedNumericValues + (categoryId to value))
+        state.copy(pinnedNumericValues = state.pinnedNumericValues + (categoryId to value), hasChanges = true)
     }
 
     fun setPinnedFreeText(categoryId: Long, text: String) = _uiState.update { state ->
-        state.copy(pinnedFreeTextValues = state.pinnedFreeTextValues + (categoryId to text))
+        state.copy(pinnedFreeTextValues = state.pinnedFreeTextValues + (categoryId to text), hasChanges = true)
     }
 
     fun save() {

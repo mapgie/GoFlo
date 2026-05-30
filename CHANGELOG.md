@@ -19,6 +19,24 @@ Rules:
 
 ---
 
+## [0.14.0-beta.1] - 2026-05-30
+
+### Added
+- **Track against time** — a new per-category toggle ("Track against time" in the category edit screen) records the HH:mm timestamp alongside every log entry. When enabled: the log screen shows a pre-ticked time checkbox; Plus One categories log each tap as a separate timestamped entry (shown as a live list with delete buttons); the Day Log sheet gains a 3-dot "Display logs against time" option to view entries in chronological "13:37 Heavy" / "14:56 Medium" format (only visible when a category has time data).
+- **Stats — Over Time chart** — numeric categories now offer an "Over Time" chart in the Stats screen. Two numeric categories together also support this view alongside the existing Scatter and Dual Time Series options.
+
+### Fixed
+- **Period log save-on-back** — pressing back (or swiping) while creating or editing a period entry now prompts "Save" or "Discard" instead of silently discarding any changes.
+- **Flow / Symptoms section labels** — the Log Period screen now shows your user-renamed names for Flow and Symptoms (rather than the original hardcoded labels).
+- **Multiple-value day view** — categories that allow multiple logs per day now show all values joined inline (e.g. "Heavy · Clots") in the Day Log sheet. Time-tracked categories show the stacked time view instead when "Display logs against time" is enabled.
+- **Feedback banner** — link text shortened to "Feedback encouraged."
+- **Quick-tap Plus One with time tracking** — tapping a Plus One category from the home speed dial now saves a timestamped entry when "Track against time" is on, and undo correctly deletes that entry rather than decrementing a counter.
+
+### Changed
+- Database schema bumped to v12 (backward-compatible `ALTER TABLE` migration adding `trackAgainstTime` to `tracking_categories` and `loggedAt` to `tracking_logs`; existing data unaffected).
+
+---
+
 ## [0.13.8-beta.1] - 2026-05-30
 
 ### Changed

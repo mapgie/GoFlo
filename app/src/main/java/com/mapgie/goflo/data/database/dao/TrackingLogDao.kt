@@ -15,10 +15,10 @@ interface TrackingLogDao {
 
     // ── Logs ───────────────────────────────────────────────────────────────────
 
-    @Query("SELECT * FROM tracking_logs WHERE date = :date ORDER BY categoryId ASC")
+    @Query("SELECT * FROM tracking_logs WHERE date = :date ORDER BY categoryId ASC, loggedAt ASC, id ASC")
     fun getLogsForDate(date: String): Flow<List<TrackingLog>>
 
-    @Query("SELECT * FROM tracking_logs WHERE date = :date ORDER BY categoryId ASC")
+    @Query("SELECT * FROM tracking_logs WHERE date = :date ORDER BY categoryId ASC, loggedAt ASC, id ASC")
     suspend fun getLogsForDateOnce(date: String): List<TrackingLog>
 
     @Query("SELECT DISTINCT date FROM tracking_logs ORDER BY date DESC")
@@ -32,6 +32,9 @@ interface TrackingLogDao {
 
     @Query("SELECT * FROM tracking_logs WHERE date = :date AND categoryId = :categoryId LIMIT 1")
     suspend fun getLogForDateAndCategory(date: String, categoryId: Long): TrackingLog?
+
+    @Query("SELECT * FROM tracking_logs WHERE date = :date AND categoryId = :categoryId ORDER BY loggedAt ASC, id ASC")
+    suspend fun getLogsForDateAndCategory(date: String, categoryId: Long): List<TrackingLog>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: TrackingLog): Long
