@@ -149,19 +149,11 @@ fun ManageCategoriesScreen(
     if (categoryToEditAppearance != null) {
         EditAppearanceDialog(
             category = categoryToEditAppearance,
-            onSave = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple, showInLogPeriod ->
-                viewModel.updateCategoryNameAndAppearance(
-                    id              = categoryToEditAppearance.id,
-                    name            = name,
-                    iconName        = iconName,
-                    colorToken      = colorToken,
-                    categoryType    = categoryType,
-                    numericMin      = numericMin,
-                    numericMax      = numericMax,
-                    allowDecimals   = allowDecimals,
-                    numericUnit     = numericUnit,
-                    allowMultiple   = allowMultiple,
-                    showInLogPeriod = showInLogPeriod,
+            onSave = { iconName, colorToken ->
+                viewModel.updateCategoryAppearance(
+                    id         = categoryToEditAppearance.id,
+                    iconName   = iconName,
+                    colorToken = colorToken,
                 )
                 pendingEditAppearance = null
             },
@@ -683,46 +675,17 @@ private fun AddCategoryDialog(
 
 // ── Edit appearance dialog ────────────────────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EditAppearanceDialog(
     category: TrackingCategory,
-    onSave: (name: String, iconName: String, colorToken: String,
-             categoryType: String, numericMin: Float, numericMax: Float,
-             allowDecimals: Boolean, numericUnit: String, allowMultiple: Boolean,
-             showInLogPeriod: Boolean) -> Unit,
+    onSave: (iconName: String, colorToken: String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var name            by rememberSaveable { mutableStateOf(category.name) }
     var selectedIconKey by rememberSaveable { mutableStateOf(category.iconName) }
     var selectedToken   by rememberSaveable { mutableStateOf(category.colorToken) }
-    var selectedType    by rememberSaveable { mutableStateOf(category.categoryType) }
-    var numericUnit     by rememberSaveable { mutableStateOf(category.numericUnit) }
-    var minText         by rememberSaveable {
-        mutableStateOf(if (category.allowDecimals) "%.1f".format(category.numericMin) else category.numericMin.toInt().toString())
-    }
-    var maxText         by rememberSaveable {
-        mutableStateOf(if (category.allowDecimals) "%.1f".format(category.numericMax) else category.numericMax.toInt().toString())
-    }
-    var allowDecimals   by rememberSaveable { mutableStateOf(category.allowDecimals) }
-    var allowMultiple   by rememberSaveable { mutableStateOf(category.allowMultiple) }
-    var showInLogPeriod by rememberSaveable { mutableStateOf(category.showInLogPeriod) }
-
-    val isNumericType = selectedType != CategoryType.DEFAULT.key
-    // Only the slider type uses a min/max range — free input and increment do not.
-    val isSliderType = selectedType == CategoryType.NUMERIC_SLIDER.key
 
     val previewBubble = selectedToken.toCategoryColor()
     val previewIcon   = selectedToken.toCategoryOnColor()
-
-    val canSave by remember(name, isSliderType, minText, maxText) {
-        derivedStateOf {
-            name.isNotBlank() && (!isSliderType || (
-                minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
-                (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
-            ))
-        }
-    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -769,53 +732,6 @@ private fun EditAppearanceDialog(
 
                 HorizontalDivider()
 
-                // Name
-                OutlinedTextField(
-                    value         = name,
-                    onValueChange = { name = it },
-                    label         = { Text("Name") },
-                    singleLine    = true,
-                    modifier      = Modifier.fillMaxWidth()
-                )
-
-                // Type selector (non-system only)
-                if (!category.isSystem) {
-                    Text(
-                        "Type",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement   = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        CategoryType.entries.forEach { type ->
-                            FilterChip(
-                                selected  = selectedType == type.key,
-                                onClick   = { selectedType = type.key },
-                                label     = { Text(type.displayName, style = MaterialTheme.typography.labelSmall) }
-                            )
-                        }
-                    }
-
-                    // Unit field — shown only for numeric types
-                    AnimatedVisibility(
-                        visible = isNumericType,
-                        enter   = expandVertically() + fadeIn(),
-                        exit    = shrinkVertically() + fadeOut()
-                    ) {
-                        OutlinedTextField(
-                            value         = numericUnit,
-                            onValueChange = { numericUnit = it },
-                            label         = { Text("Unit / Key (optional)") },
-                            placeholder   = { Text("e.g. °C, bpm, kg…") },
-                            singleLine    = true,
-                            modifier      = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-
                 Text("Icon", style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryIconGrid(selectedKey = selectedIconKey, onSelect = { selectedIconKey = it })
@@ -824,70 +740,6 @@ private fun EditAppearanceDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 CategoryColorPicker(selectedToken = selectedToken, onSelect = { selectedToken = it })
 
-                // ── Numeric range settings ────────────────────────────────────
-                // System categories (Flow, Symptoms) keep text mode; show only for non-system numeric types
-                if (!category.isSystem) {
-                    AnimatedVisibility(
-                        visible = isSliderType,
-                        enter   = expandVertically() + fadeIn(),
-                        exit    = shrinkVertically() + fadeOut()
-                    ) {
-                        HorizontalDivider()
-                    }
-                    AnimatedVisibility(
-                        visible = isSliderType,
-                        enter   = expandVertically() + fadeIn(),
-                        exit    = shrinkVertically() + fadeOut()
-                    ) {
-                        NumericSettingsSection(
-                            minText          = minText,
-                            onMinChange      = { minText = it },
-                            maxText          = maxText,
-                            onMaxChange      = { maxText = it },
-                            allowDecimals    = allowDecimals,
-                            onDecimalsToggle = { allowDecimals = it }
-                        )
-                    }
-                }
-
-                // Allow multiple per day (all category types)
-                HorizontalDivider()
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "Log this category more than once on the same day",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = allowMultiple, onCheckedChange = { allowMultiple = it })
-                }
-
-                // Log with period (non-system categories only)
-                if (!category.isSystem) {
-                    HorizontalDivider()
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Log with period", style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                "Show this category on the Log Period screen",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(checked = showInLogPeriod, onCheckedChange = { showInLogPeriod = it })
-                    }
-                }
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -895,21 +747,7 @@ private fun EditAppearanceDialog(
                 ) {
                     TextButton(onClick = onDismiss) { Text("Cancel") }
                     Spacer(Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            if (canSave) onSave(
-                                name, selectedIconKey, selectedToken,
-                                selectedType,
-                                minText.toFloatOrNull() ?: 0f,
-                                maxText.toFloatOrNull() ?: 10f,
-                                allowDecimals,
-                                numericUnit.trim(),
-                                allowMultiple,
-                                showInLogPeriod
-                            )
-                        },
-                        enabled = canSave
-                    ) { Text("Save") }
+                    Button(onClick = { onSave(selectedIconKey, selectedToken) }) { Text("Save") }
                 }
             }
         }

@@ -64,6 +64,10 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.updateShowInLogPeriod(categoryId, show) }
     }
 
+    fun setAllowMultiple(allowMultiple: Boolean) {
+        viewModelScope.launch { repository.updateAllowMultiple(categoryId, allowMultiple) }
+    }
+
     fun addValue(label: String) {
         if (label.isBlank()) return
         viewModelScope.launch { repository.addValueToCategory(categoryId, label) }
