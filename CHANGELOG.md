@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.13.4-beta.1] - 2026-05-30
+
+### Fixed
+- **Unsaved changes lost on back navigation** — editing a Numeric Slider or Numeric Input category and pressing back (or using the system gesture) without tapping Save now shows a dialog offering **Save** or **Discard**. Tapping outside the dialog keeps you on the screen.
+
+---
+
 ## [0.13.3-beta.1] - 2026-05-30
 
 ### Changed
