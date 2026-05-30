@@ -213,14 +213,12 @@ fun ManageCategoryValuesScreen(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(state.category?.name ?: "Category")
-                        if (state.category?.isSystem == false) {
-                            IconButton(onClick = { showRenameCategory = true }) {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = "Rename category",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
+                        IconButton(onClick = { showRenameCategory = true }) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Rename category",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
                         }
                     }
                 },
@@ -303,28 +301,38 @@ fun ManageCategoryValuesScreen(
         val category = state.category
         when (category?.categoryType) {
             "numeric_slider" -> NumericSliderSettings(
-                category  = category,
-                modifier  = Modifier.padding(padding),
-                onSave    = { min, max, decimals, unit, scaleLabels ->
+                category              = category,
+                modifier              = Modifier.padding(padding),
+                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
+                onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
+                onSave                = { min, max, decimals, unit, scaleLabels ->
                     viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
                     onNavigateBack()
                 }
             )
             "numeric_free" -> NumericFreeSettings(
-                category = category,
-                modifier = Modifier.padding(padding),
-                onSave   = { unit ->
+                category              = category,
+                modifier              = Modifier.padding(padding),
+                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
+                onToggleAllowMultiple = { viewModel.setAllowMultiple(it) },
+                onSave                = { unit ->
                     viewModel.updateUnit(unit)
                     onNavigateBack()
                 }
             )
-            "increment" -> IncrementCategoryInfo(modifier = Modifier.padding(padding))
+            "increment" -> IncrementCategoryInfo(
+                category              = category,
+                modifier              = Modifier.padding(padding),
+                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) }
+            )
             else -> DefaultCategoryValues(
-                state             = state,
-                modifier          = Modifier.padding(padding),
-                onAddValue        = { showAddValue = true },
-                onRenameValue     = { renamingValue = it.id },
-                onDeleteValue     = { pendingDeleteValue = it.id }
+                state                 = state,
+                modifier              = Modifier.padding(padding),
+                onAddValue            = { showAddValue = true },
+                onRenameValue         = { renamingValue = it.id },
+                onDeleteValue         = { pendingDeleteValue = it.id },
+                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
+                onToggleAllowMultiple = { viewModel.setAllowMultiple(it) }
             )
         }
     }
@@ -339,6 +347,8 @@ private fun DefaultCategoryValues(
     onAddValue: () -> Unit,
     onRenameValue: (TrackingValue) -> Unit,
     onDeleteValue: (TrackingValue) -> Unit,
+    onToggleLogWithPeriod: (Boolean) -> Unit,
+    onToggleAllowMultiple: (Boolean) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -346,6 +356,19 @@ private fun DefaultCategoryValues(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        val category = state.category
+        if (category?.isSystem == false) {
+            LogWithPeriodRow(
+                checked   = category.showInLogPeriod,
+                onChecked = onToggleLogWithPeriod
+            )
+            AllowMultipleRow(
+                checked   = category.allowMultiple,
+                onChecked = onToggleAllowMultiple
+            )
+            HorizontalDivider()
+        }
+
         Text(
             "Values in this category:",
             style = MaterialTheme.typography.labelMedium,
@@ -384,13 +407,25 @@ private fun DefaultCategoryValues(
 // ── Plus One (increment) category info ────────────────────────────────────────
 
 @Composable
-private fun IncrementCategoryInfo(modifier: Modifier) {
+private fun IncrementCategoryInfo(
+    category: TrackingCategory,
+    modifier: Modifier,
+    onToggleLogWithPeriod: (Boolean) -> Unit,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (!category.isSystem) {
+            LogWithPeriodRow(
+                checked   = category.showInLogPeriod,
+                onChecked = onToggleLogWithPeriod
+            )
+            HorizontalDivider()
+        }
+
         Text(
             "Plus One category",
             style = MaterialTheme.typography.labelMedium,
@@ -410,6 +445,8 @@ private fun IncrementCategoryInfo(modifier: Modifier) {
 private fun NumericSliderSettings(
     category: TrackingCategory,
     modifier: Modifier,
+    onToggleLogWithPeriod: (Boolean) -> Unit,
+    onToggleAllowMultiple: (Boolean) -> Unit,
     onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String, scaleLabels: String) -> Unit,
 ) {
     var minText       by rememberSaveable {
@@ -450,6 +487,18 @@ private fun NumericSliderSettings(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (!category.isSystem) {
+            LogWithPeriodRow(
+                checked   = category.showInLogPeriod,
+                onChecked = onToggleLogWithPeriod
+            )
+            AllowMultipleRow(
+                checked   = category.allowMultiple,
+                onChecked = onToggleAllowMultiple
+            )
+            HorizontalDivider()
+        }
+
         Text(
             "Slider scale settings",
             style = MaterialTheme.typography.labelMedium,
@@ -567,6 +616,8 @@ private fun NumericSliderSettings(
 private fun NumericFreeSettings(
     category: TrackingCategory,
     modifier: Modifier,
+    onToggleLogWithPeriod: (Boolean) -> Unit,
+    onToggleAllowMultiple: (Boolean) -> Unit,
     onSave: (unit: String) -> Unit,
 ) {
     var unit by rememberSaveable { mutableStateOf(category.numericUnit) }
@@ -578,6 +629,18 @@ private fun NumericFreeSettings(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        if (!category.isSystem) {
+            LogWithPeriodRow(
+                checked   = category.showInLogPeriod,
+                onChecked = onToggleLogWithPeriod
+            )
+            AllowMultipleRow(
+                checked   = category.allowMultiple,
+                onChecked = onToggleAllowMultiple
+            )
+            HorizontalDivider()
+        }
+
         Text(
             "Numeric Input settings",
             style = MaterialTheme.typography.labelMedium,
@@ -597,6 +660,46 @@ private fun NumericFreeSettings(
             onClick  = { onSave(unit.trim()) },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Save") }
+    }
+}
+
+// ── Log with period toggle row ────────────────────────────────────────────────
+
+@Composable
+private fun LogWithPeriodRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Log with period", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Show this category on the Log Period screen",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onChecked)
+    }
+}
+
+@Composable
+private fun AllowMultipleRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Log this category more than once on the same day",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = checked, onCheckedChange = onChecked)
     }
 }
 

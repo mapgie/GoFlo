@@ -63,36 +63,6 @@ class ManageCategoriesViewModel(
         viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
     }
 
-    fun updateCategoryNameAndAppearance(
-        id: Long,
-        name: String,
-        iconName: String,
-        colorToken: String,
-        categoryType: String = "default",
-        numericMin: Float = 0f,
-        numericMax: Float = 10f,
-        allowDecimals: Boolean = false,
-        numericUnit: String = "",
-        allowMultiple: Boolean = false,
-        showInLogPeriod: Boolean = false,
-    ) {
-        viewModelScope.launch {
-            repository.updateCategoryFullSettings(
-                id              = id,
-                name            = name,
-                iconName        = iconName,
-                colorToken      = colorToken,
-                categoryType    = categoryType,
-                numericMin      = numericMin,
-                numericMax      = numericMax,
-                allowDecimals   = allowDecimals,
-                numericUnit     = numericUnit,
-                allowMultiple   = allowMultiple,
-                showInLogPeriod = showInLogPeriod,
-            )
-        }
-    }
-
     fun archiveCategory(category: TrackingCategory) {
         if (category.isSystem) return
         viewModelScope.launch { repository.archiveCategory(category.id) }

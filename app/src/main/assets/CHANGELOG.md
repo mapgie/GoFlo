@@ -19,7 +19,22 @@ Rules:
 
 ---
 
-## [0.12.5-beta.1] - 2026-05-28
+## [0.13.3-beta.1] - 2026-05-30
+
+### Changed
+- **Palette icon is aesthetics only** — the Edit Appearance dialog (palette icon on each category row) now contains only the icon picker and colour picker. Name, type, and behaviour settings have been removed from it.
+- **Category settings consolidated into the edit screen** — "Log with period" and "Allow multiple per day" toggles now live at the top of the category edit screen for all custom category types (default, slider, free-input, increment). Both auto-save on change with no Save button required.
+- **Plus One — "Allow multiple per day" hidden** — the toggle is not shown for increment categories in the creation dialog or edit screen; the increment model always records a single running count per day regardless of this flag.
+
+### Added
+- **Rename default categories** — Flow and Symptoms can now be renamed via the pencil icon on their edit screen. A stable internal key (DB v11, `systemKey` column) is used for all system lookups so flow sync continues to work after a rename.
+
+### Fixed
+- **"Allow multiple" stale state on category creation** — switching to Plus One type after enabling "Allow multiple" in the creation dialog no longer persists the flag; it is clamped to false at save time when the final type is increment.
+
+---
+
+
 
 ### Added
 - **Log with period** — custom tracking categories can now be pinned to the Log Period screen. Enable "Log with period" in the category's create or edit dialog; the category then appears as a section (chip picker, slider, or text input depending on type) between Symptoms and Notes on the Log Period screen. Selections are saved as tracking logs for the period start date when the period entry is saved.

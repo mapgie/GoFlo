@@ -148,6 +148,16 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(numericUnit = unit.trim()))
     }
 
+    suspend fun updateShowInLogPeriod(id: Long, show: Boolean) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(cat.copy(showInLogPeriod = show))
+    }
+
+    suspend fun updateAllowMultiple(id: Long, allowMultiple: Boolean) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        categoryDao.updateCategory(cat.copy(allowMultiple = allowMultiple))
+    }
+
     suspend fun archiveCategory(id: Long) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         if (cat.isSystem) return
@@ -394,6 +404,10 @@ class TrackingRepository(
     /** System category lookup by name — used for Flow data migration. */
     suspend fun getSystemCategoryByName(name: String): TrackingCategory? =
         categoryDao.getSystemCategoryByName(name)
+
+    /** System category lookup by stable key ("flow", "symptoms") — survives user renames. */
+    suspend fun getSystemCategoryByKey(key: String): TrackingCategory? =
+        categoryDao.getSystemCategoryByKey(key)
 
     /** Category lookup by name (any type) — used for import matching. */
     suspend fun getCategoryByName(name: String): TrackingCategory? =

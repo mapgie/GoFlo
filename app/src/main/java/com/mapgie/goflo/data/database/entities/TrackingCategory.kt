@@ -10,6 +10,10 @@ import androidx.room.PrimaryKey
  * [isSystem] = true. System categories cannot be deleted (enforced in the UI
  * layer), but their names, icons, and colours can be edited freely.
  *
+ * [systemKey] is a stable machine-readable identifier for system categories
+ * ("flow", "symptoms", empty for non-system). Used for lookups that must survive
+ * a user renaming the category.
+ *
  * [iconName] maps to a [com.mapgie.goflo.ui.util.CategoryIcon] key string.
  *
  * [colorToken] maps to a [com.mapgie.goflo.ui.util.CategoryColor] key string
@@ -35,6 +39,7 @@ data class TrackingCategory(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val isSystem: Boolean = false,
+    val systemKey: String = "",
     val displayOrder: Int = 0,
     val iconName: String = "category",
     val colorToken: String = "secondary",

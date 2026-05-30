@@ -210,7 +210,7 @@ class LogPeriodViewModel(
      */
     private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) {
         val tr = trackingRepository ?: return
-        val flowCategory = tr.getSystemCategoryByName("Flow") ?: return
+        val flowCategory = tr.getSystemCategoryByKey("flow") ?: return
         val flowLabel = state.flowLevel.displayName
         val end = state.endDate ?: state.startDate
         val dates = generateSequence(state.startDate) { d -> if (d < end) d.plusDays(1) else null }.toList()

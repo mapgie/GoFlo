@@ -34,6 +34,10 @@ interface TrackingCategoryDao {
     @Query("SELECT * FROM tracking_categories WHERE isSystem = 1 AND name = :name LIMIT 1")
     suspend fun getSystemCategoryByName(name: String): TrackingCategory?
 
+    /** Returns the system category with the given stable key ("flow", "symptoms"), or null. */
+    @Query("SELECT * FROM tracking_categories WHERE systemKey = :key LIMIT 1")
+    suspend fun getSystemCategoryByKey(key: String): TrackingCategory?
+
     /** Returns active (non-archived) categories with showInLogPeriod = 1. */
     @Query("SELECT * FROM tracking_categories WHERE isArchived = 0 AND showInLogPeriod = 1 ORDER BY displayOrder ASC, id ASC")
     suspend fun getShowInLogPeriodCategoriesOnce(): List<TrackingCategory>
