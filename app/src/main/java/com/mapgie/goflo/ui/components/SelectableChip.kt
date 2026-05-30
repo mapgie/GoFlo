@@ -30,6 +30,12 @@ fun SelectableChip(
         colors = FilterChipDefaults.filterChipColors(
             selectedContainerColor = effectiveContainer,
             selectedLabelColor     = effectiveContent
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+            selectedBorderColor = Color.Transparent,
         )
     )
 }
