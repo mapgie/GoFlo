@@ -4,8 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,7 +46,7 @@ import java.time.format.DateTimeFormatter
 
 private val headerFormat = DateTimeFormatter.ofPattern("EEEE, MMM d")
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DayLogSheet(
     date: LocalDate,
@@ -85,46 +85,42 @@ fun DayLogSheet(
             // ── Period section ────────────────────────────────────────────────
 
             if (period != null) {
-                val periodColor   = MaterialTheme.colorScheme.primary
-                val periodOnColor = MaterialTheme.colorScheme.onPrimary
-
-                CategorySectionHeader(
-                    icon      = Icons.Outlined.WaterDrop,
-                    iconColor = periodColor,
-                    iconOnColor = periodOnColor,
-                    title     = "Period"
-                ) {
-                    TextButton(onClick = { onEditPeriod(period.id) }) { Text("Edit") }
-                }
+                val periodColor = MaterialTheme.colorScheme.primary
 
                 val flow = runCatching { FlowLevel.valueOf(period.flowLevel) }
                     .getOrNull()?.name?.lowercase()?.replaceFirstChar { it.uppercase() }
                     ?: period.flowLevel
 
-                ChipRow(
-                    label          = "Flow",
-                    values         = listOf(flow),
-                    containerColor = periodColor,
-                    contentColor   = periodOnColor
-                )
-
-                if (periodSymptoms.isNotEmpty()) {
-                    ChipRow(
-                        label          = "Symptoms",
-                        values         = periodSymptoms,
-                        containerColor = periodColor,
-                        contentColor   = periodOnColor
+                LogEntryRow(
+                    icon        = Icons.Outlined.WaterDrop,
+                    iconColor   = periodColor,
+                    iconOnColor = MaterialTheme.colorScheme.onPrimary,
+                    label       = "Period",
+                    onEdit      = { onEditPeriod(period.id) }
+                ) {
+                    AttributeValueLine(
+                        attribute  = "Flow",
+                        value      = flow,
+                        valueColor = periodColor
                     )
-                }
 
-                if (period.notes.isNotEmpty()) {
-                    Text(
-                        text  = "\"${period.notes}\"",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontStyle = FontStyle.Italic,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 42.dp)
-                    )
+                    if (periodSymptoms.isNotEmpty()) {
+                        AttributeValueLine(
+                            attribute  = "Symptoms",
+                            value      = periodSymptoms.joinToString(" · "),
+                            valueColor = MaterialTheme.colorScheme.onSurface,
+                            valueLarge = false
+                        )
+                    }
+
+                    if (period.notes.isNotEmpty()) {
+                        Text(
+                            text      = "\"${period.notes}\"",
+                            style     = MaterialTheme.typography.bodySmall,
+                            fontStyle = FontStyle.Italic,
+                            color     = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 HorizontalDivider()
@@ -147,38 +143,38 @@ fun DayLogSheet(
                         ?: MaterialTheme.colorScheme.onSecondary
                     val icon        = category?.iconName?.toCategoryIcon()?.vector
 
-                    CategorySectionHeader(
+                    LogEntryRow(
                         icon        = icon,
                         iconColor   = bubbleColor,
                         iconOnColor = onBubble,
-                        title       = category?.name ?: "Unknown"
+                        label       = category?.name ?: "Unknown",
+                        onEdit      = { onEditTrackingLog(entry.log.categoryId, entry.log.id) }
                     ) {
-                        TextButton(onClick = {
-                            onEditTrackingLog(entry.log.categoryId, entry.log.id)
-                        }) { Text("Edit") }
-                    }
+                        if (entry.values.isNotEmpty()) {
+                            if (entry.values.size == 1) {
+                                Text(
+                                    text  = entry.values[0],
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = bubbleColor
+                                )
+                            } else {
+                                Text(
+                                    text  = entry.values.joinToString(" · "),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
 
-                    if (entry.values.isNotEmpty()) {
-                        ChipRow(
-                            label          = null,
-                            values         = entry.values,
-                            containerColor = bubbleColor,
-                            contentColor   = onBubble,
-                            modifier       = Modifier.padding(start = 42.dp)
-                        )
+                        if (entry.log.notes.isNotEmpty()) {
+                            Text(
+                                text      = "\"${entry.log.notes}\"",
+                                style     = MaterialTheme.typography.bodySmall,
+                                fontStyle = FontStyle.Italic,
+                                color     = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-
-                    if (entry.log.notes.isNotEmpty()) {
-                        Text(
-                            text  = "\"${entry.log.notes}\"",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontStyle = FontStyle.Italic,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 42.dp)
-                        )
-                    }
-
-                    Spacer(Modifier.height(4.dp))
                 }
 
                 HorizontalDivider()
@@ -199,77 +195,83 @@ fun DayLogSheet(
 }
 
 @Composable
-private fun CategorySectionHeader(
+private fun LogEntryRow(
     icon: ImageVector?,
     iconColor: Color,
     iconOnColor: Color,
-    title: String,
-    action: @Composable () -> Unit
+    label: String,
+    onEdit: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit
 ) {
     Row(
         modifier              = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment     = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment     = Alignment.Top
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment     = Alignment.CenterVertically
+        Box(
+            modifier         = Modifier
+                .padding(top = 2.dp)
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(iconColor),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier           = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(iconColor),
-                contentAlignment   = Alignment.Center
-            ) {
-                if (icon != null) {
-                    Icon(
-                        imageVector        = icon,
-                        contentDescription = null,
-                        tint               = iconOnColor,
-                        modifier           = Modifier.size(18.dp)
-                    )
-                }
-            }
-            Text(title, style = MaterialTheme.typography.titleSmall)
-        }
-        action()
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ChipRow(
-    label: String?,
-    values: List<String>,
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier              = modifier,
-        verticalArrangement   = Arrangement.spacedBy(4.dp)
-    ) {
-        if (label != null) {
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement   = Arrangement.spacedBy(4.dp)
-        ) {
-            values.forEach { v ->
-                SelectableChip(
-                    label          = v,
-                    selected       = true,
-                    containerColor = containerColor,
-                    contentColor   = contentColor,
-                    onClick        = {}
+            if (icon != null) {
+                Icon(
+                    imageVector        = icon,
+                    contentDescription = null,
+                    tint               = iconOnColor,
+                    modifier           = Modifier.size(16.dp)
                 )
             }
         }
+
+        Column(
+            modifier            = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text  = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            content()
+        }
+
+        TextButton(
+            onClick        = onEdit,
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+        ) {
+            Text(
+                text  = "edit",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun AttributeValueLine(
+    attribute: String,
+    value: String,
+    valueColor: Color,
+    valueLarge: Boolean = true
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment     = Alignment.Baseline
+    ) {
+        Text(
+            text  = attribute,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text  = value,
+            style = if (valueLarge) MaterialTheme.typography.titleMedium
+                    else           MaterialTheme.typography.bodyMedium,
+            color = valueColor
+        )
     }
 }
