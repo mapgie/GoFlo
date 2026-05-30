@@ -58,7 +58,7 @@ class GoFloApplication : Application() {
         val prefs = preferencesStore.preferences.first()
         if (prefs.flowBackfillDone) return
 
-        val flowCategory = trackingRepository.getSystemCategoryByName("Flow") ?: run {
+        val flowCategory = trackingRepository.getSystemCategoryByKey("flow") ?: run {
             // Flow category not seeded yet — mark done and skip; it will be seeded
             // on next DB open and the user has no historical data yet.
             preferencesStore.setFlowBackfillDone(true)

@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -234,6 +234,25 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds [systemKey] — a stable machine-readable identifier for system categories
+         * ("flow", "symptoms") that does not change when the user renames them (v11).
+         * Required so internal lookups (flow sync, backfill) survive user renames.
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `systemKey` TEXT NOT NULL DEFAULT ''"
+                )
+                database.execSQL(
+                    "UPDATE tracking_categories SET systemKey='flow'     WHERE isSystem=1 AND name='Flow'"
+                )
+                database.execSQL(
+                    "UPDATE tracking_categories SET systemKey='symptoms' WHERE isSystem=1 AND name='Symptoms'"
+                )
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -317,10 +336,10 @@ abstract class GoFloDatabase : RoomDatabase() {
             // Flow — water drop icon, primary colour token
             database.execSQL(
                 "INSERT INTO tracking_categories " +
-                "(name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
+                "(name, isSystem, systemKey, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
                 "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
                 "isArchived, allowMultiple, showInLogPeriod) " +
-                "VALUES ('Flow', 1, 0, 'water', 'primary', 'default', " +
+                "VALUES ('Flow', 1, 'flow', 0, 'water', 'primary', 'default', " +
                 "0.0, 10.0, 0, '', '', 0, 0, 0)"
             )
             val flowIdCursor = database.query("SELECT last_insert_rowid()")
@@ -338,10 +357,10 @@ abstract class GoFloDatabase : RoomDatabase() {
             // Symptoms — healing icon, tertiary (accent) colour token
             database.execSQL(
                 "INSERT INTO tracking_categories " +
-                "(name, isSystem, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
+                "(name, isSystem, systemKey, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
                 "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
                 "isArchived, allowMultiple, showInLogPeriod) " +
-                "VALUES ('Symptoms', 1, 1, 'healing', 'tertiary', 'default', " +
+                "VALUES ('Symptoms', 1, 'symptoms', 1, 'healing', 'tertiary', 'default', " +
                 "0.0, 10.0, 0, '', '', 0, 0, 0)"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
@@ -365,7 +384,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

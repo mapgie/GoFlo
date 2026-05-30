@@ -395,6 +395,10 @@ class TrackingRepository(
     suspend fun getSystemCategoryByName(name: String): TrackingCategory? =
         categoryDao.getSystemCategoryByName(name)
 
+    /** System category lookup by stable key ("flow", "symptoms") — survives user renames. */
+    suspend fun getSystemCategoryByKey(key: String): TrackingCategory? =
+        categoryDao.getSystemCategoryByKey(key)
+
     /** Category lookup by name (any type) — used for import matching. */
     suspend fun getCategoryByName(name: String): TrackingCategory? =
         categoryDao.getCategoryByName(name)
