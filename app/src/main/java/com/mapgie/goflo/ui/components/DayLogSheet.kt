@@ -36,8 +36,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.PeriodEntry
+import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.data.repository.TrackingLogWithValues
+import com.mapgie.goflo.ui.util.decodeScaleLabels
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
 import com.mapgie.goflo.ui.util.toCategoryOnColor
@@ -143,6 +145,12 @@ fun DayLogSheet(
                         ?: MaterialTheme.colorScheme.onSecondary
                     val icon        = category?.iconName?.toCategoryIcon()?.vector
 
+                    val displayValues = if (category != null) {
+                        entry.values.map { enrichDisplayValue(it, category) }
+                    } else {
+                        entry.values
+                    }
+
                     LogEntryRow(
                         icon        = icon,
                         iconColor   = bubbleColor,
@@ -150,16 +158,16 @@ fun DayLogSheet(
                         label       = category?.name ?: "Unknown",
                         onEdit      = { onEditTrackingLog(entry.log.categoryId, entry.log.id) }
                     ) {
-                        if (entry.values.isNotEmpty()) {
-                            if (entry.values.size == 1) {
+                        if (displayValues.isNotEmpty()) {
+                            if (displayValues.size == 1) {
                                 Text(
-                                    text  = entry.values[0],
+                                    text  = displayValues[0],
                                     style = MaterialTheme.typography.titleMedium,
                                     color = bubbleColor
                                 )
                             } else {
                                 Text(
-                                    text  = entry.values.joinToString(" · "),
+                                    text  = displayValues.joinToString(" · "),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -192,6 +200,22 @@ fun DayLogSheet(
             Spacer(Modifier.height(8.dp))
         }
     }
+}
+
+/**
+ * Converts a raw stored value string into a display string for the day sheet.
+ *
+ * - Slider categories with scale labels: the stored integer is replaced by its
+ *   label text (e.g. "3" → "What's my name again?").
+ * - Any numeric category with a unit: the unit is appended (e.g. "2" → "2 hours").
+ * - Default / text-value categories: returned unchanged.
+ */
+private fun enrichDisplayValue(value: String, category: TrackingCategory): String {
+    if (category.categoryType == "numeric_slider" && category.scaleLabels.isNotBlank()) {
+        val label = value.toFloatOrNull()?.toInt()?.let { category.scaleLabels.decodeScaleLabels()[it] }
+        if (label != null) return label
+    }
+    return if (category.numericUnit.isNotBlank()) "$value ${category.numericUnit}" else value
 }
 
 @Composable
