@@ -19,6 +19,20 @@ Rules:
 
 ---
 
+## [0.13.7-beta.1] - 2026-05-30
+
+### Fixed
+- **Build error in DayLogSheet** — `Alignment.Baseline` is not a valid Compose `Row` vertical alignment; replaced with `Alignment.CenterVertically` in `AttributeValueLine`.
+
+---
+
+## [0.13.6-beta.1] - 2026-05-30
+
+### Changed
+- **Daily log view hierarchy inverted** — the logged value is now the visual focus on the day sheet. Category names shrink to muted supporting labels, single values display in `titleMedium` text coloured with the category accent, multi-value entries render as inline dot-separated text, and the edit action recedes to a small ghost button. Replaces `ChipRow` + `CategorySectionHeader` with `LogEntryRow` and `AttributeValueLine`.
+
+---
+
 ## [0.13.5-beta.1] - 2026-05-30
 
 ### Changed
