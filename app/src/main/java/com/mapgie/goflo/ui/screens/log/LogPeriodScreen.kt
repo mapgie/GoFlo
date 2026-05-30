@@ -1,5 +1,6 @@
 package com.mapgie.goflo.ui.screens.log
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -180,15 +182,16 @@ fun LogPeriodScreen(
                     .padding(padding)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // Date section
                 SectionLabel("Dates")
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f)) {
+                    val softBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                    OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f), border = softBorder) {
                         Text("Start: ${state.startDate.format(displayFormat)}")
                     }
-                    OutlinedButton(onClick = { showEndPicker = true }, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = { showEndPicker = true }, modifier = Modifier.weight(1f), border = softBorder) {
                         Text("End: ${state.endDate?.format(displayFormat) ?: "Ongoing"}")
                     }
                 }
@@ -244,7 +247,11 @@ fun LogPeriodScreen(
                                 contentDescription = "Add custom symptom",
                                 modifier = Modifier.size(AssistChipDefaults.IconSize)
                             )
-                        }
+                        },
+                        border = AssistChipDefaults.assistChipBorder(
+                            enabled = true,
+                            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                        )
                     )
                 }
 
@@ -272,7 +279,10 @@ fun LogPeriodScreen(
                     placeholder = { Text("How are you feeling? Any other details…") },
                     minLines = 3,
                     maxLines = 6,
-                    supportingText = { Text("${state.notes.length}/500") }
+                    supportingText = { Text("${state.notes.length}/500") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                    )
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -338,8 +348,8 @@ private fun PinnedCategoryInput(
 
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
@@ -347,7 +357,7 @@ private fun PinnedCategoryInput(
                     ) {
                         Text(
                             text = if (category.numericUnit.isNotBlank()) "$displayValue ${category.numericUnit}" else displayValue,
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
                         if (scaleLabel != null) {
@@ -390,7 +400,10 @@ private fun PinnedCategoryInput(
                 placeholder     = { Text("Enter a number") },
                 singleLine      = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier        = Modifier.fillMaxWidth()
+                modifier        = Modifier.fillMaxWidth(),
+                colors          = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                )
             )
         }
 
@@ -400,9 +413,9 @@ private fun PinnedCategoryInput(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 20.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
                         count.toString(),
@@ -454,7 +467,7 @@ private fun PinnedCategoryInput(
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium)
+    Text(text, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
