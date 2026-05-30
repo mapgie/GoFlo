@@ -323,8 +323,7 @@ fun ManageCategoryValuesScreen(
             "increment" -> IncrementCategoryInfo(
                 category              = category,
                 modifier              = Modifier.padding(padding),
-                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) },
-                onToggleAllowMultiple = { viewModel.setAllowMultiple(it) }
+                onToggleLogWithPeriod = { viewModel.setShowInLogPeriod(it) }
             )
             else -> DefaultCategoryValues(
                 state                 = state,
@@ -412,7 +411,6 @@ private fun IncrementCategoryInfo(
     category: TrackingCategory,
     modifier: Modifier,
     onToggleLogWithPeriod: (Boolean) -> Unit,
-    onToggleAllowMultiple: (Boolean) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -424,10 +422,6 @@ private fun IncrementCategoryInfo(
             LogWithPeriodRow(
                 checked   = category.showInLogPeriod,
                 onChecked = onToggleLogWithPeriod
-            )
-            AllowMultipleRow(
-                checked   = category.allowMultiple,
-                onChecked = onToggleAllowMultiple
             )
             HorizontalDivider()
         }

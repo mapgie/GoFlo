@@ -609,22 +609,24 @@ private fun AddCategoryDialog(
                     )
                 }
 
-                // Allow multiple per day (all category types)
-                HorizontalDivider()
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            "Log this category more than once on the same day",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                // Allow multiple per day (not applicable to Plus One — its counter always uses a single daily log)
+                if (selectedType != CategoryType.INCREMENT.key) {
+                    HorizontalDivider()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                "Log this category more than once on the same day",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(checked = allowMultiple, onCheckedChange = { allowMultiple = it })
                     }
-                    Switch(checked = allowMultiple, onCheckedChange = { allowMultiple = it })
                 }
 
                 // Log with period
