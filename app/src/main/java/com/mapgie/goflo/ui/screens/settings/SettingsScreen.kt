@@ -970,10 +970,10 @@ fun SettingsScreen(
             SettingsSectionHeader("Help & Feedback")
 
             SettingsNavCard(
-                title    = "Report a bug or suggest a feature",
-                subtitle = "Opens GitHub Issues",
+                title    = "Found a bug? Feature suggestion?",
+                subtitle = "Join the conversation on Discord",
                 icon     = Icons.Outlined.BugReport,
-                onClick  = { openUrl(context, "https://github.com/mapgie/GoFlo/issues") }
+                onClick  = { openUrl(context, "https://discord.gg/xphnQCZeYq") }
             )
 
             SupportCard(
@@ -1243,7 +1243,7 @@ private fun SupportCard(onSupport: () -> Unit) {
                     color = MaterialTheme.colorScheme.onTertiaryContainer
                 )
                 Text(
-                    "GoFlo is free and open source. A little support keeps it going.",
+                    "GoFlo is free and open source. If you're enjoying it, consider buying me a coffee.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
                 )
