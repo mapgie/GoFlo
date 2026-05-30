@@ -663,7 +663,7 @@ private fun AddCategoryDialog(
                                 maxText.toFloatOrNull() ?: 10f,
                                 allowDecimals,
                                 numericUnit.trim(),
-                                allowMultiple,
+                                allowMultiple && selectedType != CategoryType.INCREMENT.key,
                                 showInLogPeriod
                             )
                         },
