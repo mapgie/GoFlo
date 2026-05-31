@@ -23,13 +23,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.NavigateBefore
+import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.BubbleChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DonutLarge
-import androidx.compose.material.icons.filled.NavigateBefore
-import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ScatterPlot
@@ -102,7 +102,7 @@ fun StatsScreen(
     LaunchedEffect(state.pinResult) {
         val result = state.pinResult ?: return@LaunchedEffect
         val message = when (result) {
-            PinResult.ADDED     -> "Pinned to dashboard"
+            PinResult.ADDED -> "Pinned to dashboard"
             PinResult.DUPLICATE -> "Already pinned to dashboard"
         }
         snackbarHostState.showSnackbar(message)
@@ -156,94 +156,104 @@ fun StatsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-            item {
-                StatsWarningBanner(
-                    isExpanded = bannerExpanded,
-                    onToggle = { bannerExpanded = !bannerExpanded }
-                )
-            }
-
-            // Dashboard toggle card
-            item {
-                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Dashboard", style = MaterialTheme.typography.titleSmall)
-                            Text(
-                                if (dashboardEnabled) "Dashboard enabled — pin favourite views" else "Enable to create a quick-access dashboard",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Switch(checked = dashboardEnabled, onCheckedChange = { onToggleDashboard() })
-                    }
-                }
-            }
-
-            item {
-                TimeRangePicker(
-                    selectedRange = state.timeRange,
-                    onSelect = viewModel::setTimeRange,
-                    zoomLevel = state.zoomLevel,
-                    onZoom = viewModel::setZoomLevel,
-                )
-            }
-
-            item {
-                CategoryPickerSection(
-                    categories = state.categories,
-                    selectedCat1 = state.selectedCategory1,
-                    selectedCat2 = state.selectedCategory2,
-                    chartType = state.chartType,
-                    activeSlot = state.activeSlot,
-                    onSelect = viewModel::selectCategory,
-                    onSetActiveSlot = viewModel::setActiveSlot,
-                    onSwap = viewModel::swapCategories,
-                    onClear = viewModel::clearSelections,
-                )
-            }
-
-            if (state.selectedCategory1 != null) {
                 item {
-                    ChartTypeSelector(
-                        cat1 = state.selectedCategory1!!,
-                        cat2 = state.selectedCategory2,
-                        selectedType = state.chartType,
-                        onSelect = viewModel::setChartType
+                    StatsWarningBanner(
+                        isExpanded = bannerExpanded,
+                        onToggle = { bannerExpanded = !bannerExpanded }
                     )
                 }
-            }
 
-            // Pin this view button (when dashboard enabled and a category is selected)
-            if (dashboardEnabled && state.selectedCategory1 != null) {
+                // Dashboard toggle card
                 item {
                     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                        TextButton(
-                            onClick = onPinStat,
-                            modifier = Modifier.fillMaxWidth().padding(4.dp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Pin this view to Dashboard")
+                            Column(Modifier.weight(1f)) {
+                                Text("Dashboard", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    if (dashboardEnabled) "Dashboard enabled — pin favourite views" else "Enable to create a quick-access dashboard",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            Switch(
+                                checked = dashboardEnabled,
+                                onCheckedChange = { onToggleDashboard() })
                         }
                     }
                 }
-            }
 
-            item {
-                ChartArea(
-                    chartData = state.chartData,
-                    hasCategorySelected = state.selectedCategory1 != null,
-                    timeRange = state.timeRange,
-                    onSelectRange = viewModel::setTimeRange,
-                    zoomLevel = state.zoomLevel,
-                    showZoom = state.timeRange is TimeRange.SpecificMonth,
-                )
-            }
+                item {
+                    TimeRangePicker(
+                        selectedRange = state.timeRange,
+                        onSelect = viewModel::setTimeRange,
+                        zoomLevel = state.zoomLevel,
+                        onZoom = viewModel::setZoomLevel,
+                    )
+                }
+
+                item {
+                    CategoryPickerSection(
+                        categories = state.categories,
+                        selectedCat1 = state.selectedCategory1,
+                        selectedCat2 = state.selectedCategory2,
+                        chartType = state.chartType,
+                        activeSlot = state.activeSlot,
+                        onSelect = viewModel::selectCategory,
+                        onSetActiveSlot = viewModel::setActiveSlot,
+                        onSwap = viewModel::swapCategories,
+                        onClear = viewModel::clearSelections,
+                    )
+                }
+
+                if (state.selectedCategory1 != null) {
+                    item {
+                        ChartTypeSelector(
+                            cat1 = state.selectedCategory1!!,
+                            cat2 = state.selectedCategory2,
+                            selectedType = state.chartType,
+                            onSelect = viewModel::setChartType
+                        )
+                    }
+                }
+
+                // Pin this view button (when dashboard enabled and a category is selected)
+                if (dashboardEnabled && state.selectedCategory1 != null) {
+                    item {
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            TextButton(
+                                onClick = onPinStat,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(4.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.BookmarkAdd,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text("Pin this view to Dashboard")
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    ChartArea(
+                        chartData = state.chartData,
+                        hasCategorySelected = state.selectedCategory1 != null,
+                        timeRange = state.timeRange,
+                        onSelectRange = viewModel::setTimeRange,
+                        zoomLevel = state.zoomLevel,
+                        showZoom = state.timeRange is TimeRange.SpecificMonth,
+                    )
+                }
             }
         }
     }
@@ -266,9 +276,9 @@ private fun TimeRangePicker(
     val options = listOf("All Time", "Year", "YTD", "Month")
 
     val selectedIndex = when (selectedRange) {
-        is TimeRange.AllTime       -> 0
-        is TimeRange.CalendarYear  -> 1
-        is TimeRange.YearToDate    -> 2
+        is TimeRange.AllTime -> 0
+        is TimeRange.CalendarYear -> 1
+        is TimeRange.YearToDate -> 2
         is TimeRange.SpecificMonth -> 3
     }
 
@@ -309,16 +319,7 @@ private fun TimeRangePicker(
                 }
             }
 
-            if (selectedRange is TimeRange.SpecificMonth) {
-                // Month name shown as a label here; navigation arrows appear above the chart
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            if (selectedRange !is TimeRange.SpecificMonth) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -327,57 +328,35 @@ private fun TimeRangePicker(
                     IconButton(onClick = {
                         onSelect(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
                     }) {
-                        Icon(Icons.Default.NavigateBefore, contentDescription = "Previous month")
+                        Icon(
+                            Icons.AutoMirrored.Filled.NavigateBefore,
+                            contentDescription = "Previous month"
+                        )
                     }
                     Text(
-                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        text = currentMonth.format(DateTimeFormatter.ofPattern("yyyy")),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     IconButton(
                         onClick = {
-                            if (currentMonth < YearMonth.now()) {
-                                onSelect(TimeRange.SpecificMonth(currentMonth.plusMonths(1)))
+                            when (selectedRange) {
+                                is TimeRange.CalendarYear -> showYearDialog = true
+                                else -> {}
                             }
                         },
                         enabled = currentMonth < YearMonth.now()
                     ) {
-                        Icon(Icons.Default.NavigateNext, contentDescription = "Next month")
+                        Icon(
+                            Icons.AutoMirrored.Filled.NavigateNext,
+                            contentDescription = "Next month"
+                        )
                     }
                 }
-                // Zoom control for month view
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Zoom",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    IconButton(
-                        onClick = { onZoom(zoomLevel - 1) },
-                        enabled = zoomLevel > 0,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(Icons.Default.Remove, contentDescription = "Zoom out", modifier = Modifier.size(16.dp))
-                    }
-                    IconButton(
-                        onClick = { onZoom(zoomLevel + 1) },
-                        enabled = zoomLevel < 2,
-                        modifier = Modifier.size(36.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Zoom in", modifier = Modifier.size(16.dp))
-                    }
-                }
-            } else {
                 // Show range label for YTD and CalendarYear
                 val rangeLabel = when (selectedRange) {
                     is TimeRange.AllTime -> null
-                    is TimeRange.YearToDate -> "January 1 to Today"
+                    is TimeRange.YearToDate -> "January 1 to today"
                     is TimeRange.CalendarYear -> "Full year ${selectedRange.year}"
                     is TimeRange.SpecificMonth -> null // handled above
                 }
@@ -461,7 +440,11 @@ private fun CategoryPickerSection(
                 Text(text = "Categories", style = MaterialTheme.typography.titleMedium)
                 if (selectedCat1 != null) {
                     TextButton(onClick = onClear) {
-                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Clear")
                     }
@@ -520,7 +503,8 @@ private fun CategoryPickerSection(
                     val isCat1 = selectedCat1?.id == category.id
                     val isCat2 = selectedCat2?.id == category.id
                     val isSelected = isCat1 || isCat2
-                    val isActiveSlotSelected = (activeSlot == 1 && isCat1) || (activeSlot == 2 && isCat2)
+                    val isActiveSlotSelected =
+                        (activeSlot == 1 && isCat1) || (activeSlot == 2 && isCat2)
 
                     val icon = category.iconName.toCategoryIcon()
                     val bubbleColor = category.colorToken.toCategoryColor()
@@ -642,16 +626,24 @@ private fun ChartTypeSelector(
     val options = buildList {
         when {
             cat1.isNumeric && cat2?.isNumeric == true -> {
-                add(ChartOption(ChartType.SCATTER,          Icons.Default.BubbleChart, "Scatter"))
-                add(ChartOption(ChartType.NUMERIC_AVERAGE,  Icons.Default.BarChart,    "Average"))
-                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart,    "Compare"))
+                add(ChartOption(ChartType.SCATTER, Icons.Default.BubbleChart, "Scatter"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE, Icons.Default.BarChart, "Average"))
+                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart, "Compare"))
             }
+
             cat1.isNumeric && cat2 == null -> {
-                add(ChartOption(ChartType.TIME_SCATTER,         Icons.Default.ScatterPlot, "Time"))
-                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.BarChart,    "Average"))
-                add(ChartOption(ChartType.TIME_SERIES,          Icons.Default.BarChart,    "Over Time"))
-                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.DonutLarge,  "Distribution"))
+                add(ChartOption(ChartType.TIME_SCATTER, Icons.Default.ScatterPlot, "Time"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE, Icons.Default.BarChart, "Average"))
+                add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
+                add(
+                    ChartOption(
+                        ChartType.NUMERIC_DISTRIBUTION,
+                        Icons.Default.DonutLarge,
+                        "Distribution"
+                    )
+                )
             }
+
             eitherNumeric -> {
                 // One numeric, one non-numeric: only Compare makes sense for two cats
                 if (cat2 != null)
@@ -659,16 +651,18 @@ private fun ChartTypeSelector(
                 else
                     add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
             }
+
             cat2 != null -> {
                 // Two non-numeric categories: Trends and Over Time hidden
-                add(ChartOption(ChartType.PIE,              Icons.Default.DonutLarge, "Distribution"))
-                add(ChartOption(ChartType.COMBO,            Icons.Default.TableChart, "Combinations"))
-                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart,   "Compare"))
+                add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Distribution"))
+                add(ChartOption(ChartType.COMBO, Icons.Default.TableChart, "Combinations"))
+                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart, "Compare"))
             }
+
             else -> {
-                add(ChartOption(ChartType.TRENDS,      Icons.Default.BarChart,   "Trends"))
-                add(ChartOption(ChartType.PIE,         Icons.Default.DonutLarge, "Distribution"))
-                add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart,   "Over Time"))
+                add(ChartOption(ChartType.TRENDS, Icons.Default.BarChart, "Trends"))
+                add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Distribution"))
+                add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
             }
         }
     }
@@ -758,7 +752,10 @@ private fun ChartArea(
                     IconButton(onClick = {
                         onSelectRange(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
                     }) {
-                        Icon(Icons.Default.NavigateBefore, contentDescription = "Previous month")
+                        Icon(
+                            Icons.AutoMirrored.Filled.NavigateBefore,
+                            contentDescription = "Previous month"
+                        )
                     }
                     Text(
                         text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
@@ -773,115 +770,149 @@ private fun ChartArea(
                         },
                         enabled = currentMonth < YearMonth.now()
                     ) {
-                        Icon(Icons.Default.NavigateNext, contentDescription = "Next month")
+                        Icon(
+                            Icons.AutoMirrored.Filled.NavigateNext,
+                            contentDescription = "Next month"
+                        )
+                    }
+                }
+                //TODO show the year in a display like the Month view above.
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                when (chartData) {
+                    is StatsChartData.Empty -> {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(24.dp)
+                        ) {
+                            Text(
+                                text = if (!hasCategorySelected)
+                                    "Select a category above to get started"
+                                else
+                                    "No data found for the selected range",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+
+                    is StatsChartData.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.padding(32.dp))
+                    }
+
+                    is StatsChartData.PieData -> {
+                        PieChart(
+                            data = chartData,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
+
+                    is StatsChartData.TimeSeriesData -> {
+                        Column(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)) {
+                            Text(
+                                text = chartData.categoryName,
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                            BarChart(data = chartData, zoomLevel = if (showZoom) zoomLevel else 1)
+                        }
+                    }
+
+                    is StatsChartData.ComboData -> {
+                        Column(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)) {
+                            Text(
+                                text = "Most common combinations",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                            ComboBarChart(data = chartData)
+                        }
+                    }
+
+                    is StatsChartData.DualTimeSeriesData -> {
+                        Column(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)) {
+                            DualBarChart(
+                                data = chartData,
+                                zoomLevel = if (showZoom) zoomLevel else 1
+                            )
+                        }
+                    }
+
+                    is StatsChartData.NumericAverageData -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            NumericAverageChart(
+                                data = chartData,
+                                zoomLevel = if (showZoom) zoomLevel else 1
+                            )
+                        }
+                    }
+
+                    is StatsChartData.NumericDistributionData -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            NumericDistributionChart(data = chartData)
+                        }
+                    }
+
+                    is StatsChartData.ScatterData -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "${chartData.yAxisName} vs ${chartData.xAxisName}",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            ScatterPlot(data = chartData)
+                        }
+                    }
+
+                    is StatsChartData.TimeScatterData -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "${chartData.yAxisName} over time",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            TimeScatterChart(data = chartData)
+                        }
+                    }
+
+                    is StatsChartData.TrendsData -> {
+                        Column(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)) {
+                            TrendsChart(data = chartData)
+                        }
                     }
                 }
             }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            when (chartData) {
-                is StatsChartData.Empty -> {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(24.dp)
-                    ) {
-                        Text(
-                            text = if (!hasCategorySelected)
-                                "Select a category above to get started"
-                            else
-                                "No data found for the selected range",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-
-                is StatsChartData.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.padding(32.dp))
-                }
-
-                is StatsChartData.PieData -> {
-                    PieChart(
-                        data = chartData,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                }
-
-                is StatsChartData.TimeSeriesData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                        Text(
-                            text = chartData.categoryName,
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                        BarChart(data = chartData, zoomLevel = if (showZoom) zoomLevel else 1)
-                    }
-                }
-
-                is StatsChartData.ComboData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                        Text(
-                            text = "Most common combinations",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                        ComboBarChart(data = chartData)
-                    }
-                }
-
-                is StatsChartData.DualTimeSeriesData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                        DualBarChart(data = chartData, zoomLevel = if (showZoom) zoomLevel else 1)
-                    }
-                }
-
-                is StatsChartData.NumericAverageData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        NumericAverageChart(data = chartData, zoomLevel = if (showZoom) zoomLevel else 1)
-                    }
-                }
-
-                is StatsChartData.NumericDistributionData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        NumericDistributionChart(data = chartData)
-                    }
-                }
-
-                is StatsChartData.ScatterData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        Text(
-                            text = "${chartData.yAxisName} vs ${chartData.xAxisName}",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        ScatterPlot(data = chartData)
-                    }
-                }
-
-                is StatsChartData.TimeScatterData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        Text(
-                            text = "${chartData.yAxisName} over time",
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        TimeScatterChart(data = chartData)
-                    }
-                }
-
-                is StatsChartData.TrendsData -> {
-                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                        TrendsChart(data = chartData)
-                    }
-                }
-            }
-        }
         } // Column
     }
 }

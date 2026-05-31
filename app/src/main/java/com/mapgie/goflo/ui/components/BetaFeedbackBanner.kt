@@ -18,7 +18,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 
-private const val ISSUES_URL = "https://github.com/mapgie/GoFlo/issues"
+private const val ISSUES_URL = "https://discord.gg/xphnQCZeYq"
 private const val URL_TAG = "url"
 
 /**
@@ -47,7 +47,10 @@ fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
                     textDecoration = TextDecoration.Underline
                 )
             ) {
-                append("Feedback is encouraged ♥")
+                append("Feedback is encouraged")
+            }
+            withStyle(SpanStyle(color = baseColor)) {
+                append("♥")
             }
             pop()
         }
