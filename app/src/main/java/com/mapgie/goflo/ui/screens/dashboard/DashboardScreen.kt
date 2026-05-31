@@ -1,6 +1,5 @@
 package com.mapgie.goflo.ui.screens.dashboard
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,31 +27,28 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.ui.components.BetaFeedbackBanner
+import com.mapgie.goflo.ui.screens.stats.BarChart
+import com.mapgie.goflo.ui.screens.stats.ComboBarChart
+import com.mapgie.goflo.ui.screens.stats.DualBarChart
+import com.mapgie.goflo.ui.screens.stats.NumericAverageChart
+import com.mapgie.goflo.ui.screens.stats.NumericDistributionChart
+import com.mapgie.goflo.ui.screens.stats.PieChart
 import com.mapgie.goflo.ui.screens.stats.PinnedStat
-import com.mapgie.goflo.ui.screens.stats.encodePins
-import com.mapgie.goflo.ui.screens.stats.parsePins
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
+import com.mapgie.goflo.ui.screens.stats.ScatterPlot
+import com.mapgie.goflo.ui.screens.stats.StatsChartData
+import com.mapgie.goflo.ui.screens.stats.TimeScatterChart
+import com.mapgie.goflo.ui.screens.stats.TrendsChart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    preferencesStore: AppPreferencesStore,
-    onNavigateToStats: (PinnedStat) -> Unit,
+    viewModel: DashboardViewModel,
 ) {
-    val scope = rememberCoroutineScope()
-    val pinnedJson by preferencesStore.preferences
-        .map { it.pinnedStats }
-        .collectAsState(initial = "")
-
-    val pins = remember(pinnedJson) { parsePins(pinnedJson) }
+    val items by viewModel.items.collectAsState()
 
     Scaffold(
         topBar = {
@@ -70,7 +67,7 @@ fun DashboardScreen(
                 .padding(top = padding.calculateTopPadding())
         ) {
             BetaFeedbackBanner()
-            if (pins.isEmpty()) {
+            if (items.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -102,46 +99,151 @@ fun DashboardScreen(
                         start = 16.dp,
                         end = 16.dp
                     ),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(pins, key = { it.id }) { pin ->
-                        ElevatedCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onNavigateToStats(pin) }
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        text = pin.label,
-                                        style = MaterialTheme.typography.titleSmall
-                                    )
-                                    Text(
-                                        text = formatPinSubtitle(pin),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        val updated = pins.filter { it.id != pin.id }
-                                        preferencesStore.setPinnedStats(encodePins(updated))
-                                    }
-                                }) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Remove pin",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
+                    items(items, key = { it.pin.id }) { item ->
+                        PinnedChartCard(
+                            item = item,
+                            onRemove = { viewModel.removePin(item.pin) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PinnedChartCard(
+    item: PinnedChartItem,
+    onRemove: () -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header row: label (left) + delete button (right)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = item.pin.label,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = formatPinSubtitle(item.pin),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onRemove) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Remove pin",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Chart area — 200.dp fixed height
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                when (val data = item.chartData) {
+                    null -> {
+                        CircularProgressIndicator()
+                    }
+
+                    is StatsChartData.Empty -> {
+                        Text(
+                            "No data found for the selected range",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    is StatsChartData.Loading -> {
+                        CircularProgressIndicator()
+                    }
+
+                    is StatsChartData.PieData -> {
+                        PieChart(
+                            data = data,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    is StatsChartData.TimeSeriesData -> {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = data.categoryName,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            BarChart(data = data)
                         }
+                    }
+
+                    is StatsChartData.ComboData -> {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Most common combinations",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            ComboBarChart(data = data)
+                        }
+                    }
+
+                    is StatsChartData.DualTimeSeriesData -> {
+                        DualBarChart(
+                            data = data,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    is StatsChartData.NumericAverageData -> {
+                        NumericAverageChart(data = data)
+                    }
+
+                    is StatsChartData.NumericDistributionData -> {
+                        NumericDistributionChart(data = data)
+                    }
+
+                    is StatsChartData.ScatterData -> {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "${data.yAxisName} vs ${data.xAxisName}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            ScatterPlot(data = data)
+                        }
+                    }
+
+                    is StatsChartData.TimeScatterData -> {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "${data.yAxisName} over time",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                            TimeScatterChart(data = data)
+                        }
+                    }
+
+                    is StatsChartData.TrendsData -> {
+                        TrendsChart(data = data)
                     }
                 }
             }

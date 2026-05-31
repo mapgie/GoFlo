@@ -58,9 +58,10 @@ import com.mapgie.goflo.ui.screens.home.HomeScreen
 import com.mapgie.goflo.ui.screens.home.HomeViewModel
 import com.mapgie.goflo.ui.screens.log.LogCategoryScreen
 import com.mapgie.goflo.ui.screens.log.LogCategoryViewModel
+import com.mapgie.goflo.ui.screens.dashboard.DashboardScreen
+import com.mapgie.goflo.ui.screens.dashboard.DashboardViewModel
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
-import com.mapgie.goflo.ui.screens.dashboard.DashboardScreen
 import com.mapgie.goflo.ui.screens.stats.StatsScreen
 import com.mapgie.goflo.ui.screens.stats.StatsViewModel
 import android.annotation.SuppressLint
@@ -261,15 +262,10 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             }
 
             composable(Screen.Dashboard.route) {
-                DashboardScreen(
-                    preferencesStore = app.preferencesStore,
-                    onNavigateToStats = { pin ->
-                        navController.navigate(Screen.Stats.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
-                        }
-                    }
+                val vm: DashboardViewModel = viewModel(
+                    factory = DashboardViewModel.Factory(app.preferencesStore, app.trackingRepository)
                 )
+                DashboardScreen(viewModel = vm)
             }
 
             composable(Screen.Settings.route) {
