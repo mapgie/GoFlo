@@ -19,6 +19,19 @@ Rules:
 
 ---
 
+## [0.16.0-beta.1] - 2026-05-31
+
+### Changed
+- **Navigation — Settings moved to top app bar** — the Settings tab has been removed from the bottom navigation bar. A gear icon button in the top-right of the Home screen app bar now opens Settings, keeping the bottom bar focused on the core destinations: Home, History, (Dashboard,) and Stats.
+- **Settings — flat Material list layout** — the expandable accordion card layout has been replaced with a flat Material `ListItem` layout. Each section entry is a dense list row; tapping it opens a dedicated sub-screen with its own top app bar and back arrow, rather than expanding inline.
+- **Settings — section headers** — headers (TRACKING, NOTIFICATIONS, etc.) are now `SemiBold`, rendered in the primary colour, with increased top padding (20 dp) to clearly separate grouped items.
+- **Settings — navigation items** — items that open a sub-screen show a trailing Chevron Right icon. Items that control a binary setting show a trailing Material Switch that toggles immediately without navigating.
+- **Settings — section dividers** — `HorizontalDivider` separates the major setting groups (Tracking, Notifications, Personalisation, Privacy & Data, Widgets, Help & Feedback, About).
+- **Settings — icon alignment** — leading icons are constrained to 24×24 dp bounding boxes for consistent vertical alignment across all list items.
+- **Settings — standardised background** — list items use the `surface` container colour, removing the "boxed" `surfaceVariant` card look of the old layout.
+
+---
+
 ## [0.15.0-beta.1] - 2026-05-31
 
 ### Added

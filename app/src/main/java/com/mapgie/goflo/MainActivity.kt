@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -175,7 +174,6 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
         add(Screen.History.route)
         if (dashboardEnabled) add(Screen.Dashboard.route)
         add(Screen.Stats.route)
-        add(Screen.Settings.route)
     }
     val showBottomBar = bottomNavRoutes.any { currentRoute?.startsWith(it) == true }
 
@@ -220,15 +218,6 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         } },
                         icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
                         label = { Text("Stats") }
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute == Screen.Settings.route,
-                        onClick = { navController.navigate(Screen.Settings.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
-                        } },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings") }
                     )
                 }
             }
