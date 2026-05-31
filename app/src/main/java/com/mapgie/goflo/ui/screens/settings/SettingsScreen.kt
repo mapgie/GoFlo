@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -290,6 +291,7 @@ fun SettingsScreen(
         AppIconChoice.valueOf(prefs.iconChoice)
     }.getOrDefault(AppIconChoice.DEFAULT)
 
+    val mainListScrollState      = rememberScrollState()
     var currentSubScreen        by rememberSaveable { mutableStateOf(SettingsSubScreen.NONE) }
     var showTimePicker          by rememberSaveable { mutableStateOf(false) }
     var showRemovePinDialog     by rememberSaveable { mutableStateOf(false) }
@@ -549,6 +551,7 @@ fun SettingsScreen(
             categories                   = categories,
             currentTheme                 = currentTheme,
             reminder                     = reminder,
+            scrollState                  = mainListScrollState,
             onNavigateTo                 = { currentSubScreen = it },
             onNavigateToManageCategories = onNavigateToManageCategories,
             onOpenDiscord                = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
@@ -628,6 +631,7 @@ private fun SettingsMainList(
     categories:                   List<TrackingCategory>,
     currentTheme:                 AppTheme,
     reminder:                     ReminderSettings,
+    scrollState:                  ScrollState,
     onNavigateTo:                 (SettingsSubScreen) -> Unit,
     onNavigateToManageCategories: () -> Unit,
     onOpenDiscord:                () -> Unit,
@@ -673,7 +677,7 @@ private fun SettingsMainList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(bottom = padding.calculateBottomPadding())
             ) {
 
