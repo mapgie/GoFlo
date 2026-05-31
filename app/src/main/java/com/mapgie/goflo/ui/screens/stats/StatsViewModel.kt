@@ -87,7 +87,9 @@ sealed class StatsChartData {
     data class DualTimeSeriesData(
         val buckets: List<DualBucket>,
         val categoryName1: String,
-        val categoryName2: String
+        val categoryName2: String,
+        val colorToken1: String = "",
+        val colorToken2: String = "",
     ) : StatsChartData()
     data class NumericAverageData(
         val buckets: List<NumericBucket>,
@@ -133,6 +135,7 @@ data class StatsUiState(
     val chartData: StatsChartData = StatsChartData.Empty,
     val rememberedChartType: ChartType? = null,
     val dashboardEnabled: Boolean = false,
+    val activeSlot: Int = 1,
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -165,62 +168,81 @@ class StatsViewModel(
 
     fun selectCategory(category: TrackingCategory) {
         _uiState.update { state ->
-            when {
-                state.selectedCategory1?.id == category.id -> {
-                    // Deselect cat1 — promote cat2 if present
-                    val newCat1 = state.selectedCategory2
-                    val newType = when {
-                        newCat1 == null -> ChartType.PIE
-                        newCat1.isNumeric -> ChartType.TIME_SCATTER
-                        else -> state.chartType
+            when (state.activeSlot) {
+                1 -> when {
+                    state.selectedCategory1?.id == category.id -> {
+                        // Deselect slot 1 - promote slot 2 to slot 1
+                        val newCat1 = state.selectedCategory2
+                        val newType = when {
+                            newCat1 == null -> ChartType.TRENDS
+                            newCat1.isNumeric -> ChartType.TIME_SCATTER
+                            else -> ChartType.TRENDS
+                        }
+                        state.copy(
+                            selectedCategory1 = newCat1,
+                            selectedCategory2 = null,
+                            chartType = newType,
+                            chartData = StatsChartData.Empty
+                        )
                     }
-                    state.copy(
-                        selectedCategory1 = newCat1,
-                        selectedCategory2 = null,
-                        chartType = newType,
-                        chartData = StatsChartData.Empty
-                    )
-                }
-                state.selectedCategory2?.id == category.id -> {
-                    // Deselect cat2 — reset chart type to single-cat option if needed
-                    val cat1 = state.selectedCategory1
-                    val newType = when {
-                        state.chartType == ChartType.COMBO ||
-                        state.chartType == ChartType.DUAL_TIME_SERIES ||
-                        state.chartType == ChartType.SCATTER ->
-                            if (cat1?.isNumeric == true) ChartType.TIME_SCATTER else ChartType.PIE
-                        else -> state.chartType
+                    else -> {
+                        // Fill/replace slot 1 with this category
+                        val cat2 = state.selectedCategory2
+                        val newType = when {
+                            cat2 != null -> recalcChartTypeForPair(category, cat2, state.chartType)
+                            state.rememberedChartType != null &&
+                            isValidChartType(state.rememberedChartType, category, null) ->
+                                state.rememberedChartType
+                            category.isNumeric -> ChartType.TIME_SCATTER
+                            else -> ChartType.TRENDS
+                        }
+                        state.copy(
+                            selectedCategory1 = category,
+                            chartType = newType,
+                            chartData = StatsChartData.Empty
+                        )
                     }
-                    state.copy(
-                        selectedCategory2 = null,
-                        chartType = newType,
-                        chartData = StatsChartData.Empty
-                    )
                 }
-                state.selectedCategory1 == null -> {
-                    // First category selected — choose appropriate default chart type
-                    val remembered = state.rememberedChartType
-                    val defaultType = if (category.isNumeric) ChartType.TIME_SCATTER else ChartType.PIE
-                    val newType = if (remembered != null && isValidChartType(remembered, category, null)) remembered else defaultType
-                    state.copy(
-                        selectedCategory1 = category,
-                        chartType = newType,
-                        chartData = StatsChartData.Empty
-                    )
-                }
-                state.selectedCategory2 == null -> {
-                    // Default to SCATTER for two numeric, TIME_SERIES otherwise
-                    val newType = when {
-                        category.isNumeric && state.selectedCategory1?.isNumeric == true -> ChartType.SCATTER
-                        state.chartType == ChartType.PIE || state.chartType == ChartType.NUMERIC_DISTRIBUTION ||
-                        state.chartType == ChartType.NUMERIC_AVERAGE ||
-                        state.chartType == ChartType.TIME_SCATTER ||
-                        state.chartType == ChartType.TRENDS -> ChartType.TIME_SERIES
-                        else -> state.chartType
+                2 -> when {
+                    state.selectedCategory1 == null -> {
+                        // Can't have slot 2 without slot 1 - fill slot 1 instead
+                        val remembered = state.rememberedChartType
+                        val defaultType = if (category.isNumeric) ChartType.TIME_SCATTER else ChartType.TRENDS
+                        val newType = if (remembered != null && isValidChartType(remembered, category, null)) remembered else defaultType
+                        state.copy(
+                            selectedCategory1 = category,
+                            chartType = newType,
+                            chartData = StatsChartData.Empty
+                        )
                     }
-                    state.copy(selectedCategory2 = category, chartType = newType, chartData = StatsChartData.Empty)
+                    state.selectedCategory2?.id == category.id -> {
+                        // Deselect slot 2
+                        val cat1 = state.selectedCategory1!!
+                        val newType = when {
+                            state.chartType == ChartType.COMBO ||
+                            state.chartType == ChartType.DUAL_TIME_SERIES ||
+                            state.chartType == ChartType.SCATTER ->
+                                if (cat1.isNumeric) ChartType.TIME_SCATTER else ChartType.TRENDS
+                            else -> state.chartType
+                        }
+                        state.copy(
+                            selectedCategory2 = null,
+                            chartType = newType,
+                            chartData = StatsChartData.Empty
+                        )
+                    }
+                    else -> {
+                        // Fill/replace slot 2 with this category
+                        val cat1 = state.selectedCategory1!!
+                        val newType = recalcChartTypeForPair(cat1, category, state.chartType)
+                        state.copy(
+                            selectedCategory2 = category,
+                            chartType = newType,
+                            chartData = StatsChartData.Empty
+                        )
+                    }
                 }
-                else -> state // Both slots full — ignore
+                else -> state
             }
         }
         reloadChart()
@@ -231,9 +253,44 @@ class StatsViewModel(
             it.copy(
                 selectedCategory1 = null,
                 selectedCategory2 = null,
-                chartType = ChartType.PIE,
-                chartData = StatsChartData.Empty
+                chartType = ChartType.TRENDS,
+                chartData = StatsChartData.Empty,
+                activeSlot = 1,
             )
+        }
+    }
+
+    fun setActiveSlot(slot: Int) {
+        _uiState.update { it.copy(activeSlot = slot) }
+    }
+
+    fun swapCategories() {
+        _uiState.update { state ->
+            val cat1 = state.selectedCategory1 ?: return@update state
+            val cat2 = state.selectedCategory2 ?: return@update state
+            val newType = recalcChartTypeForPair(cat2, cat1, state.chartType)
+            state.copy(
+                selectedCategory1 = cat2,
+                selectedCategory2 = cat1,
+                chartType = newType,
+            )
+        }
+        reloadChart()
+    }
+
+    private fun recalcChartTypeForPair(
+        cat1: TrackingCategory,
+        cat2: TrackingCategory?,
+        currentType: ChartType
+    ): ChartType {
+        val hiddenForTwoCats = cat2 != null &&
+            (currentType == ChartType.TRENDS || currentType == ChartType.TIME_SERIES)
+        if (!hiddenForTwoCats && isValidChartType(currentType, cat1, cat2)) return currentType
+        return when {
+            cat1.isNumeric && cat2?.isNumeric == true -> ChartType.SCATTER
+            cat2 != null -> ChartType.DUAL_TIME_SERIES
+            cat1.isNumeric -> ChartType.TIME_SCATTER
+            else -> ChartType.TRENDS
         }
     }
 
@@ -357,7 +414,7 @@ class StatsViewModel(
                         val logs2 = repository.getLogsForCategoryInRange(cat2.id, start, end)
                         val buckets = buildDualBuckets(logs1, logs2, start, end, state.timeRange)
                         if (buckets.isEmpty()) StatsChartData.Empty
-                        else StatsChartData.DualTimeSeriesData(buckets, cat1.name, cat2.name)
+                        else StatsChartData.DualTimeSeriesData(buckets, cat1.name, cat2.name, cat1.colorToken, cat2.colorToken)
                     }
                 }
 
@@ -419,18 +476,15 @@ class StatsViewModel(
                             points.add(ScatterPoint(x, y))
                         }
                         if (points.isEmpty()) StatsChartData.Empty
-                        else {
-                            val useZeroBaseline = state.timeRange !is TimeRange.AllTime && state.timeRange !is TimeRange.YearToDate
-                            StatsChartData.ScatterData(
-                                points    = points,
-                                xAxisName = cat1.name,
-                                yAxisName = cat2.name,
-                                xMin = if (useZeroBaseline) 0f else points.minOf { it.x },
-                                xMax = points.maxOf { it.x },
-                                yMin = if (useZeroBaseline) 0f else points.minOf { it.y },
-                                yMax = points.maxOf { it.y },
-                            )
-                        }
+                        else StatsChartData.ScatterData(
+                            points    = points,
+                            xAxisName = cat1.name,
+                            yAxisName = cat2.name,
+                            xMin = 0f,
+                            xMax = points.maxOf { it.x },
+                            yMin = 0f,
+                            yMax = points.maxOf { it.y },
+                        )
                     }
                 }
 
@@ -445,15 +499,12 @@ class StatsViewModel(
                         points.add(TimeScatterPoint(dayOffset = offset, dateLabel = label, value = value))
                     }
                     if (points.isEmpty()) StatsChartData.Empty
-                    else {
-                        val useZeroBaseline = state.timeRange !is TimeRange.AllTime && state.timeRange !is TimeRange.YearToDate
-                        StatsChartData.TimeScatterData(
-                            points = points,
-                            yAxisName = cat1.name,
-                            yMin = if (useZeroBaseline) 0f else points.minOf { it.value },
-                            yMax = points.maxOf { it.value },
-                        )
-                    }
+                    else StatsChartData.TimeScatterData(
+                        points = points,
+                        yAxisName = cat1.name,
+                        yMin = 0f,
+                        yMax = points.maxOf { it.value },
+                    )
                 }
 
                 ChartType.TRENDS -> {

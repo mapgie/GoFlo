@@ -70,7 +70,7 @@ internal suspend fun computeChartData(
                 val logs2 = repository.getLogsForCategoryInRange(category2.id, start, end)
                 val buckets = chartBuildDualBuckets(logs1, logs2, start, end, timeRange)
                 if (buckets.isEmpty()) StatsChartData.Empty
-                else StatsChartData.DualTimeSeriesData(buckets, category1.name, category2.name)
+                else StatsChartData.DualTimeSeriesData(buckets, category1.name, category2.name, category1.colorToken, category2.colorToken)
             }
         }
 

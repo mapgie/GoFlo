@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.mapgie.goflo.ui.util.toCategoryColor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +40,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 private fun chartColor(index: Int): Color {
     val cs = MaterialTheme.colorScheme
-    val base = listOf(cs.primary, cs.secondary, cs.tertiary, cs.error)
+    // Order skips adjacent theme pairs (primary/secondary can be similar in some palettes)
+    val base = listOf(cs.primary, cs.tertiary, cs.error, cs.secondary)
     return if (index < base.size) base[index]
     else base[index % base.size].copy(alpha = maxOf(0.5f, 1f - (index / base.size) * 0.2f))
 }
@@ -170,8 +172,10 @@ fun DualBarChart(
     val maxCount = data.buckets
         .flatMap { listOf(it.count1, it.count2) }
         .maxOrNull()?.coerceAtLeast(1) ?: 1
-    val color1 = MaterialTheme.colorScheme.primary
-    val color2 = MaterialTheme.colorScheme.secondary
+    val color1 = if (data.colorToken1.isNotEmpty()) data.colorToken1.toCategoryColor()
+                 else MaterialTheme.colorScheme.primary
+    val color2 = if (data.colorToken2.isNotEmpty()) data.colorToken2.toCategoryColor()
+                 else MaterialTheme.colorScheme.tertiary
 
     Column(modifier = modifier.fillMaxWidth()) {
         // Legend
@@ -448,56 +452,25 @@ fun NumericAverageChart(data: StatsChartData.NumericAverageData) {
 // ── Numeric distribution chart ─────────────────────────────────────────────────────────
 
 /**
- * Horizontal bar chart showing **how many times** each numeric value was logged.
- * Values are sorted numerically so the chart reads like a histogram.
- * Uses [MaterialTheme.colorScheme.secondary] to visually distinguish it from
- * the text-category [ComboBarChart].
+ * Donut chart showing how often each discrete numeric value was logged, matching
+ * the ring visual used for the categorical Distribution view.
  */
 @Composable
 fun NumericDistributionChart(data: StatsChartData.NumericDistributionData) {
-    val secondary = MaterialTheme.colorScheme.secondary
-    val maxCount = data.bars.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val total = data.bars.sumOf { it.count }.coerceAtLeast(1)
+    val pieData = StatsChartData.PieData(
+        slices = data.bars.map { bar ->
+            PieSlice(bar.label, bar.count, bar.count.toFloat() / total)
+        }
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             "${data.categoryName} — value distribution",
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 0.dp)
         )
-        data.bars.forEach { bar ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = bar.label,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.widthIn(min = 40.dp),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(28.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .fillMaxWidth(bar.count.toFloat() / maxCount)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(secondary)
-                    )
-                }
-                Text(
-                    text = "${bar.count}×",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
+        PieChart(data = pieData)
     }
 }
 
