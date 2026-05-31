@@ -22,19 +22,6 @@ data class PeriodWithSymptoms(
     val symptoms: List<SymptomEntry>
 )
 
-/**
- * How often a symptom appeared across logged periods.
- *
- * @param displayName  Human-readable label (e.g. "Cramps", "nausea").
- * @param count        Number of distinct periods in which the symptom was logged.
- * @param percentage   count / totalPeriods × 100, clamped to 100.
- */
-data class SymptomTrend(
-    val displayName: String,
-    val count: Int,
-    val percentage: Int,
-)
-
 class HistoryViewModel(
     private val repository: PeriodRepository,
     private val application: Application? = null,
@@ -61,33 +48,6 @@ class HistoryViewModel(
         _pendingDeleteIds,
     ) { all, pending ->
         all.filter { it.id !in pending }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
-    /**
-     * Top 5 symptoms ranked by the number of periods they appeared in.
-     * Uses the unfiltered repository list so trends reflect full logged history,
-     * not the transient visible list. Only populated when ≥3 periods are logged.
-     */
-    val symptomTrends: StateFlow<List<SymptomTrend>> = combine(
-        repository.getAllPeriods(),
-        repository.getAllSymptomsFlow(),
-    ) { periods, symptoms ->
-        if (periods.size < 3) return@combine emptyList()
-        symptoms
-            .groupBy { it.symptomType }
-            .map { (type, entries) ->
-                val uniquePeriods = entries.map { it.periodId }.toSet().size
-                val displayName = runCatching { SymptomType.valueOf(type) }
-                    .getOrNull()?.displayName
-                    ?: type.replaceFirstChar { it.titlecase() }
-                SymptomTrend(
-                    displayName = displayName,
-                    count       = uniquePeriods,
-                    percentage  = (uniquePeriods * 100 / periods.size).coerceAtMost(100),
-                )
-            }
-            .sortedByDescending { it.count }
-            .take(5)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     // ── Delete lifecycle ──────────────────────────────────────────────────────

@@ -19,6 +19,27 @@ Rules:
 
 ---
 
+## [0.15.0-beta.1] - 2026-05-31
+
+### Added
+- **Dashboard screen** — a new optional tab (Home | History | **Dashboard** | Stats | Settings) that displays pinned stats views as cards. Enable it via the new toggle in the Stats screen; pin any category/range/chart combination with "Pin this view".
+- **Stats — Trends chart** — shows logged value frequency as a labelled progress-bar chart. Available for any trackable category. Replaces the old Symptom Trends section that was previously in the History screen.
+- **Stats — Time Scatter chart** — plots log values against date (time on X, value on Y). This is now the default chart type when a single numeric category is selected.
+
+### Changed
+- **Beta feedback banner** — text updated to "Feedback is encouraged ♥".
+- **Stats month picker** — replaced the dialog with an inline `← MMMM yyyy →` arrow navigator inside the time-range card.
+- **Stats over-time granularity** — specific-month range now defaults to day-by-day view instead of weekly buckets.
+- **Stats scatter axes** — X and Y axes always start at 0 for specific-year and specific-month ranges (AllTime / YTD retain auto-scaling).
+- **Stats chart memory** — switching categories now restores the last explicitly chosen chart type when it is still valid for the new selection.
+- **Settings — Track Against Time** — the toggle is now visible for all category types, including the system Flow and Symptoms categories.
+- **Settings — category values screen** — the "Add a value" bottom button is replaced by a floating action button (FAB); the bottom button is now always "Save".
+
+### Fixed
+- **History** — Symptom Trends section removed from the History screen (superseded by the Stats Trends chart).
+
+---
+
 ## [0.14.0-beta.3] - 2026-05-31
 
 ### Changed

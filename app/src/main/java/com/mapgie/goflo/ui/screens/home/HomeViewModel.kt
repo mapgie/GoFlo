@@ -53,7 +53,9 @@ data class DayLogData(
     val date: LocalDate,
     val period: PeriodEntry?,
     val periodSymptomLabels: List<String>,
-    val trackingLogs: List<TrackingLogWithValues>
+    val trackingLogs: List<TrackingLogWithValues>,
+    val flowCategoryName: String = "Flow",
+    val symptomsCategoryName: String = "Symptoms",
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -126,9 +128,15 @@ class HomeViewModel(
      * When [_selectedDay] changes, this flow switches to load that day's data.
      * Null when no day is selected.
      */
-    val dayLogData: StateFlow<DayLogData?> = _selectedDay
-        .flatMapLatest { date ->
+    val dayLogData: StateFlow<DayLogData?> = combine(
+        _selectedDay,
+        trackingRepository.getActiveCategories()
+    ) { date, cats -> Pair(date, cats) }
+        .flatMapLatest { (date, cats) ->
             if (date == null) return@flatMapLatest flowOf(null)
+
+            val flowCatName = cats.firstOrNull { it.systemKey == "flow" }?.name ?: "Flow"
+            val symptomsCatName = cats.firstOrNull { it.systemKey == "symptoms" }?.name ?: "Symptoms"
 
             // Combine period list + tracking logs for this date; when either
             // updates (e.g. after user saves/deletes) the sheet re-renders.
@@ -162,7 +170,9 @@ class HomeViewModel(
                         date = date,
                         period = period,
                         periodSymptomLabels = labels,
-                        trackingLogs = trackingLogs
+                        trackingLogs = trackingLogs,
+                        flowCategoryName = flowCatName,
+                        symptomsCategoryName = symptomsCatName,
                     )
                 }
             }

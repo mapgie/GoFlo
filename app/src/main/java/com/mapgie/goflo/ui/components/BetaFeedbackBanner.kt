@@ -47,7 +47,7 @@ fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
                     textDecoration = TextDecoration.Underline
                 )
             ) {
-                append("Feedback encouraged.")
+                append("Feedback is encouraged ♥")
             }
             pop()
         }
