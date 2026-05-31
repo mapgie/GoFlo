@@ -40,6 +40,16 @@ Rules:
 
 ---
 
+## [0.14.0-beta.2] - 2026-05-31
+
+### Changed
+- **Stats screen — unified selection language** — category chips now use filled `primaryContainer` (X axis) and `secondaryContainer` (Y axis) containers instead of thick primary/secondary-coloured outline borders. All three selector sections (time range, category chips, chart type tiles) now share the same filled-container selection language; the variable-width coloured borders are gone.
+- **Stats screen — section header hierarchy** — "Time range", "Pick up to 2 categories", and "Chart type" headers promoted from `titleSmall` to `titleMedium` so sections are scannable rather than reading as a flat wall of equal-weight text.
+- **Stats screen — axis summary readout** — the X/Y axis configuration summary ("X: Category A · Y: Category B") now sits in a `surfaceVariant` pill with `labelLarge` text, giving it visual weight proportional to its importance instead of appearing as incidental annotation.
+- **Stats screen — chart type tiles** — tile width reduced from 100 dp to 80 dp; the fourth tile no longer clips on standard screen widths.
+
+---
+
 ## [0.14.0-beta.1] - 2026-05-30
 
 ### Added
