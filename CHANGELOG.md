@@ -19,6 +19,11 @@ Rules:
 
 ---
 
+## [0.18.1beta.1] - 2026-06-01
+
+### Changed 
+- **Stats** — Small fixes.
+
 ## [0.18.0-beta.1] - 2026-05-31
 
 ### Added

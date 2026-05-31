@@ -19,6 +19,113 @@ Rules:
 
 ---
 
+## [0.18.1beta.1] - 2026-06-01
+
+### Changed
+- **Stats** — Small fixes.
+
+## [0.18.0-beta.1] - 2026-05-31
+
+### Added
+- **Stats — selectable category slots** — two labelled slot chips now appear in the category picker. Tap a slot to make it active, then tap any category to fill it. This lets you browse different categories in one slot without losing the other.
+- **Stats — category swap button** — when two categories are selected, a swap icon appears next to the slot chips to instantly reverse which is in slot 1 and slot 2 (flips X/Y axes on Scatter plots).
+- **Stats — month navigation moved above chart** — the `< Month Year >` row now lives at the top of the chart card so it sits directly above the data, rather than inside the time range picker.
+
+### Changed
+- **Stats — Distribution charts now consistent** — numeric Distribution renders as a donut/ring to match the categorical Distribution view; both use the DonutLarge icon.
+- **Stats — Average icon corrected** — "Average" chart type now uses a bar-chart icon to match the bar chart it renders.
+- **Stats — single-category views hidden for two-category selections** — "Trends" and "Over Time" no longer appear in the chart type selector when two categories are selected.
+- **Stats — Scatter plot baseline** — X and Y axes now always start at 0.
+- **Stats — chart colour cycling** — colour order changed to primary/tertiary/error/secondary so that themes with similar primary and secondary colours are less likely to assign indistinguishable colours to two series.
+- **Stats — dual-series charts use category colours** — the Compare chart uses each category's own colour token for its bars instead of fixed theme colours.
+- **Settings — back button on main list** — the main Settings screen now shows a back-arrow in the toolbar so users have a clear, visible way to return.
+- **Settings — Full backup export** — a new "Export scope" toggle lets users choose between "Data only" (existing behaviour) and "Full backup", which also includes all category names, values, colors, archive status, and dashboard pins. Useful for transferring everything to a new phone.
+- **Stats — Year before YTD in time range selector** — the segment order is now All Time, Year, YTD, Month.
+- **Stats — YTD default time range** — the Stats screen now opens on Year-to-Date instead of All Time.
+- **Stats — selections remembered** — the Stats screen now remembers the last time range, category selections, chart type, and zoom level across navigation and app restarts.
+- **Stats — month zoom control** — when the Month time range is selected, two zoom buttons let users compress or expand the bar width, so all 31 days can fit on screen at once.
+- **Stats — landscape auto-hide** — in landscape orientation the top bar collapses on scroll, the beta banner is hidden, and the bottom navigation bar is hidden to maximise chart space.
+
+### Fixed
+- **Security — biometric lock crash** — enabling biometric unlock no longer causes a crash if the biometric prompt is shown while the activity is not yet fully active.
+- **Flow — slider mode** — the Flow system category can now be switched to a 1-4 slider (Spotting/Light/Medium/Heavy) via Settings > Tracking Categories > Flow. When slider mode is on, stats treat each logged flow value as a number, enabling Numeric Average, Time Scatter, and Distribution charts. The toggle lives alongside the existing category settings and can be switched back to chip mode at any time.
+- **Dashboard — duplicate pin prevention** — pinning a chart view that is already on the dashboard now shows "Already pinned to dashboard" instead of silently adding a duplicate. Each combination of category, chart type, and time range gets a deterministic hash ID so existing duplicates are also blocked on re-pin.
+
+---
+
+## [0.17.0-beta.1] - 2026-05-31
+
+### Added
+- **Settings — Export Data full-page screen** — "Export Data" now opens a dedicated scrollable full-page screen (replacing the cropped `AlertDialog`). All options — date range presets, include/exclude toggles, JSON/CSV format selection — are fully accessible with a sticky Export button at the bottom.
+- **Widgets — Quick Log category picker** — users can now choose which specific categories appear in the Quick Log (4×2) widget (up to 4). If none are selected the first four active categories are shown automatically, preserving previous behaviour.
+- **Widgets — Status widget privacy opt-in** — the "Show data when PIN is set" toggle is now always visible in the Widgets settings sub-screen, with clear explanatory copy. It is disabled (with a hint) when no PIN is set, so users know the option exists before they set one.
+
+### Changed
+- **Settings — section header spacing** — top padding on section headers reduced from 20 dp to 12 dp for a slightly denser layout; touch-target sizes are unaffected (accessibility-safe).
+
+---
+
+## [0.16.1-beta.1] - 2026-05-31
+
+### Changed
+- **Stats category picker — context-aware labels** — X/Y axis labels in the summary bar and chip prefixes now only appear when the Scatter chart type is active (where X and Y map to real axes). All other chart types show category names without axis terminology.
+- **Stats selection colour unified** — both the first and second selected category use the same `primaryContainer` fill, eliminating the arbitrary primary/secondary hue clash (pink vs teal). The summary bar now uses `primary` for both names rather than `primary` + `secondary`.
+
+---
+
+## [0.16.0-beta.1] - 2026-05-31
+
+### Changed
+- **Navigation — Settings moved to top app bar** — the Settings tab has been removed from the bottom navigation bar. A gear icon button in the top-right of the Home screen app bar now opens Settings, keeping the bottom bar focused on the core destinations: Home, History, (Dashboard,) and Stats.
+- **Settings — flat Material list layout** — the expandable accordion card layout has been replaced with a flat Material `ListItem` layout. Each section entry is a dense list row; tapping it opens a dedicated sub-screen with its own top app bar and back arrow, rather than expanding inline.
+- **Settings — section headers** — headers (TRACKING, NOTIFICATIONS, etc.) are now `SemiBold`, rendered in the primary colour, with increased top padding (20 dp) to clearly separate grouped items.
+- **Settings — navigation items** — items that open a sub-screen show a trailing Chevron Right icon. Items that control a binary setting show a trailing Material Switch that toggles immediately without navigating.
+- **Settings — section dividers** — `HorizontalDivider` separates the major setting groups (Tracking, Notifications, Personalisation, Privacy & Data, Widgets, Help & Feedback, About).
+- **Settings — icon alignment** — leading icons are constrained to 24×24 dp bounding boxes for consistent vertical alignment across all list items.
+- **Settings — standardised background** — list items use the `surface` container colour, removing the "boxed" `surfaceVariant` card look of the old layout.
+
+---
+
+## [0.15.0-beta.1] - 2026-05-31
+
+### Added
+- **Dashboard screen** — a new optional tab (Home | History | **Dashboard** | Stats | Settings) that displays pinned stats views as cards. Enable it via the new toggle in the Stats screen; pin any category/range/chart combination with "Pin this view".
+- **Stats — Trends chart** — shows logged value frequency as a labelled progress-bar chart. Available for any trackable category. Replaces the old Symptom Trends section that was previously in the History screen.
+- **Stats — Time Scatter chart** — plots log values against date (time on X, value on Y). This is now the default chart type when a single numeric category is selected.
+
+### Changed
+- **Beta feedback banner** — text updated to "Feedback is encouraged ♥".
+- **Stats month picker** — replaced the dialog with an inline `← MMMM yyyy →` arrow navigator inside the time-range card.
+- **Stats over-time granularity** — specific-month range now defaults to day-by-day view instead of weekly buckets.
+- **Stats scatter axes** — X and Y axes always start at 0 for specific-year and specific-month ranges (AllTime / YTD retain auto-scaling).
+- **Stats chart memory** — switching categories now restores the last explicitly chosen chart type when it is still valid for the new selection.
+- **Settings — Track Against Time** — the toggle is now visible for all category types, including the system Flow and Symptoms categories.
+- **Settings — category values screen** — the "Add a value" bottom button is replaced by a floating action button (FAB); the bottom button is now always "Save".
+
+### Fixed
+- **History** — Symptom Trends section removed from the History screen (superseded by the Stats Trends chart).
+
+---
+
+## [0.14.0-beta.3] - 2026-05-31
+
+### Changed
+- **FAB — icon-only at rest** — the floating action button now shows only the Add icon when the speed dial is closed, removing the "Log…" label from the resting state so the button feels like a proper FAB rather than a labelled afterthought.
+- **FAB — expands on open** — tapping the FAB opens the speed dial and simultaneously expands the button to show the Close icon alongside a "Log" label (ellipsis removed); font is `titleMedium` to match the visual weight of the icon.
+- **FAB — Comfortaa typeface on label** — the "Log" label uses the GoFlo brand font (Comfortaa Bold) for consistency with the rest of the app's typographic identity.
+
+---
+
+## [0.14.0-beta.2] - 2026-05-31
+
+### Changed
+- **Stats screen — unified selection language** — category chips now use filled `primaryContainer` (X axis) and `secondaryContainer` (Y axis) containers instead of thick primary/secondary-coloured outline borders. All three selector sections (time range, category chips, chart type tiles) now share the same filled-container selection language; the variable-width coloured borders are gone.
+- **Stats screen — section header hierarchy** — "Time range", "Pick up to 2 categories", and "Chart type" headers promoted from `titleSmall` to `titleMedium` so sections are scannable rather than reading as a flat wall of equal-weight text.
+- **Stats screen — axis summary readout** — the X/Y axis configuration summary ("X: Category A · Y: Category B") now sits in a `surfaceVariant` pill with `labelLarge` text, giving it visual weight proportional to its importance instead of appearing as incidental annotation.
+- **Stats screen — chart type tiles** — tile width reduced from 100 dp to 80 dp; the fourth tile no longer clips on standard screen widths.
+
+---
+
 ## [0.14.0-beta.1] - 2026-05-30
 
 ### Added
