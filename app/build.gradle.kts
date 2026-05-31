@@ -13,7 +13,7 @@ android {
         applicationId = "com.mapgie.goflo"
         minSdk = 26
         targetSdk = 34
-        versionCode = 49
+        versionCode = 50
         versionName = "0.17.0-beta.1"
     }
 
