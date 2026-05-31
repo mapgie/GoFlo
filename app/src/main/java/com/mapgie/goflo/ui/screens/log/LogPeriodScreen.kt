@@ -230,13 +230,60 @@ fun LogPeriodScreen(
 
                 // Flow section
                 SectionLabel(state.flowCategoryName)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FlowLevel.entries.forEach { level ->
-                        SelectableChip(
-                            label = level.displayName,
-                            selected = state.flowLevel == level,
-                            onClick = { viewModel.setFlowLevel(level) }
-                        )
+                val flowCat = state.flowCategory
+                if (flowCat?.categoryType == "numeric_slider") {
+                    val sliderValue = state.flowSliderValue ?: flowCat.numericMin
+                    val scaleMap = flowCat.scaleLabels.decodeScaleLabels()
+                    val scaleLabel = scaleMap[sliderValue.toInt()] ?: sliderValue.toInt().toString()
+                    val steps = (flowCat.numericMax - flowCat.numericMin).toInt() - 1
+                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Text(
+                                    text = scaleLabel,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Slider(
+                                value = sliderValue,
+                                onValueChange = { viewModel.setFlowSliderValue(it) },
+                                valueRange = flowCat.numericMin..flowCat.numericMax,
+                                steps = steps,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    scaleMap[flowCat.numericMin.toInt()] ?: flowCat.numericMin.toInt().toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    scaleMap[flowCat.numericMax.toInt()] ?: flowCat.numericMax.toInt().toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowLevel.entries.forEach { level ->
+                            SelectableChip(
+                                label = level.displayName,
+                                selected = state.flowLevel == level,
+                                onClick = { viewModel.setFlowLevel(level) }
+                            )
+                        }
                     }
                 }
 
