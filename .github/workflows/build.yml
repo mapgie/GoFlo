@@ -23,18 +23,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check version is new
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          VERSION=$(grep 'versionName' app/build.gradle.kts | grep -oP '"[^"]+"' | tr -d '"')
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          if gh release view "v${VERSION}" &>/dev/null; then
-            echo "::error::v${VERSION} is already released. Bump versionName (and versionCode) in app/build.gradle.kts before merging."
-            exit 1
-          fi
-          echo "Version ${VERSION} is new."
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -52,6 +40,18 @@ jobs:
 
       - name: Build debug APK
         run: gradle :app:assembleDebug --no-daemon
+
+      - name: Check version is new
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep 'versionName' app/build.gradle.kts | grep -oP '"[^"]+"' | tr -d '"')
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          if gh release view "v${VERSION}" &>/dev/null; then
+            echo "::error::v${VERSION} is already released. Bump versionName (and versionCode) in app/build.gradle.kts before merging."
+            exit 1
+          fi
+          echo "Version ${VERSION} is new."
 
       - name: Run unit tests
         run: gradle :app:test --no-daemon

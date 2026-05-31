@@ -70,6 +70,8 @@ import com.mapgie.goflo.AppIconChoice
 import com.mapgie.goflo.AppIconManager
 import com.mapgie.goflo.widget.QuickLogWidget
 import androidx.compose.runtime.LaunchedEffect
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 
 class MainActivity : ComponentActivity() {
 
@@ -175,7 +177,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
         if (dashboardEnabled) add(Screen.Dashboard.route)
         add(Screen.Stats.route)
     }
-    val showBottomBar = bottomNavRoutes.any { currentRoute?.startsWith(it) == true }
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val showBottomBar = bottomNavRoutes.any { currentRoute?.startsWith(it) == true } && !isLandscape
 
     Scaffold(
         bottomBar = {
@@ -269,6 +272,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                 )
                 SettingsScreen(
                     viewModel = vm,
+                    onBack = { navController.popBackStack() },
                     onNavigateToPinSetup = { changing ->
                         navController.navigate(if (changing) Screen.PinSetup.changePin else Screen.PinSetup.newPin)
                     },

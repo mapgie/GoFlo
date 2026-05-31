@@ -49,6 +49,10 @@ data class LogPeriodUiState(
     val flowCategoryName: String = "Flow",
     /** User-chosen display name for the Symptoms system category. */
     val symptomsCategoryName: String = "Symptoms",
+    /** Full Flow system category entity — used to know its current categoryType. */
+    val flowCategory: TrackingCategory? = null,
+    /** Current slider position when the Flow category is in slider mode (1-4). */
+    val flowSliderValue: Float? = null,
     /** True once the user has made at least one edit — enables the save-on-back prompt. */
     val hasChanges: Boolean = false,
 )
@@ -107,10 +111,17 @@ class LogPeriodViewModel(
         val tr = trackingRepository ?: return
         val flowCat = tr.getSystemCategoryByKey("flow")
         val symptomsCat = tr.getSystemCategoryByKey("symptoms")
-        _uiState.update {
-            it.copy(
-                flowCategoryName = flowCat?.name ?: it.flowCategoryName,
-                symptomsCategoryName = symptomsCat?.name ?: it.symptomsCategoryName,
+        _uiState.update { state ->
+            val sliderValue = if (flowCat?.categoryType == "numeric_slider" && state.flowSliderValue == null) {
+                state.flowLevel.toSliderValue()
+            } else {
+                state.flowSliderValue
+            }
+            state.copy(
+                flowCategoryName     = flowCat?.name ?: state.flowCategoryName,
+                symptomsCategoryName = symptomsCat?.name ?: state.symptomsCategoryName,
+                flowCategory         = flowCat,
+                flowSliderValue      = sliderValue,
             )
         }
     }
@@ -158,6 +169,23 @@ class LogPeriodViewModel(
     }
 
     fun setFlowLevel(flow: FlowLevel) = _uiState.update { it.copy(flowLevel = flow, hasChanges = true) }
+
+    fun setFlowSliderValue(value: Float) = _uiState.update { state ->
+        val level = when (value.toInt()) {
+            1    -> FlowLevel.SPOTTING
+            2    -> FlowLevel.LIGHT
+            4    -> FlowLevel.HEAVY
+            else -> FlowLevel.MEDIUM
+        }
+        state.copy(flowSliderValue = value, flowLevel = level, hasChanges = true)
+    }
+
+    private fun FlowLevel.toSliderValue(): Float = when (this) {
+        FlowLevel.SPOTTING -> 1f
+        FlowLevel.LIGHT    -> 2f
+        FlowLevel.MEDIUM   -> 3f
+        FlowLevel.HEAVY    -> 4f
+    }
 
     fun toggleSymptom(symptom: SymptomType) = _uiState.update { state ->
         val updated = if (symptom in state.symptoms) state.symptoms - symptom else state.symptoms + symptom
@@ -233,7 +261,12 @@ class LogPeriodViewModel(
     private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) {
         val tr = trackingRepository ?: return
         val flowCategory = tr.getSystemCategoryByKey("flow") ?: return
-        val flowLabel = state.flowLevel.displayName
+        val flowLabel = if (flowCategory.categoryType == "numeric_slider") {
+            val v = state.flowSliderValue ?: state.flowLevel.toSliderValue()
+            v.toInt().toString()
+        } else {
+            state.flowLevel.displayName
+        }
         val end = state.endDate ?: state.startDate
         val dates = generateSequence(state.startDate) { d -> if (d < end) d.plusDays(1) else null }.toList()
         tr.syncFlowLogsForPeriod(flowCategory.id, dates, flowLabel)

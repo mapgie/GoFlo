@@ -124,18 +124,24 @@ sealed class StatsChartData {
     ) : StatsChartData()
 }
 
+// ── Pin result ────────────────────────────────────────────────────────────────
+
+enum class PinResult { ADDED, DUPLICATE }
+
 // ── UI State ──────────────────────────────────────────────────────────────────
 
 data class StatsUiState(
     val categories: List<TrackingCategory> = emptyList(),
     val selectedCategory1: TrackingCategory? = null,
     val selectedCategory2: TrackingCategory? = null,
-    val timeRange: TimeRange = TimeRange.AllTime,
+    val timeRange: TimeRange = TimeRange.YearToDate,
     val chartType: ChartType = ChartType.PIE,
     val chartData: StatsChartData = StatsChartData.Empty,
     val rememberedChartType: ChartType? = null,
     val dashboardEnabled: Boolean = false,
     val activeSlot: Int = 1,
+    val zoomLevel: Int = 1,
+    val pinResult: PinResult? = null,
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -149,12 +155,42 @@ class StatsViewModel(
     val uiState: StateFlow<StatsUiState> = _uiState
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState())
 
+    private var savedCat1Id: Long = -1L
+    private var savedCat2Id: Long = -1L
+
     init {
-        viewModelScope.launch {
-            repository.getAllCategories().collect { cats ->
-                _uiState.update { it.copy(categories = cats) }
+        // Restore persisted stats state once, before categories load.
+        preferencesStore?.let { store ->
+            viewModelScope.launch {
+                val prefs = store.preferences.first()
+                savedCat1Id = prefs.statsCategory1Id
+                savedCat2Id = prefs.statsCategory2Id
+                _uiState.update {
+                    it.copy(
+                        timeRange = parseTimeRangeString(prefs.statsTimeRange),
+                        chartType = parseChartTypeString(prefs.statsChartType),
+                        zoomLevel = prefs.statsZoomLevel,
+                    )
+                }
             }
         }
+
+        viewModelScope.launch {
+            repository.getAllCategories().collect { cats ->
+                val alreadySelected = _uiState.value.selectedCategory1 != null
+                _uiState.update { it.copy(categories = cats) }
+                // Restore saved category selections after categories are first loaded.
+                if (!alreadySelected && savedCat1Id != -1L) {
+                    val cat1 = cats.firstOrNull { it.id == savedCat1Id }
+                    val cat2 = if (savedCat2Id != -1L) cats.firstOrNull { it.id == savedCat2Id } else null
+                    if (cat1 != null) {
+                        _uiState.update { it.copy(selectedCategory1 = cat1, selectedCategory2 = cat2) }
+                        reloadChart()
+                    }
+                }
+            }
+        }
+
         preferencesStore?.let { store ->
             viewModelScope.launch {
                 store.preferences.collect { prefs ->
@@ -245,7 +281,18 @@ class StatsViewModel(
                 else -> state
             }
         }
+        persistCategorySelections()
         reloadChart()
+    }
+
+    private fun persistCategorySelections() {
+        preferencesStore?.let { store ->
+            val state = _uiState.value
+            viewModelScope.launch {
+                store.setStatsCategory1Id(state.selectedCategory1?.id ?: -1L)
+                store.setStatsCategory2Id(state.selectedCategory2?.id ?: -1L)
+            }
+        }
     }
 
     fun clearSelections() {
@@ -291,17 +338,36 @@ class StatsViewModel(
             cat2 != null -> ChartType.DUAL_TIME_SERIES
             cat1.isNumeric -> ChartType.TIME_SCATTER
             else -> ChartType.TRENDS
+        preferencesStore?.let { store ->
+            viewModelScope.launch {
+                store.setStatsCategory1Id(-1L)
+                store.setStatsCategory2Id(-1L)
+                store.setStatsChartType("")
+            }
         }
     }
 
     fun setTimeRange(range: TimeRange) {
         _uiState.update { it.copy(timeRange = range) }
+        preferencesStore?.let { store ->
+            viewModelScope.launch { store.setStatsTimeRange(range.toPrefsString()) }
+        }
         reloadChart()
     }
 
     fun setChartType(type: ChartType) {
         _uiState.update { it.copy(chartType = type, rememberedChartType = type) }
+        preferencesStore?.let { store ->
+            viewModelScope.launch { store.setStatsChartType(type.name) }
+        }
         reloadChart()
+    }
+
+    fun setZoomLevel(level: Int) {
+        _uiState.update { it.copy(zoomLevel = level.coerceIn(0, 2)) }
+        preferencesStore?.let { store ->
+            viewModelScope.launch { store.setStatsZoomLevel(level.coerceIn(0, 2)) }
+        }
     }
 
     fun toggleDashboard() {
@@ -314,27 +380,44 @@ class StatsViewModel(
         val state = _uiState.value
         val cat1 = state.selectedCategory1 ?: return
         viewModelScope.launch {
-            val label = buildString {
-                append(cat1.name)
-                state.selectedCategory2?.let { append(" vs ${it.name}") }
-            }
+            val cat2Id = state.selectedCategory2?.id
             val timeRangeStr = when (val tr = state.timeRange) {
                 is TimeRange.AllTime -> "ALL_TIME"
                 is TimeRange.YearToDate -> "YTD"
                 is TimeRange.CalendarYear -> "YEAR:${tr.year}"
                 is TimeRange.SpecificMonth -> "MONTH:${tr.yearMonth}"
             }
+            val existing = loadPins()
+            val isDuplicate = existing.any { pin ->
+                pin.categoryId1 == cat1.id &&
+                pin.categoryId2 == cat2Id &&
+                pin.chartType == state.chartType.name &&
+                pin.timeRangeType == timeRangeStr
+            }
+            if (isDuplicate) {
+                _uiState.update { it.copy(pinResult = PinResult.DUPLICATE) }
+                return@launch
+            }
+            val label = buildString {
+                append(cat1.name)
+                state.selectedCategory2?.let { append(" vs ${it.name}") }
+            }
+            val comboHash = "${cat1.id}_${cat2Id ?: ""}_${state.chartType.name}_$timeRangeStr"
             val pin = PinnedStat(
-                id = java.util.UUID.randomUUID().toString(),
+                id = comboHash,
                 label = label,
                 categoryId1 = cat1.id,
-                categoryId2 = state.selectedCategory2?.id,
+                categoryId2 = cat2Id,
                 timeRangeType = timeRangeStr,
                 chartType = state.chartType.name
             )
-            val existing = loadPins()
             savePins(existing + pin)
+            _uiState.update { it.copy(pinResult = PinResult.ADDED) }
         }
+    }
+
+    fun clearPinResult() {
+        _uiState.update { it.copy(pinResult = null) }
     }
 
     private suspend fun loadPins(): List<PinnedStat> {
@@ -842,6 +925,28 @@ class StatsViewModel(
         }
     }
 }
+
+// ── Prefs serialisation helpers (package-level) ───────────────────────────────
+
+fun TimeRange.toPrefsString(): String = when (this) {
+    is TimeRange.AllTime       -> "ALL_TIME"
+    is TimeRange.YearToDate    -> "YTD"
+    is TimeRange.CalendarYear  -> "YEAR:${year}"
+    is TimeRange.SpecificMonth -> "MONTH:${yearMonth}"
+}
+
+fun parseTimeRangeString(s: String): TimeRange = runCatching {
+    when {
+        s == "ALL_TIME" -> TimeRange.AllTime
+        s == "YTD"      -> TimeRange.YearToDate
+        s.startsWith("YEAR:")  -> TimeRange.CalendarYear(s.removePrefix("YEAR:").toInt())
+        s.startsWith("MONTH:") -> TimeRange.SpecificMonth(YearMonth.parse(s.removePrefix("MONTH:")))
+        else -> TimeRange.YearToDate
+    }
+}.getOrDefault(TimeRange.YearToDate)
+
+fun parseChartTypeString(s: String): ChartType =
+    runCatching { ChartType.valueOf(s) }.getOrDefault(ChartType.PIE)
 
 // ── Pin helpers (package-level) ───────────────────────────────────────────────
 

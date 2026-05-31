@@ -1,5 +1,6 @@
 package com.mapgie.goflo.ui.screens.stats
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,11 +30,15 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.NavigateBefore
 import androidx.compose.material.icons.filled.NavigateNext
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ScatterPlot
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -52,16 +57,21 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -84,8 +94,23 @@ fun StatsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var bannerExpanded by rememberSaveable { mutableStateOf(false) }
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    val scrollBehavior = if (isLandscape) TopAppBarDefaults.enterAlwaysScrollBehavior() else null
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.pinResult) {
+        val result = state.pinResult ?: return@LaunchedEffect
+        val message = when (result) {
+            PinResult.ADDED     -> "Pinned to dashboard"
+            PinResult.DUPLICATE -> "Already pinned to dashboard"
+        }
+        snackbarHostState.showSnackbar(message)
+        viewModel.clearPinResult()
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Stats") },
@@ -93,6 +118,7 @@ fun StatsScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 ),
+                scrollBehavior = scrollBehavior,
                 actions = {
                     if (dashboardEnabled && state.selectedCategory1 != null) {
                         IconButton(onClick = onPinStat) {
@@ -105,14 +131,19 @@ fun StatsScreen(
                     }
                 }
             )
-        }
+        },
+        modifier = if (scrollBehavior != null)
+            Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
+        else Modifier
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = innerPadding.calculateTopPadding())
         ) {
-            BetaFeedbackBanner()
+            if (!isLandscape) {
+                BetaFeedbackBanner()
+            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -156,7 +187,9 @@ fun StatsScreen(
             item {
                 TimeRangePicker(
                     selectedRange = state.timeRange,
-                    onSelect = viewModel::setTimeRange
+                    onSelect = viewModel::setTimeRange,
+                    zoomLevel = state.zoomLevel,
+                    onZoom = viewModel::setZoomLevel,
                 )
             }
 
@@ -207,6 +240,8 @@ fun StatsScreen(
                     hasCategorySelected = state.selectedCategory1 != null,
                     timeRange = state.timeRange,
                     onSelectRange = viewModel::setTimeRange,
+                    zoomLevel = state.zoomLevel,
+                    showZoom = state.timeRange is TimeRange.SpecificMonth,
                 )
             }
             }
@@ -220,17 +255,20 @@ fun StatsScreen(
 @Composable
 private fun TimeRangePicker(
     selectedRange: TimeRange,
-    onSelect: (TimeRange) -> Unit
+    onSelect: (TimeRange) -> Unit,
+    zoomLevel: Int = 1,
+    onZoom: (Int) -> Unit = {},
 ) {
     var showYearDialog by rememberSaveable { mutableStateOf(false) }
 
     val today = LocalDate.now()
-    val options = listOf("All Time", "YTD", "Year", "Month")
+    // Order: All Time, Year, YTD, Month
+    val options = listOf("All Time", "Year", "YTD", "Month")
 
     val selectedIndex = when (selectedRange) {
         is TimeRange.AllTime       -> 0
-        is TimeRange.YearToDate    -> 1
-        is TimeRange.CalendarYear  -> 2
+        is TimeRange.CalendarYear  -> 1
+        is TimeRange.YearToDate    -> 2
         is TimeRange.SpecificMonth -> 3
     }
 
@@ -255,10 +293,9 @@ private fun TimeRangePicker(
                         onClick = {
                             when (index) {
                                 0 -> onSelect(TimeRange.AllTime)
-                                1 -> onSelect(TimeRange.YearToDate)
-                                2 -> showYearDialog = true
+                                1 -> showYearDialog = true
+                                2 -> onSelect(TimeRange.YearToDate)
                                 3 -> {
-                                    // When Month tab tapped and not already SpecificMonth, default to now
                                     if (selectedRange !is TimeRange.SpecificMonth) {
                                         onSelect(TimeRange.SpecificMonth(YearMonth.now()))
                                     }
@@ -281,11 +318,66 @@ private fun TimeRangePicker(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(start = 4.dp)
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        onSelect(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
+                    }) {
+                        Icon(Icons.Default.NavigateBefore, contentDescription = "Previous month")
+                    }
+                    Text(
+                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    IconButton(
+                        onClick = {
+                            if (currentMonth < YearMonth.now()) {
+                                onSelect(TimeRange.SpecificMonth(currentMonth.plusMonths(1)))
+                            }
+                        },
+                        enabled = currentMonth < YearMonth.now()
+                    ) {
+                        Icon(Icons.Default.NavigateNext, contentDescription = "Next month")
+                    }
+                }
+                // Zoom control for month view
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Zoom",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(
+                        onClick = { onZoom(zoomLevel - 1) },
+                        enabled = zoomLevel > 0,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Zoom out", modifier = Modifier.size(16.dp))
+                    }
+                    IconButton(
+                        onClick = { onZoom(zoomLevel + 1) },
+                        enabled = zoomLevel < 2,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Zoom in", modifier = Modifier.size(16.dp))
+                    }
+                }
             } else {
                 // Show range label for YTD and CalendarYear
                 val rangeLabel = when (selectedRange) {
                     is TimeRange.AllTime -> null
-                    is TimeRange.YearToDate -> "January 1 – Today"
+                    is TimeRange.YearToDate -> "January 1 to Today"
                     is TimeRange.CalendarYear -> "Full year ${selectedRange.year}"
                     is TimeRange.SpecificMonth -> null // handled above
                 }
@@ -647,6 +739,8 @@ private fun ChartArea(
     hasCategorySelected: Boolean,
     timeRange: TimeRange,
     onSelectRange: (TimeRange) -> Unit,
+    zoomLevel: Int = 1,
+    showZoom: Boolean = false,
 ) {
     val currentMonth = (timeRange as? TimeRange.SpecificMonth)?.yearMonth
 
@@ -726,7 +820,7 @@ private fun ChartArea(
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
-                        BarChart(data = chartData)
+                        BarChart(data = chartData, zoomLevel = if (showZoom) zoomLevel else 1)
                     }
                 }
 
@@ -743,13 +837,13 @@ private fun ChartArea(
 
                 is StatsChartData.DualTimeSeriesData -> {
                     Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                        DualBarChart(data = chartData)
+                        DualBarChart(data = chartData, zoomLevel = if (showZoom) zoomLevel else 1)
                     }
                 }
 
                 is StatsChartData.NumericAverageData -> {
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-                        NumericAverageChart(data = chartData)
+                        NumericAverageChart(data = chartData, zoomLevel = if (showZoom) zoomLevel else 1)
                     }
                 }
 

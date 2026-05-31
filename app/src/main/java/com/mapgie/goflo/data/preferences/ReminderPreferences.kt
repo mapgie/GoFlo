@@ -71,6 +71,16 @@ data class AppPreferences(
      * Empty string means "auto" — the first four active categories by displayOrder.
      */
     val widgetCategoryIds: String = "",
+    /** Last-selected time range on the Stats screen. Encoded as "ALL_TIME", "YTD", "YEAR:2025", or "MONTH:2025-01". */
+    val statsTimeRange: String = "YTD",
+    /** Last-selected primary category ID on the Stats screen. -1 means none. */
+    val statsCategory1Id: Long = -1L,
+    /** Last-selected secondary category ID on the Stats screen. -1 means none. */
+    val statsCategory2Id: Long = -1L,
+    /** Last-selected chart type on the Stats screen. Empty means use auto default. */
+    val statsChartType: String = "",
+    /** Zoom level for the month bar chart. 0=compact, 1=normal, 2=wide. */
+    val statsZoomLevel: Int = 1,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -95,6 +105,11 @@ class AppPreferencesStore(private val context: Context) {
         val DASHBOARD_ENABLED = booleanPreferencesKey("dashboard_enabled")
         val PINNED_STATS = stringPreferencesKey("pinned_stats")
         val WIDGET_CATEGORY_IDS = stringPreferencesKey("widget_category_ids")
+        val STATS_TIME_RANGE = stringPreferencesKey("stats_time_range")
+        val STATS_CATEGORY1_ID = longPreferencesKey("stats_category1_id")
+        val STATS_CATEGORY2_ID = longPreferencesKey("stats_category2_id")
+        val STATS_CHART_TYPE = stringPreferencesKey("stats_chart_type")
+        val STATS_ZOOM_LEVEL = intPreferencesKey("stats_zoom_level")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -112,6 +127,11 @@ class AppPreferencesStore(private val context: Context) {
             dashboardEnabled = prefs[Keys.DASHBOARD_ENABLED] ?: false,
             pinnedStats = prefs[Keys.PINNED_STATS] ?: "",
             widgetCategoryIds = prefs[Keys.WIDGET_CATEGORY_IDS] ?: "",
+            statsTimeRange = prefs[Keys.STATS_TIME_RANGE] ?: "YTD",
+            statsCategory1Id = prefs[Keys.STATS_CATEGORY1_ID] ?: -1L,
+            statsCategory2Id = prefs[Keys.STATS_CATEGORY2_ID] ?: -1L,
+            statsChartType = prefs[Keys.STATS_CHART_TYPE] ?: "",
+            statsZoomLevel = prefs[Keys.STATS_ZOOM_LEVEL] ?: 1,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -211,5 +231,25 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setWidgetCategoryIds(ids: String) {
         context.dataStore.edit { it[Keys.WIDGET_CATEGORY_IDS] = ids }
+    }
+
+    suspend fun setStatsTimeRange(encoded: String) {
+        context.dataStore.edit { it[Keys.STATS_TIME_RANGE] = encoded }
+    }
+
+    suspend fun setStatsCategory1Id(id: Long) {
+        context.dataStore.edit { it[Keys.STATS_CATEGORY1_ID] = id }
+    }
+
+    suspend fun setStatsCategory2Id(id: Long) {
+        context.dataStore.edit { it[Keys.STATS_CATEGORY2_ID] = id }
+    }
+
+    suspend fun setStatsChartType(type: String) {
+        context.dataStore.edit { it[Keys.STATS_CHART_TYPE] = type }
+    }
+
+    suspend fun setStatsZoomLevel(level: Int) {
+        context.dataStore.edit { it[Keys.STATS_ZOOM_LEVEL] = level }
     }
 }
