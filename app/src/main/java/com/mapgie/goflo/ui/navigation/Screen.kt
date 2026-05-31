@@ -5,6 +5,7 @@ import java.time.LocalDate
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object History : Screen("history")
+    data object Dashboard : Screen("dashboard")
     data object Stats : Screen("stats")
     data object Settings : Screen("settings")
     data object LogPeriod : Screen("log_period?periodId={periodId}&startDate={startDate}") {
