@@ -174,7 +174,7 @@ private fun TimeRangePicker(
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = "Time range",
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -309,7 +309,7 @@ private fun CategoryPickerSection(
             ) {
                 Text(
                     text = "Pick up to 2 categories",
-                    style = MaterialTheme.typography.titleSmall
+                    style = MaterialTheme.typography.titleMedium
                 )
                 if (selectedCat1 != null) {
                     TextButton(onClick = onClear) {
@@ -325,21 +325,34 @@ private fun CategoryPickerSection(
             }
 
             if (selectedCat1 != null || selectedCat2 != null) {
+                Spacer(modifier = Modifier.height(6.dp))
                 Row(
-                    modifier = Modifier.padding(top = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     selectedCat1?.let {
                         Text(
                             text = "X: ${it.name}",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                     selectedCat2?.let {
+                        if (selectedCat1 != null) {
+                            Text(
+                                text = "·",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Text(
                             text = "Y: ${it.name}",
-                            style = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.secondary
                         )
                     }
@@ -350,7 +363,7 @@ private fun CategoryPickerSection(
 
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 categories.forEach { category ->
                     val isCat1 = selectedCat1?.id == category.id
@@ -361,10 +374,15 @@ private fun CategoryPickerSection(
                     val bubbleColor = category.colorToken.toCategoryColor()
                     val onBubbleColor = category.colorToken.toCategoryOnColor()
 
-                    val borderColor = when {
-                        isCat1 -> MaterialTheme.colorScheme.primary
-                        isCat2 -> MaterialTheme.colorScheme.secondary
-                        else   -> MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                    val chipSelectedContainerColor = when {
+                        isCat1 -> MaterialTheme.colorScheme.primaryContainer
+                        isCat2 -> MaterialTheme.colorScheme.secondaryContainer
+                        else   -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                    val chipSelectedLabelColor = when {
+                        isCat1 -> MaterialTheme.colorScheme.onPrimaryContainer
+                        isCat2 -> MaterialTheme.colorScheme.onSecondaryContainer
+                        else   -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
 
                     FilterChip(
@@ -395,15 +413,17 @@ private fun CategoryPickerSection(
                             }
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                            selectedContainerColor = chipSelectedContainerColor,
+                            selectedLabelColor = chipSelectedLabelColor,
+                            selectedLeadingIconColor = chipSelectedLabelColor
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = borderColor,
-                            selectedBorderColor = borderColor,
+                            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            selectedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                             borderWidth = 1.dp,
-                            selectedBorderWidth = 2.dp
+                            selectedBorderWidth = 1.dp
                         )
                     )
                 }
@@ -460,7 +480,7 @@ private fun ChartTypeSelector(
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
                 text = "Chart type",
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
             LazyRow(
@@ -471,7 +491,7 @@ private fun ChartTypeSelector(
                     val isSelected = selectedType == option.type
                     Card(
                         modifier = Modifier
-                            .width(100.dp)
+                            .width(80.dp)
                             .clickable { onSelect(option.type) },
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected)
@@ -484,7 +504,7 @@ private fun ChartTypeSelector(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(10.dp),
+                                .padding(8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
