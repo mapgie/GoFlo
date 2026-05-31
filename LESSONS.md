@@ -32,6 +32,12 @@ If `SheetState` (or similar stateful objects) is created inside a composable, it
 **Never hardcode colours in TextStyle / typography**
 Hardcoded colours in `TextStyle` entries override Material3's `LocalContentColor`, breaking contrast in non-default themes. Always omit `color` from `TextStyle` and let the theme propagate it.
 
+**Reduce border opacity to lower visual weight — don't remove borders**
+Removing chip, text-field, or button borders entirely loses the affordance that a control is interactive. Setting unfocused / unselected border colour to ~40 % opacity (`outline.copy(alpha = 0.4f)`) reduces visual noise and improves form hierarchy without sacrificing interactivity cues. Apply consistently across all interactive controls on the same screen so they share a single visual weight tier.
+
+**Section labels and values need different visual tiers — colour is the cheapest separator**
+When a form has section labels ("Flow", "Symptoms") and entered values ("Medium", "2 hours"), both at the same font size and colour, nothing reads as primary. Applying `onSurfaceVariant` to labels (without changing their size) immediately pushes them into a supporting role and lets the values — already in the accent/primary colour — become the visual hero. No size changes needed; colour difference alone establishes the hierarchy.
+
 ---
 
 ### UI / UX
@@ -61,6 +67,9 @@ A flag like `allowMultiple` controls whether saving a log upserts an existing ro
 **Remap all foreign keys on data import**
 When importing data that generates new primary IDs (e.g. JSON/CSV restore), every foreign key referencing those IDs must also be remapped. Importing parent records with new IDs but leaving child records pointing at old IDs silently breaks relational integrity.
 
+**Store raw values; enrich for display at render time**
+Numeric values stored in the database should be raw (e.g. `"3"`, `"2.0"`) so they stay usable for stats, aggregation, and future transforms. Unit suffixes ("hours", "explosions") and scale-label mappings ("3" → "What's my name again?") belong only at the display layer, resolved by a single `enrichDisplayValue(rawValue, category)` function called just before the `Text` composable renders. This keeps storage stable, lets stats code operate directly on numbers, and means a category rename or unit change is reflected immediately without a data migration.
+
 **Store the per-event delta on the event record, not only in the running aggregate**
 When an action adds to a running total (points, balance, count), store the per-event amount on the event itself. Every deletion and undo path can then read and subtract that stored delta, keeping the aggregate in sync. An aggregate that's only ever incremented drifts away from the true value over time — the only reliable fix is a symmetric decrement path that reads from the event record.
 
@@ -82,6 +91,9 @@ The default Material3 `FilterChip` selected treatment (slightly brighter text, s
 ---
 
 ### Code Quality / Review
+
+**Branch protection blocks force push — use merge, not rebase, for conflict resolution**
+When a branch is protected against force push and upstream has moved on, `git rebase origin/main` rewrites local history that can no longer be force-pushed. The only forward path is `git merge origin/main`, which creates a merge commit but preserves the existing remote history. If both branches claimed the same version string, resolve by bumping the lower-priority branch's version upward in the same merge commit — don't leave the version collision for the reviewer to spot.
 
 **A parameter present in a function signature but never forwarded at the call site**
 A function may accept a flag (`wcag: Boolean = false`) and correctly wire it through internally, yet if the call site omits it the flag silently takes its default for every caller. Function signature looks correct, internal logic looks correct — only the gap between them is wrong. This is especially common in theming chains, feature flags, and composable parameter cascades where defaults mask the omission. When adding a parameter to a shared function, grep all call sites and verify each one explicitly passes the new argument.
