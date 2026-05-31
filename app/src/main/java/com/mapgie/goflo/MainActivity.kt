@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -161,7 +160,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    val bottomNavRoutes = listOf(Screen.Home.route, Screen.History.route, Screen.Stats.route, Screen.Settings.route)
+    val bottomNavRoutes = listOf(Screen.Home.route, Screen.History.route, Screen.Stats.route)
     val showBottomBar = bottomNavRoutes.any { currentRoute?.startsWith(it) == true }
 
     Scaffold(
@@ -194,15 +193,6 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         } },
                         icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
                         label = { Text("Stats") }
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute == Screen.Settings.route,
-                        onClick = { navController.navigate(Screen.Settings.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
-                        } },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings") }
                     )
                 }
             }
