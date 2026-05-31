@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingLog
+import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.repository.TrackingRepository
 import com.mapgie.goflo.ui.util.decodeScaleLabels
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -42,6 +44,10 @@ enum class ChartType {
     NUMERIC_DISTRIBUTION,
     /** Scatter plot of cat1 (X) vs cat2 (Y). Only valid when both categories are numeric. */
     SCATTER,
+    /** Scatter plot of cat1 value (Y) vs time (X). Only valid when cat1 is numeric. */
+    TIME_SCATTER,
+    /** Trend bars showing most common values for a category. */
+    TRENDS,
 }
 
 // ── Chart data models ─────────────────────────────────────────────────────────
@@ -58,6 +64,19 @@ data class NumericBucket(val label: String, val average: Float, val count: Int)
 data class NumericHistBar(val label: String, val count: Int)
 
 data class ScatterPoint(val x: Float, val y: Float)
+
+data class TimeScatterPoint(val dayOffset: Int, val dateLabel: String, val value: Float)
+
+data class TrendsBar(val label: String, val count: Int, val percentage: Int)
+
+data class PinnedStat(
+    val id: String,
+    val label: String,
+    val categoryId1: Long,
+    val categoryId2: Long?,
+    val timeRangeType: String,  // "ALL_TIME", "YTD", "YEAR:2025", "MONTH:2025-01"
+    val chartType: String,
+)
 
 sealed class StatsChartData {
     data object Empty : StatsChartData()
@@ -91,6 +110,16 @@ sealed class StatsChartData {
         val yMin: Float,
         val yMax: Float,
     ) : StatsChartData()
+    data class TimeScatterData(
+        val points: List<TimeScatterPoint>,
+        val yAxisName: String,
+        val yMin: Float,
+        val yMax: Float,
+    ) : StatsChartData()
+    data class TrendsData(
+        val bars: List<TrendsBar>,
+        val categoryName: String,
+    ) : StatsChartData()
 }
 
 // ── UI State ──────────────────────────────────────────────────────────────────
@@ -102,11 +131,16 @@ data class StatsUiState(
     val timeRange: TimeRange = TimeRange.AllTime,
     val chartType: ChartType = ChartType.PIE,
     val chartData: StatsChartData = StatsChartData.Empty,
+    val rememberedChartType: ChartType? = null,
+    val dashboardEnabled: Boolean = false,
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
 
-class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
+class StatsViewModel(
+    private val repository: TrackingRepository,
+    private val preferencesStore: AppPreferencesStore? = null,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatsUiState())
     val uiState: StateFlow<StatsUiState> = _uiState
@@ -116,6 +150,13 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
         viewModelScope.launch {
             repository.getAllCategories().collect { cats ->
                 _uiState.update { it.copy(categories = cats) }
+            }
+        }
+        preferencesStore?.let { store ->
+            viewModelScope.launch {
+                store.preferences.collect { prefs ->
+                    _uiState.update { it.copy(dashboardEnabled = prefs.dashboardEnabled) }
+                }
             }
         }
     }
@@ -130,7 +171,7 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     val newCat1 = state.selectedCategory2
                     val newType = when {
                         newCat1 == null -> ChartType.PIE
-                        newCat1.isNumeric -> ChartType.NUMERIC_AVERAGE
+                        newCat1.isNumeric -> ChartType.TIME_SCATTER
                         else -> state.chartType
                     }
                     state.copy(
@@ -147,7 +188,7 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                         state.chartType == ChartType.COMBO ||
                         state.chartType == ChartType.DUAL_TIME_SERIES ||
                         state.chartType == ChartType.SCATTER ->
-                            if (cat1?.isNumeric == true) ChartType.NUMERIC_AVERAGE else ChartType.PIE
+                            if (cat1?.isNumeric == true) ChartType.TIME_SCATTER else ChartType.PIE
                         else -> state.chartType
                     }
                     state.copy(
@@ -158,10 +199,12 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                 }
                 state.selectedCategory1 == null -> {
                     // First category selected — choose appropriate default chart type
-                    val defaultType = if (category.isNumeric) ChartType.NUMERIC_AVERAGE else ChartType.PIE
+                    val remembered = state.rememberedChartType
+                    val defaultType = if (category.isNumeric) ChartType.TIME_SCATTER else ChartType.PIE
+                    val newType = if (remembered != null && isValidChartType(remembered, category, null)) remembered else defaultType
                     state.copy(
                         selectedCategory1 = category,
-                        chartType = defaultType,
+                        chartType = newType,
                         chartData = StatsChartData.Empty
                     )
                 }
@@ -170,7 +213,9 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     val newType = when {
                         category.isNumeric && state.selectedCategory1?.isNumeric == true -> ChartType.SCATTER
                         state.chartType == ChartType.PIE || state.chartType == ChartType.NUMERIC_DISTRIBUTION ||
-                        state.chartType == ChartType.NUMERIC_AVERAGE -> ChartType.TIME_SERIES
+                        state.chartType == ChartType.NUMERIC_AVERAGE ||
+                        state.chartType == ChartType.TIME_SCATTER ||
+                        state.chartType == ChartType.TRENDS -> ChartType.TIME_SERIES
                         else -> state.chartType
                     }
                     state.copy(selectedCategory2 = category, chartType = newType, chartData = StatsChartData.Empty)
@@ -198,8 +243,63 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
     }
 
     fun setChartType(type: ChartType) {
-        _uiState.update { it.copy(chartType = type) }
+        _uiState.update { it.copy(chartType = type, rememberedChartType = type) }
         reloadChart()
+    }
+
+    fun toggleDashboard() {
+        viewModelScope.launch {
+            preferencesStore?.setDashboardEnabled(!_uiState.value.dashboardEnabled)
+        }
+    }
+
+    fun pinCurrentView() {
+        val state = _uiState.value
+        val cat1 = state.selectedCategory1 ?: return
+        viewModelScope.launch {
+            val label = buildString {
+                append(cat1.name)
+                state.selectedCategory2?.let { append(" vs ${it.name}") }
+            }
+            val timeRangeStr = when (val tr = state.timeRange) {
+                is TimeRange.AllTime -> "ALL_TIME"
+                is TimeRange.YearToDate -> "YTD"
+                is TimeRange.CalendarYear -> "YEAR:${tr.year}"
+                is TimeRange.SpecificMonth -> "MONTH:${tr.yearMonth}"
+            }
+            val pin = PinnedStat(
+                id = java.util.UUID.randomUUID().toString(),
+                label = label,
+                categoryId1 = cat1.id,
+                categoryId2 = state.selectedCategory2?.id,
+                timeRangeType = timeRangeStr,
+                chartType = state.chartType.name
+            )
+            val existing = loadPins()
+            savePins(existing + pin)
+        }
+    }
+
+    private suspend fun loadPins(): List<PinnedStat> {
+        val json = preferencesStore?.preferences?.let { flow ->
+            first(flow).pinnedStats
+        } ?: return emptyList()
+        return parsePins(json)
+    }
+
+    private suspend fun savePins(pins: List<PinnedStat>) {
+        preferencesStore?.setPinnedStats(encodePins(pins))
+    }
+
+    private fun isValidChartType(type: ChartType, cat1: TrackingCategory, cat2: TrackingCategory?): Boolean {
+        return when (type) {
+            ChartType.SCATTER -> cat1.isNumeric && cat2?.isNumeric == true
+            ChartType.DUAL_TIME_SERIES -> cat2 != null
+            ChartType.COMBO -> cat2 != null && !cat1.isNumeric && cat2.let { !it.isNumeric }
+            ChartType.NUMERIC_AVERAGE, ChartType.NUMERIC_DISTRIBUTION, ChartType.TIME_SCATTER -> cat1.isNumeric
+            ChartType.TRENDS -> !cat1.isNumeric
+            ChartType.PIE, ChartType.TIME_SERIES -> true
+        }
     }
 
     // ── Chart data computation ────────────────────────────────────────────────
@@ -232,7 +332,7 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
 
                 ChartType.TIME_SERIES -> {
                     val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
-                    val buckets = groupByTimeBucket(logs, start, end)
+                    val buckets = groupByTimeBucket(logs, start, end, state.timeRange)
                     if (buckets.isEmpty()) StatsChartData.Empty
                     else StatsChartData.TimeSeriesData(buckets, cat1.name)
                 }
@@ -255,7 +355,7 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     } else {
                         val logs1 = repository.getLogsForCategoryInRange(cat1.id, start, end)
                         val logs2 = repository.getLogsForCategoryInRange(cat2.id, start, end)
-                        val buckets = buildDualBuckets(logs1, logs2, start, end)
+                        val buckets = buildDualBuckets(logs1, logs2, start, end, state.timeRange)
                         if (buckets.isEmpty()) StatsChartData.Empty
                         else StatsChartData.DualTimeSeriesData(buckets, cat1.name, cat2.name)
                     }
@@ -271,7 +371,7 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                     if (logValues.isEmpty()) {
                         StatsChartData.Empty
                     } else {
-                        val buckets = buildNumericAverageBuckets(logValues, start, end)
+                        val buckets = buildNumericAverageBuckets(logValues, start, end, state.timeRange)
                         val allVals = logValues.map { it.second }
                         StatsChartData.NumericAverageData(
                             buckets      = buckets,
@@ -319,15 +419,56 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                             points.add(ScatterPoint(x, y))
                         }
                         if (points.isEmpty()) StatsChartData.Empty
-                        else StatsChartData.ScatterData(
-                            points    = points,
-                            xAxisName = cat1.name,
-                            yAxisName = cat2.name,
-                            xMin = points.minOf { it.x },
-                            xMax = points.maxOf { it.x },
-                            yMin = points.minOf { it.y },
-                            yMax = points.maxOf { it.y },
+                        else {
+                            val useZeroBaseline = state.timeRange !is TimeRange.AllTime && state.timeRange !is TimeRange.YearToDate
+                            StatsChartData.ScatterData(
+                                points    = points,
+                                xAxisName = cat1.name,
+                                yAxisName = cat2.name,
+                                xMin = if (useZeroBaseline) 0f else points.minOf { it.x },
+                                xMax = points.maxOf { it.x },
+                                yMin = if (useZeroBaseline) 0f else points.minOf { it.y },
+                                yMax = points.maxOf { it.y },
+                            )
+                        }
+                    }
+                }
+
+                ChartType.TIME_SCATTER -> {
+                    val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
+                    val points = mutableListOf<TimeScatterPoint>()
+                    for (log in logs) {
+                        val date = LocalDate.parse(log.date)
+                        val value = repository.getValuesForLog(log.id).firstOrNull()?.toFloatOrNull() ?: continue
+                        val offset = ChronoUnit.DAYS.between(start, date).toInt()
+                        val label = date.format(DateTimeFormatter.ofPattern("d MMM"))
+                        points.add(TimeScatterPoint(dayOffset = offset, dateLabel = label, value = value))
+                    }
+                    if (points.isEmpty()) StatsChartData.Empty
+                    else {
+                        val useZeroBaseline = state.timeRange !is TimeRange.AllTime && state.timeRange !is TimeRange.YearToDate
+                        StatsChartData.TimeScatterData(
+                            points = points,
+                            yAxisName = cat1.name,
+                            yMin = if (useZeroBaseline) 0f else points.minOf { it.value },
+                            yMax = points.maxOf { it.value },
                         )
+                    }
+                }
+
+                ChartType.TRENDS -> {
+                    val counts = repository.getValueCountsForCategory(cat1.id, start, end)
+                    if (counts.isEmpty()) StatsChartData.Empty
+                    else {
+                        val total = counts.sumOf { it.count }.coerceAtLeast(1)
+                        val bars = counts.sortedByDescending { it.count }.take(10).map { vc ->
+                            TrendsBar(
+                                label = vc.valueLabel,
+                                count = vc.count,
+                                percentage = (vc.count * 100 / total).coerceAtMost(100)
+                            )
+                        }
+                        StatsChartData.TrendsData(bars, cat1.name)
                     }
                 }
             }
@@ -356,21 +497,35 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
     // ── Time bucket helpers ───────────────────────────────────────────────────
 
     /**
-     * Groups [logs] into time buckets. Uses weekly buckets for ranges <= 90 days,
-     * monthly buckets otherwise.
+     * Groups [logs] into time buckets. Uses daily buckets for SpecificMonth,
+     * weekly buckets for ranges <= 90 days, monthly buckets otherwise.
      */
     private fun groupByTimeBucket(
         logs: List<TrackingLog>,
         start: LocalDate,
-        end: LocalDate
+        end: LocalDate,
+        timeRange: TimeRange = TimeRange.AllTime
     ): List<TimeBucket> {
         if (logs.isEmpty()) return emptyList()
+        return when {
+            timeRange is TimeRange.SpecificMonth -> groupByDay(logs, start, end)
+            ChronoUnit.DAYS.between(start, end) <= 90 -> groupByWeek(logs, start, end)
+            else -> groupByMonth(logs, start, end)
+        }
+    }
 
-        val daysBetween = ChronoUnit.DAYS.between(start, end)
-        return if (daysBetween <= 90) {
-            groupByWeek(logs, start, end)
-        } else {
-            groupByMonth(logs, start, end)
+    private fun groupByDay(
+        logs: List<TrackingLog>,
+        start: LocalDate,
+        end: LocalDate
+    ): List<TimeBucket> {
+        val days = mutableListOf<LocalDate>()
+        var d = start
+        while (!d.isAfter(end)) { days.add(d); d = d.plusDays(1) }
+        val logsByDay = logs.groupBy { LocalDate.parse(it.date) }
+        val shortFmt = DateTimeFormatter.ofPattern("d MMM")
+        return days.map { day ->
+            TimeBucket(label = day.format(shortFmt), count = logsByDay[day]?.size ?: 0)
         }
     }
 
@@ -398,9 +553,6 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
                 label = ym.format(shortFmt),
                 count = logsByMonth[ym]?.size ?: 0
             )
-        }.filter { bucket ->
-            // Only keep trailing empty buckets if there's data elsewhere, trim leading blanks
-            true // keep all — chart will show zeros as empty bars
         }
     }
 
@@ -435,20 +587,36 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
 
     /**
      * Groups [logValues] (log + parsed float) into time buckets and computes the
-     * average numeric value per bucket.  Uses the same weekly/monthly logic as
-     * [groupByTimeBucket].
+     * average numeric value per bucket.
      */
     private fun buildNumericAverageBuckets(
         logValues: List<Pair<TrackingLog, Float>>,
         start: LocalDate,
-        end: LocalDate
+        end: LocalDate,
+        timeRange: TimeRange = TimeRange.AllTime
     ): List<NumericBucket> {
         if (logValues.isEmpty()) return emptyList()
-        val daysBetween = ChronoUnit.DAYS.between(start, end)
-        return if (daysBetween <= 90) {
-            buildNumericWeekBuckets(logValues, start, end)
-        } else {
-            buildNumericMonthBuckets(logValues, start, end)
+        return when {
+            timeRange is TimeRange.SpecificMonth -> buildNumericDayBuckets(logValues, start, end)
+            ChronoUnit.DAYS.between(start, end) <= 90 -> buildNumericWeekBuckets(logValues, start, end)
+            else -> buildNumericMonthBuckets(logValues, start, end)
+        }
+    }
+
+    private fun buildNumericDayBuckets(
+        logValues: List<Pair<TrackingLog, Float>>,
+        start: LocalDate,
+        end: LocalDate
+    ): List<NumericBucket> {
+        val days = mutableListOf<LocalDate>()
+        var d = start
+        while (!d.isAfter(end)) { days.add(d); d = d.plusDays(1) }
+        val byDay = logValues.groupBy { (log, _) -> LocalDate.parse(log.date) }
+        val shortFmt = DateTimeFormatter.ofPattern("d MMM")
+        return days.mapNotNull { day ->
+            val entries = byDay[day] ?: return@mapNotNull null
+            val avg = entries.map { it.second }.average().toFloat()
+            NumericBucket(day.format(shortFmt), avg, entries.size)
         }
     }
 
@@ -531,56 +699,130 @@ class StatsViewModel(private val repository: TrackingRepository) : ViewModel() {
         logs1: List<TrackingLog>,
         logs2: List<TrackingLog>,
         start: LocalDate,
+        end: LocalDate,
+        timeRange: TimeRange = TimeRange.AllTime
+    ): List<DualBucket> {
+        return when {
+            timeRange is TimeRange.SpecificMonth -> buildDualDayBuckets(logs1, logs2, start, end)
+            ChronoUnit.DAYS.between(start, end) <= 90 -> buildDualWeekBuckets(logs1, logs2, start, end)
+            else -> buildDualMonthBuckets(logs1, logs2, start, end)
+        }
+    }
+
+    private fun buildDualDayBuckets(
+        logs1: List<TrackingLog>,
+        logs2: List<TrackingLog>,
+        start: LocalDate,
         end: LocalDate
     ): List<DualBucket> {
-        val daysBetween = ChronoUnit.DAYS.between(start, end)
+        val days = mutableListOf<LocalDate>()
+        var d = start
+        while (!d.isAfter(end)) { days.add(d); d = d.plusDays(1) }
+        val logs1ByDay = logs1.groupBy { LocalDate.parse(it.date) }
+        val logs2ByDay = logs2.groupBy { LocalDate.parse(it.date) }
+        val shortFmt = DateTimeFormatter.ofPattern("d MMM")
+        return days.map { day ->
+            DualBucket(
+                label = day.format(shortFmt),
+                count1 = logs1ByDay[day]?.size ?: 0,
+                count2 = logs2ByDay[day]?.size ?: 0
+            )
+        }
+    }
 
-        return if (daysBetween <= 90) {
-            val combined = (logs1 + logs2).distinctBy { it.date + it.categoryId }
-            val weekFields = WeekFields.of(Locale.getDefault())
+    private fun buildDualWeekBuckets(
+        logs1: List<TrackingLog>,
+        logs2: List<TrackingLog>,
+        start: LocalDate,
+        end: LocalDate
+    ): List<DualBucket> {
+        val weekFields = WeekFields.of(Locale.getDefault())
+        val weeks = mutableListOf<LocalDate>()
+        var ws = start.with(weekFields.dayOfWeek(), 1)
+        val lastWs = end.with(weekFields.dayOfWeek(), 1)
+        while (!ws.isAfter(lastWs)) { weeks.add(ws); ws = ws.plusWeeks(1) }
 
-            val weeks = mutableListOf<LocalDate>()
-            var ws = start.with(weekFields.dayOfWeek(), 1)
-            val lastWs = end.with(weekFields.dayOfWeek(), 1)
-            while (!ws.isAfter(lastWs)) { weeks.add(ws); ws = ws.plusWeeks(1) }
+        val logs1ByWeek = logs1.groupBy { LocalDate.parse(it.date).with(weekFields.dayOfWeek(), 1) }
+        val logs2ByWeek = logs2.groupBy { LocalDate.parse(it.date).with(weekFields.dayOfWeek(), 1) }
 
-            val logs1ByWeek = logs1.groupBy { LocalDate.parse(it.date).with(weekFields.dayOfWeek(), 1) }
-            val logs2ByWeek = logs2.groupBy { LocalDate.parse(it.date).with(weekFields.dayOfWeek(), 1) }
+        return weeks.map { weekStart ->
+            val label = "W${weekStart.get(weekFields.weekOfWeekBasedYear())} '${weekStart.format(DateTimeFormatter.ofPattern("yy"))}"
+            DualBucket(
+                label = label,
+                count1 = logs1ByWeek[weekStart]?.size ?: 0,
+                count2 = logs2ByWeek[weekStart]?.size ?: 0
+            )
+        }
+    }
 
-            weeks.map { weekStart ->
-                val label = "W${weekStart.get(weekFields.weekOfWeekBasedYear())} '${weekStart.format(DateTimeFormatter.ofPattern("yy"))}"
-                DualBucket(
-                    label = label,
-                    count1 = logs1ByWeek[weekStart]?.size ?: 0,
-                    count2 = logs2ByWeek[weekStart]?.size ?: 0
-                )
-            }
-        } else {
-            val months = mutableListOf<YearMonth>()
-            var m = YearMonth.from(start)
-            val endMonth = YearMonth.from(end)
-            while (!m.isAfter(endMonth)) { months.add(m); m = m.plusMonths(1) }
+    private fun buildDualMonthBuckets(
+        logs1: List<TrackingLog>,
+        logs2: List<TrackingLog>,
+        start: LocalDate,
+        end: LocalDate
+    ): List<DualBucket> {
+        val months = mutableListOf<YearMonth>()
+        var m = YearMonth.from(start)
+        val endMonth = YearMonth.from(end)
+        while (!m.isAfter(endMonth)) { months.add(m); m = m.plusMonths(1) }
 
-            val logs1ByMonth = logs1.groupBy { YearMonth.from(LocalDate.parse(it.date)) }
-            val logs2ByMonth = logs2.groupBy { YearMonth.from(LocalDate.parse(it.date)) }
+        val logs1ByMonth = logs1.groupBy { YearMonth.from(LocalDate.parse(it.date)) }
+        val logs2ByMonth = logs2.groupBy { YearMonth.from(LocalDate.parse(it.date)) }
 
-            val shortFmt = DateTimeFormatter.ofPattern("MMM yy")
-            months.map { ym ->
-                DualBucket(
-                    label = ym.format(shortFmt),
-                    count1 = logs1ByMonth[ym]?.size ?: 0,
-                    count2 = logs2ByMonth[ym]?.size ?: 0
-                )
-            }
+        val shortFmt = DateTimeFormatter.ofPattern("MMM yy")
+        return months.map { ym ->
+            DualBucket(
+                label = ym.format(shortFmt),
+                count1 = logs1ByMonth[ym]?.size ?: 0,
+                count2 = logs2ByMonth[ym]?.size ?: 0
+            )
         }
     }
 
     // ── Factory ───────────────────────────────────────────────────────────────
 
-    class Factory(private val repository: TrackingRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: TrackingRepository,
+        private val preferencesStore: AppPreferencesStore? = null,
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return StatsViewModel(repository) as T
+            return StatsViewModel(repository, preferencesStore) as T
         }
     }
+}
+
+// ── Pin helpers (package-level) ───────────────────────────────────────────────
+
+fun parsePins(json: String): List<PinnedStat> {
+    if (json.isBlank()) return emptyList()
+    return runCatching {
+        val arr = org.json.JSONArray(json)
+        (0 until arr.length()).map { i ->
+            val obj = arr.getJSONObject(i)
+            PinnedStat(
+                id = obj.getString("id"),
+                label = obj.getString("label"),
+                categoryId1 = obj.getLong("categoryId1"),
+                categoryId2 = obj.optLong("categoryId2", -1L).takeIf { it != -1L },
+                timeRangeType = obj.getString("timeRangeType"),
+                chartType = obj.getString("chartType"),
+            )
+        }
+    }.getOrDefault(emptyList())
+}
+
+fun encodePins(pins: List<PinnedStat>): String {
+    val arr = org.json.JSONArray()
+    pins.forEach { pin ->
+        val obj = org.json.JSONObject()
+        obj.put("id", pin.id)
+        obj.put("label", pin.label)
+        obj.put("categoryId1", pin.categoryId1)
+        pin.categoryId2?.let { obj.put("categoryId2", it) }
+        obj.put("timeRangeType", pin.timeRangeType)
+        obj.put("chartType", pin.chartType)
+        arr.put(obj)
+    }
+    return arr.toString()
 }

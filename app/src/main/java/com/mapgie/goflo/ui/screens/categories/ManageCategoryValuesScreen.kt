@@ -22,9 +22,12 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -243,6 +246,14 @@ fun ManageCategoryValuesScreen(
     }
 
     Scaffold(
+        floatingActionButton = {
+            val cat = state.category
+            if (cat?.categoryType == "default" || cat?.categoryType == null) {
+                FloatingActionButton(onClick = { showAddValue = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add value")
+                }
+            }
+        },
         topBar = {
             TopAppBar(
                 title = {
@@ -374,7 +385,7 @@ fun ManageCategoryValuesScreen(
             else -> DefaultCategoryValues(
                 state                    = state,
                 modifier                 = Modifier.padding(padding),
-                onAddValue               = { showAddValue = true },
+                onNavigateBack           = onNavigateBack,
                 onRenameValue            = { renamingValue = it.id },
                 onDeleteValue            = { pendingDeleteValue = it.id },
                 onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
@@ -391,7 +402,7 @@ fun ManageCategoryValuesScreen(
 private fun DefaultCategoryValues(
     state: ManageCategoryValuesUiState,
     modifier: Modifier,
-    onAddValue: () -> Unit,
+    onNavigateBack: () -> Unit,
     onRenameValue: (TrackingValue) -> Unit,
     onDeleteValue: (TrackingValue) -> Unit,
     onToggleLogWithPeriod: (Boolean) -> Unit,
@@ -414,12 +425,12 @@ private fun DefaultCategoryValues(
                 checked   = category.allowMultiple,
                 onChecked = onToggleAllowMultiple
             )
-            TrackAgainstTimeRow(
-                checked   = category.trackAgainstTime,
-                onChecked = onToggleTrackAgainstTime
-            )
-            HorizontalDivider()
         }
+        TrackAgainstTimeRow(
+            checked   = category?.trackAgainstTime ?: false,
+            onChecked = onToggleTrackAgainstTime
+        )
+        HorizontalDivider()
 
         Text(
             "Values in this category:",
@@ -429,14 +440,15 @@ private fun DefaultCategoryValues(
 
         if (state.values.isEmpty()) {
             Text(
-                "No values yet. Add some below.",
+                "No values yet. Add some using the + button.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         } else {
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 items(state.values, key = { it.id }) { value ->
                     ValueRow(
@@ -450,8 +462,8 @@ private fun DefaultCategoryValues(
 
         HorizontalDivider()
 
-        Button(onClick = onAddValue, modifier = Modifier.fillMaxWidth()) {
-            Text("+ Add a value")
+        Button(onClick = { onNavigateBack() }, modifier = Modifier.fillMaxWidth()) {
+            Text("Save")
         }
     }
 }
@@ -476,12 +488,12 @@ private fun IncrementCategoryInfo(
                 checked   = category.showInLogPeriod,
                 onChecked = onToggleLogWithPeriod
             )
-            TrackAgainstTimeRow(
-                checked   = category.trackAgainstTime,
-                onChecked = onToggleTrackAgainstTime
-            )
-            HorizontalDivider()
         }
+        TrackAgainstTimeRow(
+            checked   = category.trackAgainstTime,
+            onChecked = onToggleTrackAgainstTime
+        )
+        HorizontalDivider()
 
         Text(
             "Plus One category",
@@ -583,12 +595,12 @@ private fun NumericSliderSettings(
                 checked   = category.allowMultiple,
                 onChecked = onToggleAllowMultiple
             )
-            TrackAgainstTimeRow(
-                checked   = category.trackAgainstTime,
-                onChecked = onToggleTrackAgainstTime
-            )
-            HorizontalDivider()
         }
+        TrackAgainstTimeRow(
+            checked   = category.trackAgainstTime,
+            onChecked = onToggleTrackAgainstTime
+        )
+        HorizontalDivider()
 
         Text(
             "Slider scale settings",
@@ -741,12 +753,12 @@ private fun NumericFreeSettings(
                 checked   = category.allowMultiple,
                 onChecked = onToggleAllowMultiple
             )
-            TrackAgainstTimeRow(
-                checked   = category.trackAgainstTime,
-                onChecked = onToggleTrackAgainstTime
-            )
-            HorizontalDivider()
         }
+        TrackAgainstTimeRow(
+            checked   = category.trackAgainstTime,
+            onChecked = onToggleTrackAgainstTime
+        )
+        HorizontalDivider()
 
         Text(
             "Numeric Input settings",

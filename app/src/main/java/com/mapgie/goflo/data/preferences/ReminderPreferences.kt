@@ -62,6 +62,10 @@ data class AppPreferences(
      * (false) keeps the privacy placeholder when PIN lock is active.
      */
     val widgetDataVisible: Boolean = false,
+    /** Whether the dashboard tab is enabled. */
+    val dashboardEnabled: Boolean = false,
+    /** JSON-encoded list of pinned stat combos. */
+    val pinnedStats: String = "",
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -83,6 +87,8 @@ class AppPreferencesStore(private val context: Context) {
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
         val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
+        val DASHBOARD_ENABLED = booleanPreferencesKey("dashboard_enabled")
+        val PINNED_STATS = stringPreferencesKey("pinned_stats")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -97,6 +103,8 @@ class AppPreferencesStore(private val context: Context) {
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
             widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
+            dashboardEnabled = prefs[Keys.DASHBOARD_ENABLED] ?: false,
+            pinnedStats = prefs[Keys.PINNED_STATS] ?: "",
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -184,5 +192,13 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setWidgetDataVisible(visible: Boolean) {
         context.dataStore.edit { it[Keys.WIDGET_DATA_VISIBLE] = visible }
+    }
+
+    suspend fun setDashboardEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.DASHBOARD_ENABLED] = enabled }
+    }
+
+    suspend fun setPinnedStats(json: String) {
+        context.dataStore.edit { it[Keys.PINNED_STATS] = json }
     }
 }

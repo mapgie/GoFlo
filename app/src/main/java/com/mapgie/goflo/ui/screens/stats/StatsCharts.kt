@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -598,5 +599,127 @@ fun ScatterPlot(data: StatsChartData.ScatterData, modifier: Modifier = Modifier)
                 .align(Alignment.CenterHorizontally)
                 .padding(top = 2.dp)
         )
+    }
+}
+
+// ── Time scatter chart (time on X, category value on Y) ──────────────────────
+
+@Composable
+fun TimeScatterChart(data: StatsChartData.TimeScatterData, modifier: Modifier = Modifier) {
+    val primary    = MaterialTheme.colorScheme.primary
+    val outline    = MaterialTheme.colorScheme.outlineVariant
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    fun fmtVal(v: Float) = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
+
+    val maxOffset = data.points.maxOfOrNull { it.dayOffset }?.coerceAtLeast(1) ?: 1
+    val yRange    = (data.yMax - data.yMin).coerceAtLeast(0.001f)
+    val midY      = (data.yMin + data.yMax) / 2f
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "↑  ${data.yAxisName}",
+            style = labelStyle,
+            color = labelColor,
+            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+        )
+        Row(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+            Column(
+                modifier = Modifier.width(44.dp).fillMaxHeight().padding(end = 4.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.End
+            ) {
+                Text(fmtVal(data.yMax), style = labelStyle, color = labelColor, textAlign = TextAlign.End)
+                if (data.yMin != data.yMax) {
+                    Text(fmtVal(midY), style = labelStyle, color = labelColor, textAlign = TextAlign.End)
+                }
+                Text(fmtVal(data.yMin), style = labelStyle, color = labelColor, textAlign = TextAlign.End)
+            }
+            Canvas(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                val plotW = size.width
+                val plotH = size.height
+                fun toCanvasX(offset: Int) = offset.toFloat() / maxOffset.toFloat() * plotW
+                fun toCanvasY(v: Float) = plotH - (v - data.yMin) / yRange * plotH
+
+                for (frac in listOf(0.25f, 0.5f, 0.75f)) {
+                    drawLine(
+                        outline.copy(alpha = 0.3f),
+                        Offset(0f, frac * plotH), Offset(plotW, frac * plotH),
+                        strokeWidth = 0.5.dp.toPx()
+                    )
+                    drawLine(
+                        outline.copy(alpha = 0.3f),
+                        Offset(frac * plotW, 0f), Offset(frac * plotW, plotH),
+                        strokeWidth = 0.5.dp.toPx()
+                    )
+                }
+                val axisStroke = 1.5.dp.toPx()
+                drawLine(outline, Offset(0f, 0f), Offset(0f, plotH), strokeWidth = axisStroke)
+                drawLine(outline, Offset(0f, plotH), Offset(plotW, plotH), strokeWidth = axisStroke)
+                val dotRadius = 4.5.dp.toPx()
+                data.points.forEach { pt ->
+                    drawCircle(primary.copy(alpha = 0.75f), dotRadius, Offset(toCanvasX(pt.dayOffset), toCanvasY(pt.value)))
+                }
+            }
+        }
+        if (data.points.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 44.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    data.points.minByOrNull { it.dayOffset }?.dateLabel ?: "",
+                    style = labelStyle, color = labelColor
+                )
+                Text(
+                    data.points.maxByOrNull { it.dayOffset }?.dateLabel ?: "",
+                    style = labelStyle, color = labelColor
+                )
+            }
+        }
+        Text(
+            text = "Time  →",
+            style = labelStyle,
+            color = labelColor,
+            modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 2.dp)
+        )
+    }
+}
+
+// ── Trends chart (value frequency progress bars) ──────────────────────────────
+
+@Composable
+fun TrendsChart(data: StatsChartData.TrendsData) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            "${data.categoryName} — most common values",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        data.bars.forEach { bar ->
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(bar.label, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        "${bar.count}× · ${bar.percentage}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                LinearProgressIndicator(
+                    progress   = { bar.percentage / 100f },
+                    modifier   = Modifier.fillMaxWidth().height(4.dp),
+                    color      = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                )
+            }
+        }
     }
 }

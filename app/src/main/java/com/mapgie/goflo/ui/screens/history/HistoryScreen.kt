@@ -21,7 +21,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -63,7 +62,6 @@ fun HistoryScreen(
     onNavigate: (String) -> Unit
 ) {
     val periods by viewModel.periods.collectAsState()
-    val symptomTrends by viewModel.symptomTrends.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -127,13 +125,6 @@ fun HistoryScreen(
             ) {
                 item { Spacer(Modifier.height(4.dp)) }
 
-                // Symptom trends card — shown when ≥3 periods are logged
-                if (symptomTrends.isNotEmpty()) {
-                    item {
-                        SymptomTrendsCard(trends = symptomTrends)
-                    }
-                }
-
                 items(periods, key = { it.id }) { period ->
                     SwipeablePeriodCard(
                         period  = period,
@@ -166,44 +157,6 @@ fun HistoryScreen(
 }
 
 // ── Symptom Trends ────────────────────────────────────────────────────────────
-
-@Composable
-private fun SymptomTrendsCard(trends: List<SymptomTrend>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Symptom Trends", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "Most common symptoms across your logged periods",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            trends.forEach { trend ->
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(trend.displayName, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            "${trend.count}× · ${trend.percentage}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    LinearProgressIndicator(
-                        progress   = { trend.percentage / 100f },
-                        modifier   = Modifier.fillMaxWidth().height(4.dp),
-                        color      = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                    )
-                }
-            }
-        }
-    }
-}
 
 // ── Swipeable period card ─────────────────────────────────────────────────────
 
