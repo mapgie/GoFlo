@@ -19,6 +19,14 @@ Rules:
 
 ---
 
+## [0.16.1-beta.1] - 2026-05-31
+
+### Changed
+- **Stats category picker — context-aware labels** — X/Y axis labels in the summary bar and chip prefixes now only appear when the Scatter chart type is active (where X and Y map to real axes). All other chart types show category names without axis terminology.
+- **Stats selection colour unified** — both the first and second selected category use the same `primaryContainer` fill, eliminating the arbitrary primary/secondary hue clash (pink vs teal). The summary bar now uses `primary` for both names rather than `primary` + `secondary`.
+
+---
+
 ## [0.16.0-beta.1] - 2026-05-31
 
 ### Changed
