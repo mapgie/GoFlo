@@ -291,9 +291,10 @@ private fun SpeedDial(
             }
         }
 
-        // Main Extended FAB
+        // Main Extended FAB — icon-only when closed, expands to show "Log" when speed dial is open
         ExtendedFloatingActionButton(
             onClick          = onToggle,
+            expanded         = expanded,
             containerColor   = MaterialTheme.colorScheme.primaryContainer,
             contentColor     = MaterialTheme.colorScheme.onPrimaryContainer,
             icon = {
@@ -305,9 +306,11 @@ private fun SpeedDial(
                 }
             },
             text = {
-                AnimatedContent(targetState = expanded) { open ->
-                    Text(if (open) "Close" else "Log…")
-                }
+                Text(
+                    text       = "Log",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontFamily = ComfortaaFamily,
+                )
             }
         )
     }

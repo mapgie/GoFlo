@@ -40,6 +40,15 @@ Rules:
 
 ---
 
+## [0.14.0-beta.3] - 2026-05-31
+
+### Changed
+- **FAB — icon-only at rest** — the floating action button now shows only the Add icon when the speed dial is closed, removing the "Log…" label from the resting state so the button feels like a proper FAB rather than a labelled afterthought.
+- **FAB — expands on open** — tapping the FAB opens the speed dial and simultaneously expands the button to show the Close icon alongside a "Log" label (ellipsis removed); font is `titleMedium` to match the visual weight of the icon.
+- **FAB — Comfortaa typeface on label** — the "Log" label uses the GoFlo brand font (Comfortaa Bold) for consistency with the rest of the app's typographic identity.
+
+---
+
 ## [0.14.0-beta.2] - 2026-05-31
 
 ### Changed
