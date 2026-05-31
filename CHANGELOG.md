@@ -19,6 +19,20 @@ Rules:
 
 ---
 
+## [0.18.0-beta.1] - 2026-05-31
+
+### Added
+- **Settings — back button on main list** — the main Settings screen now shows a back-arrow in the toolbar so users have a clear, visible way to return.
+- **Settings — Full backup export** — a new "Export scope" toggle lets users choose between "Data only" (existing behaviour) and "Full backup", which also includes all category names, values, colors, archive status, and dashboard pins. Useful for transferring everything to a new phone.
+- **Stats — Year before YTD in time range selector** — the segment order is now All Time, Year, YTD, Month.
+- **Stats — YTD default time range** — the Stats screen now opens on Year-to-Date instead of All Time.
+- **Stats — selections remembered** — the Stats screen now remembers the last time range, category selections, chart type, and zoom level across navigation and app restarts.
+- **Stats — month zoom control** — when the Month time range is selected, two zoom buttons let users compress or expand the bar width, so all 31 days can fit on screen at once.
+- **Stats — landscape auto-hide** — in landscape orientation the top bar collapses on scroll, the beta banner is hidden, and the bottom navigation bar is hidden to maximise chart space.
+
+### Fixed
+- **Security — biometric lock crash** — enabling biometric unlock no longer causes a crash if the biometric prompt is shown while the activity is not yet fully active.
+
 ## [0.17.0-beta.1] - 2026-05-31
 
 ### Added

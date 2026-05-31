@@ -274,6 +274,7 @@ private enum class SettingsSubScreen {
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
+    onBack: () -> Unit = {},
     onNavigateToPinSetup: (changing: Boolean) -> Unit,
     onNavigateToLicenses: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
@@ -552,6 +553,7 @@ fun SettingsScreen(
             currentTheme                 = currentTheme,
             reminder                     = reminder,
             scrollState                  = mainListScrollState,
+            onBack                       = onBack,
             onNavigateTo                 = { currentSubScreen = it },
             onNavigateToManageCategories = onNavigateToManageCategories,
             onOpenDiscord                = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
@@ -632,6 +634,7 @@ private fun SettingsMainList(
     currentTheme:                 AppTheme,
     reminder:                     ReminderSettings,
     scrollState:                  ScrollState,
+    onBack:                       () -> Unit,
     onNavigateTo:                 (SettingsSubScreen) -> Unit,
     onNavigateToManageCategories: () -> Unit,
     onOpenDiscord:                () -> Unit,
@@ -660,9 +663,15 @@ private fun SettingsMainList(
         topBar = {
             TopAppBar(
                 title  = { Text("Settings") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor    = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor             = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor          = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
         }
@@ -1380,6 +1389,7 @@ private fun ExportDataSubScreen(
     onBack:     () -> Unit,
 ) {
     var format              by rememberSaveable { mutableStateOf(ExportFormat.JSON) }
+    var fullBackup          by rememberSaveable { mutableStateOf(false) }
     var datePreset          by rememberSaveable { mutableStateOf(DateRangePreset.ALL_TIME) }
     var customStart         by remember { mutableStateOf<LocalDate?>(null) }
     var customEnd           by remember { mutableStateOf<LocalDate?>(null) }
@@ -1387,6 +1397,8 @@ private fun ExportDataSubScreen(
     var selectedCategoryIds by remember { mutableStateOf(categories.map { it.id }.toSet()) }
     var showStartPicker     by rememberSaveable { mutableStateOf(false) }
     var showEndPicker       by rememberSaveable { mutableStateOf(false) }
+    // Full backup forces JSON format
+    val effectiveFormat     = if (fullBackup) ExportFormat.JSON else format
 
     if (showStartPicker) {
         ExportDatePickerDialog(
@@ -1416,6 +1428,47 @@ private fun ExportDataSubScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // ── Export scope ─────────────────────────────────────────────
+                Text("Export scope", style = MaterialTheme.typography.labelLarge)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { fullBackup = false }
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = !fullBackup, onClick = { fullBackup = false })
+                    Spacer(Modifier.width(4.dp))
+                    Column {
+                        Text("Data only", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Period logs and tracking entries",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { fullBackup = true }
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = fullBackup, onClick = { fullBackup = true })
+                    Spacer(Modifier.width(4.dp))
+                    Column {
+                        Text("Full backup", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "Data plus category names, values, colours, settings, and dashboard pins. Use for transferring to a new phone.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
                 // ── Date range ───────────────────────────────────────────────
                 Text("Date range", style = MaterialTheme.typography.labelLarge)
                 FlowRow(
@@ -1493,26 +1546,34 @@ private fun ExportDataSubScreen(
 
                 // ── Format ───────────────────────────────────────────────────
                 Text("Format", style = MaterialTheme.typography.labelLarge)
-                ExportFormat.entries.forEach { f ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { format = f }
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = format == f, onClick = { format = f })
-                        Spacer(Modifier.width(4.dp))
-                        Column {
-                            Text(f.name, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                when (f) {
-                                    ExportFormat.JSON -> "Full backup — can be re-imported"
-                                    ExportFormat.CSV  -> "Spreadsheet-friendly flat table"
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                if (fullBackup) {
+                    Text(
+                        "Full backup always uses JSON.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    ExportFormat.entries.forEach { f ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { format = f }
+                                .padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(selected = format == f, onClick = { format = f })
+                            Spacer(Modifier.width(4.dp))
+                            Column {
+                                Text(f.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    when (f) {
+                                        ExportFormat.JSON -> "Can be re-imported"
+                                        ExportFormat.CSV  -> "Spreadsheet-friendly flat table"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -1525,16 +1586,17 @@ private fun ExportDataSubScreen(
                     onClick  = {
                         onExport(
                             ExportConfig(
-                                format              = format,
+                                format              = effectiveFormat,
                                 includePeriods      = includePeriods,
                                 selectedCategoryIds = selectedCategoryIds,
                                 dateRangePreset     = datePreset,
                                 customStartDate     = customStart,
-                                customEndDate       = customEnd
+                                customEndDate       = customEnd,
+                                fullBackup          = fullBackup,
                             )
                         )
                     },
-                    enabled  = customRangeReady && hasAnything,
+                    enabled  = customRangeReady && (hasAnything || fullBackup),
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Export") }
             }

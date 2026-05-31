@@ -131,12 +131,15 @@ fun PieChart(
 /**
  * Vertical bar chart for a single category over time.
  * Scrollable horizontally when there are many buckets.
+ * [zoomLevel] 0=compact (28 dp), 1=normal (52 dp), 2=wide (80 dp).
  */
 @Composable
 fun BarChart(
     data: StatsChartData.TimeSeriesData,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    zoomLevel: Int = 1,
 ) {
+    val barWidthDp = when (zoomLevel) { 0 -> 28.dp; 2 -> 80.dp; else -> 52.dp }
     val maxCount = data.buckets.maxOfOrNull { it.count }?.coerceAtLeast(1) ?: 1
     val barColor = MaterialTheme.colorScheme.primary
 
@@ -151,7 +154,8 @@ fun BarChart(
                 count = bucket.count,
                 maxCount = maxCount,
                 label = bucket.label,
-                barColor = barColor
+                barColor = barColor,
+                widthDp = barWidthDp,
             )
         }
     }
@@ -161,11 +165,13 @@ fun BarChart(
 
 /**
  * Vertical bar chart showing two categories side-by-side per time bucket.
+ * [zoomLevel] 0=compact (40 dp), 1=normal (64 dp), 2=wide (96 dp).
  */
 @Composable
 fun DualBarChart(
     data: StatsChartData.DualTimeSeriesData,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    zoomLevel: Int = 1,
 ) {
     val maxCount = data.buckets
         .flatMap { listOf(it.count1, it.count2) }
@@ -183,6 +189,7 @@ fun DualBarChart(
             LegendItem(color = color2, label = data.categoryName2)
         }
 
+        val bucketWidthDp = when (zoomLevel) { 0 -> 40.dp; 2 -> 96.dp; else -> 64.dp }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -191,7 +198,7 @@ fun DualBarChart(
         ) {
             data.buckets.forEach { bucket ->
                 Column(
-                    modifier = Modifier.width(64.dp),
+                    modifier = Modifier.width(bucketWidthDp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Row(
@@ -308,10 +315,10 @@ fun ComboBarChart(
 // ── Shared helpers ──────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BarColumn(count: Int, maxCount: Int, label: String, barColor: Color) {
+private fun BarColumn(count: Int, maxCount: Int, label: String, barColor: Color, widthDp: androidx.compose.ui.unit.Dp = 52.dp) {
     val fraction = if (count == 0) 0f else count.toFloat() / maxCount.toFloat()
     Column(
-        modifier = Modifier.width(52.dp),
+        modifier = Modifier.width(widthDp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Count label above bar
@@ -379,9 +386,10 @@ private fun LegendItem(color: Color, label: String) {
  * omitted (the helper only emits buckets that have entries).
  */
 @Composable
-fun NumericAverageChart(data: StatsChartData.NumericAverageData) {
+fun NumericAverageChart(data: StatsChartData.NumericAverageData, zoomLevel: Int = 1) {
     val primary = MaterialTheme.colorScheme.primary
     val rangeSpan = (data.globalMax - data.globalMin).coerceAtLeast(0.001f)
+    val barWidthDp = when (zoomLevel) { 0 -> 28.dp; 2 -> 80.dp; else -> 52.dp }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
@@ -405,7 +413,7 @@ fun NumericAverageChart(data: StatsChartData.NumericAverageData) {
                 else "%.1f".format(bucket.average)
 
                 Column(
-                    modifier = Modifier.width(52.dp),
+                    modifier = Modifier.width(barWidthDp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Average value label above bar
