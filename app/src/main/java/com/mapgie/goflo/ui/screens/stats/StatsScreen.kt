@@ -31,7 +31,6 @@ import androidx.compose.material.icons.filled.NavigateBefore
 import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.ScatterPlot
 import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.Switch
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card

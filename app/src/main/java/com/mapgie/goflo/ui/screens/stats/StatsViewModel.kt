@@ -282,7 +282,7 @@ class StatsViewModel(
 
     private suspend fun loadPins(): List<PinnedStat> {
         val json = preferencesStore?.preferences?.let { flow ->
-            first(flow).pinnedStats
+            flow.first().pinnedStats
         } ?: return emptyList()
         return parsePins(json)
     }
