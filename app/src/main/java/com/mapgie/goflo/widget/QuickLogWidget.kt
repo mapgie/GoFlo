@@ -110,12 +110,21 @@ class QuickLogWidget : AppWidgetProvider() {
             widgetId: Int,
         ) {
             val app = context.applicationContext as GoFloApplication
-            val categories = app.trackingRepository
+            val prefs = app.preferencesStore.preferences.first()
+            val preferredIds = prefs.widgetCategoryIds
+                .split(",")
+                .mapNotNull { it.trim().toLongOrNull() }
+                .filter { it > 0L }
+                .toSet()
+            val allActive = app.trackingRepository
                 .getActiveCategories()
                 .first()
                 .filter { !it.isSystem && !it.isArchived }
-                .sortedBy { it.displayOrder }
-                .take(4)
+            val categories = if (preferredIds.isEmpty()) {
+                allActive.sortedBy { it.displayOrder }.take(4)
+            } else {
+                preferredIds.mapNotNull { id -> allActive.firstOrNull { it.id == id } }.take(4)
+            }
 
             val views = RemoteViews(context.packageName, R.layout.widget_quick_log)
 

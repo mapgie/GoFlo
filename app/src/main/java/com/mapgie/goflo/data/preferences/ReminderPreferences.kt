@@ -66,6 +66,11 @@ data class AppPreferences(
     val dashboardEnabled: Boolean = false,
     /** JSON-encoded list of pinned stat combos. */
     val pinnedStats: String = "",
+    /**
+     * Comma-separated TrackingCategory IDs to show in the Quick Log (4×2) widget.
+     * Empty string means "auto" — the first four active categories by displayOrder.
+     */
+    val widgetCategoryIds: String = "",
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -89,6 +94,7 @@ class AppPreferencesStore(private val context: Context) {
         val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
         val DASHBOARD_ENABLED = booleanPreferencesKey("dashboard_enabled")
         val PINNED_STATS = stringPreferencesKey("pinned_stats")
+        val WIDGET_CATEGORY_IDS = stringPreferencesKey("widget_category_ids")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -105,6 +111,7 @@ class AppPreferencesStore(private val context: Context) {
             widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
             dashboardEnabled = prefs[Keys.DASHBOARD_ENABLED] ?: false,
             pinnedStats = prefs[Keys.PINNED_STATS] ?: "",
+            widgetCategoryIds = prefs[Keys.WIDGET_CATEGORY_IDS] ?: "",
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -200,5 +207,9 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setPinnedStats(json: String) {
         context.dataStore.edit { it[Keys.PINNED_STATS] = json }
+    }
+
+    suspend fun setWidgetCategoryIds(ids: String) {
+        context.dataStore.edit { it[Keys.WIDGET_CATEGORY_IDS] = ids }
     }
 }

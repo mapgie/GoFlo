@@ -79,6 +79,9 @@ class SettingsViewModel(
     fun setWidgetDataVisible(visible: Boolean) =
         viewModelScope.launch { store.setWidgetDataVisible(visible) }
 
+    fun setWidgetCategoryIds(ids: String) =
+        viewModelScope.launch { store.setWidgetCategoryIds(ids) }
+
     // ── Theme ──────────────────────────────────────────────────────────────────
 
     fun setTheme(theme: String) = viewModelScope.launch { store.setTheme(theme) }
