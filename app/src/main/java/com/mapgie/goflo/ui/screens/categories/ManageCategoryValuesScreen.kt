@@ -352,6 +352,7 @@ fun ManageCategoryValuesScreen(
                 onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
                 onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
                 onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
+                onToggleFlowSlider      = { viewModel.setFlowSliderMode(it) },
                 onUnsavedState          = { hasChanges, saveAction ->
                     hasUnsavedChanges = hasChanges
                     currentSaveAction = saveAction
@@ -390,7 +391,8 @@ fun ManageCategoryValuesScreen(
                 onDeleteValue            = { pendingDeleteValue = it.id },
                 onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
                 onToggleAllowMultiple    = { viewModel.setAllowMultiple(it) },
-                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) }
+                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
+                onToggleFlowSlider       = { viewModel.setFlowSliderMode(it) }
             )
         }
     }
@@ -408,6 +410,7 @@ private fun DefaultCategoryValues(
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
     onToggleTrackAgainstTime: (Boolean) -> Unit,
+    onToggleFlowSlider: (Boolean) -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -430,6 +433,9 @@ private fun DefaultCategoryValues(
             checked   = category?.trackAgainstTime ?: false,
             onChecked = onToggleTrackAgainstTime
         )
+        if (category?.systemKey == "flow") {
+            FlowSliderRow(isSlider = false, onToggle = onToggleFlowSlider)
+        }
         HorizontalDivider()
 
         Text(
@@ -517,6 +523,7 @@ private fun NumericSliderSettings(
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
     onToggleTrackAgainstTime: (Boolean) -> Unit,
+    onToggleFlowSlider: (Boolean) -> Unit,
     onUnsavedState: (hasChanges: Boolean, saveAction: (() -> Unit)?) -> Unit,
     onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String, scaleLabels: String) -> Unit,
 ) {
@@ -600,6 +607,9 @@ private fun NumericSliderSettings(
             checked   = category.trackAgainstTime,
             onChecked = onToggleTrackAgainstTime
         )
+        if (category.systemKey == "flow") {
+            FlowSliderRow(isSlider = true, onToggle = onToggleFlowSlider)
+        }
         HorizontalDivider()
 
         Text(
@@ -819,6 +829,25 @@ private fun AllowMultipleRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
             )
         }
         Switch(checked = checked, onCheckedChange = onChecked)
+    }
+}
+
+@Composable
+private fun FlowSliderRow(isSlider: Boolean, onToggle: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Use slider", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Replace the Spotting/Light/Medium/Heavy selector with a 1-4 slider. Stats will treat each log as a number.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(checked = isSlider, onCheckedChange = onToggle)
     }
 }
 

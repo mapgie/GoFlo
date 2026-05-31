@@ -170,6 +170,36 @@ class TrackingRepository(
         categoryDao.updateCategory(cat.copy(allowMultiple = allowMultiple))
     }
 
+    /**
+     * Switches the Flow system category between chip-selection mode ("default") and
+     * slider mode ("numeric_slider" with a 1-4 scale pre-labelled Spotting/Light/Medium/Heavy).
+     * Switching back to chip mode restores the original default numeric fields.
+     */
+    suspend fun updateFlowCategoryMode(id: Long, useSlider: Boolean) {
+        val cat = categoryDao.getCategoryByIdOnce(id) ?: return
+        if (useSlider) {
+            categoryDao.updateCategory(
+                cat.copy(
+                    categoryType  = "numeric_slider",
+                    numericMin    = 1f,
+                    numericMax    = 4f,
+                    allowDecimals = false,
+                    scaleLabels   = "1=Spotting\n2=Light\n3=Medium\n4=Heavy",
+                )
+            )
+        } else {
+            categoryDao.updateCategory(
+                cat.copy(
+                    categoryType  = "default",
+                    numericMin    = 0f,
+                    numericMax    = 10f,
+                    allowDecimals = false,
+                    scaleLabels   = "",
+                )
+            )
+        }
+    }
+
     suspend fun archiveCategory(id: Long) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         if (cat.isSystem) return

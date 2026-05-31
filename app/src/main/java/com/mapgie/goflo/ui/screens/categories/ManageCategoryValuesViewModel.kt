@@ -68,6 +68,10 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.updateAllowMultiple(categoryId, allowMultiple) }
     }
 
+    fun setFlowSliderMode(useSlider: Boolean) {
+        viewModelScope.launch { repository.updateFlowCategoryMode(categoryId, useSlider) }
+    }
+
     fun setTrackAgainstTime(track: Boolean) {
         viewModelScope.launch { repository.updateTrackAgainstTime(categoryId, track) }
     }

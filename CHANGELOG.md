@@ -32,6 +32,10 @@ Rules:
 
 ### Fixed
 - **Security — biometric lock crash** — enabling biometric unlock no longer causes a crash if the biometric prompt is shown while the activity is not yet fully active.
+- **Flow — slider mode** — the Flow system category can now be switched to a 1-4 slider (Spotting/Light/Medium/Heavy) via Settings > Tracking Categories > Flow. When slider mode is on, stats treat each logged flow value as a number, enabling Numeric Average, Time Scatter, and Distribution charts. The toggle lives alongside the existing category settings and can be switched back to chip mode at any time.
+- **Dashboard — duplicate pin prevention** — pinning a chart view that is already on the dashboard now shows "Already pinned to dashboard" instead of silently adding a duplicate. Each combination of category, chart type, and time range gets a deterministic hash ID so existing duplicates are also blocked on re-pin.
+
+---
 
 ## [0.17.0-beta.1] - 2026-05-31
 
