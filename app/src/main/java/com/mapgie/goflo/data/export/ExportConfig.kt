@@ -18,7 +18,9 @@ data class ExportConfig(
     val selectedCategoryIds: Set<Long> = emptySet(),
     val dateRangePreset: DateRangePreset = DateRangePreset.ALL_TIME,
     val customStartDate: LocalDate? = null,
-    val customEndDate: LocalDate? = null
+    val customEndDate: LocalDate? = null,
+    /** When true, also exports category configuration (names, values, colours, settings). Forces JSON format. */
+    val fullBackup: Boolean = false,
 ) {
     /** Resolved start/end dates, or null pair for "all time". */
     val effectiveDateRange: Pair<LocalDate?, LocalDate?>

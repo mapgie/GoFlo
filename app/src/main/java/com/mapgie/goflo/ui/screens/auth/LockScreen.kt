@@ -53,10 +53,12 @@ fun LockScreen(
 
     LaunchedEffect(state.biometricEnabled) {
         if (state.biometricEnabled) {
-            showBiometricPrompt(
-                activity = context as FragmentActivity,
-                onSuccess = { viewModel.onBiometricSuccess() }
-            )
+            runCatching {
+                showBiometricPrompt(
+                    activity = context as FragmentActivity,
+                    onSuccess = { viewModel.onBiometricSuccess() }
+                )
+            }
         }
     }
 
@@ -90,10 +92,12 @@ fun LockScreen(
                 onDelete = viewModel::onDelete,
                 showBiometric = state.biometricEnabled,
                 onBiometric = {
-                    showBiometricPrompt(
-                        activity = context as FragmentActivity,
-                        onSuccess = { viewModel.onBiometricSuccess() }
-                    )
+                    runCatching {
+                        showBiometricPrompt(
+                            activity = context as FragmentActivity,
+                            onSuccess = { viewModel.onBiometricSuccess() }
+                        )
+                    }
                 }
             )
         }

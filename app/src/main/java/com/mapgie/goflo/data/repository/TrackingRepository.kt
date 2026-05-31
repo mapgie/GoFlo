@@ -45,6 +45,9 @@ class TrackingRepository(
     fun getValuesForCategory(categoryId: Long): Flow<List<TrackingValue>> =
         categoryDao.getValuesForCategory(categoryId)
 
+    suspend fun getValuesForCategoryOnce(categoryId: Long): List<TrackingValue> =
+        categoryDao.getValuesForCategoryOnce(categoryId)
+
     suspend fun addCategory(
         name: String,
         iconName: String = "category",

@@ -271,12 +271,49 @@ class SettingsViewModel(
         val metaTo   = endDate   ?: LocalDate.now()
 
         val root = JSONObject()
-        root.put("version", 2)
+        root.put("version", if (config.fullBackup) 3 else 2)
         root.put("exportedAt", LocalDate.now().toString())
+        if (config.fullBackup) root.put("fullBackup", true)
         val rangeObj = JSONObject()
         rangeObj.put("from", metaFrom?.toString() ?: JSONObject.NULL)
         rangeObj.put("to", metaTo.toString())
         root.put("dateRange", rangeObj)
+
+        // ── Full backup: category configuration ──────────────────────────────
+        if (config.fullBackup) {
+            val allCats = trackingRepository.getAllCategoriesOnce()
+            val catsArray = JSONArray()
+            allCats.forEach { cat ->
+                val catObj = JSONObject()
+                catObj.put("id", cat.id)
+                catObj.put("name", cat.name)
+                catObj.put("isSystem", cat.isSystem)
+                catObj.put("systemKey", cat.systemKey)
+                catObj.put("displayOrder", cat.displayOrder)
+                catObj.put("iconName", cat.iconName)
+                catObj.put("colorToken", cat.colorToken)
+                catObj.put("categoryType", cat.categoryType)
+                catObj.put("numericMin", cat.numericMin)
+                catObj.put("numericMax", cat.numericMax)
+                catObj.put("allowDecimals", cat.allowDecimals)
+                catObj.put("numericUnit", cat.numericUnit)
+                catObj.put("scaleLabels", cat.scaleLabels)
+                catObj.put("isArchived", cat.isArchived)
+                catObj.put("allowMultiple", cat.allowMultiple)
+                catObj.put("showInLogPeriod", cat.showInLogPeriod)
+                catObj.put("trackAgainstTime", cat.trackAgainstTime)
+                val valArr = JSONArray()
+                trackingRepository.getValuesForCategoryOnce(cat.id)
+                    .sortedBy { it.displayOrder }
+                    .forEach { tv -> valArr.put(tv.label) }
+                catObj.put("values", valArr)
+                catsArray.put(catObj)
+            }
+            root.put("categories", catsArray)
+
+            val pinnedStats = store.preferences.first().pinnedStats
+            if (pinnedStats.isNotBlank()) root.put("pinnedStats", pinnedStats)
+        }
 
         if (config.includePeriods) {
             val allPeriods = repository.getAllPeriods().first().sortedBy { it.startDate }
@@ -434,12 +471,22 @@ class SettingsViewModel(
                 runCatching {
                     if (!json.trimStart().startsWith('[')) {
                         val root = JSONObject(json)
+                        // Full backup: restore category configuration first so log import can match names.
+                        val categoriesArray = root.optJSONArray("categories")
+                        if (categoriesArray != null) {
+                            importCategoryConfig(categoriesArray, replace)
+                        }
                         val trackingArray = root.optJSONArray("tracking")
                         if (trackingArray != null) {
                             importTrackingLogs(trackingArray, replace)
                         }
+                        // Restore pinned stats if present.
+                        val pinnedStats = root.optString("pinnedStats", "")
+                        if (pinnedStats.isNotBlank()) {
+                            store.setPinnedStats(pinnedStats)
+                        }
                     }
-                } // tracking import errors are non-fatal; period result still reported
+                } // import errors are non-fatal; period result still reported
                 reschedule()
             }
             onResult(result)
@@ -476,6 +523,71 @@ class SettingsViewModel(
                     }
                 }
                 trackingRepository.saveLog(date, categoryId, values, logObj.optString("notes", ""))
+            }
+        }
+    }
+
+    private suspend fun importCategoryConfig(categoriesArray: JSONArray, replace: Boolean) {
+        for (i in 0 until categoriesArray.length()) {
+            val catObj = categoriesArray.getJSONObject(i)
+            val catName = catObj.optString("name").takeIf { it.isNotBlank() } ?: continue
+            val isSystem = catObj.optBoolean("isSystem", false)
+            val systemKey = catObj.optString("systemKey", "")
+
+            // Match existing category by systemKey (for system cats) or name.
+            var category = if (systemKey.isNotBlank())
+                trackingRepository.getSystemCategoryByKey(systemKey)
+            else null
+            if (category == null) category = trackingRepository.getCategoryByName(catName)
+
+            val categoryId: Long
+            if (category == null) {
+                categoryId = trackingRepository.addCategory(
+                    name             = catName,
+                    iconName         = catObj.optString("iconName", "category"),
+                    colorToken       = catObj.optString("colorToken", "secondary"),
+                    categoryType     = catObj.optString("categoryType", "default"),
+                    numericMin       = catObj.optDouble("numericMin", 0.0).toFloat(),
+                    numericMax       = catObj.optDouble("numericMax", 10.0).toFloat(),
+                    allowDecimals    = catObj.optBoolean("allowDecimals", false),
+                    numericUnit      = catObj.optString("numericUnit", ""),
+                    allowMultiple    = catObj.optBoolean("allowMultiple", false),
+                    showInLogPeriod  = catObj.optBoolean("showInLogPeriod", false),
+                    trackAgainstTime = catObj.optBoolean("trackAgainstTime", false),
+                )
+                if (catObj.optBoolean("isArchived", false)) trackingRepository.archiveCategory(categoryId)
+            } else {
+                categoryId = category.id
+                // Update appearance and settings on existing category.
+                trackingRepository.updateCategoryFullSettings(
+                    id               = categoryId,
+                    name             = catName,
+                    iconName         = catObj.optString("iconName", category.iconName),
+                    colorToken       = catObj.optString("colorToken", category.colorToken),
+                    categoryType     = catObj.optString("categoryType", category.categoryType),
+                    numericMin       = catObj.optDouble("numericMin", category.numericMin.toDouble()).toFloat(),
+                    numericMax       = catObj.optDouble("numericMax", category.numericMax.toDouble()).toFloat(),
+                    allowDecimals    = catObj.optBoolean("allowDecimals", category.allowDecimals),
+                    numericUnit      = catObj.optString("numericUnit", category.numericUnit),
+                    allowMultiple    = catObj.optBoolean("allowMultiple", category.allowMultiple),
+                    showInLogPeriod  = catObj.optBoolean("showInLogPeriod", category.showInLogPeriod),
+                    trackAgainstTime = catObj.optBoolean("trackAgainstTime", category.trackAgainstTime),
+                )
+                if (catObj.optBoolean("isArchived", false) && !category.isArchived)
+                    trackingRepository.archiveCategory(categoryId)
+                else if (!catObj.optBoolean("isArchived", false) && category.isArchived)
+                    trackingRepository.unarchiveCategory(categoryId)
+            }
+
+            // Restore values (labels/options) for this category.
+            val valuesArray = catObj.optJSONArray("values") ?: continue
+            val existingValues = trackingRepository.getValuesForCategoryOnce(categoryId)
+            val existingLabels = existingValues.map { it.label }.toSet()
+            for (j in 0 until valuesArray.length()) {
+                val label = valuesArray.optString(j, "").takeIf { it.isNotBlank() } ?: continue
+                if (label !in existingLabels) {
+                    trackingRepository.addValueToCategory(categoryId, label)
+                }
             }
         }
     }
