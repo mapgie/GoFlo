@@ -122,6 +122,10 @@ sealed class StatsChartData {
     ) : StatsChartData()
 }
 
+// ── Pin result ────────────────────────────────────────────────────────────────
+
+enum class PinResult { ADDED, DUPLICATE }
+
 // ── UI State ──────────────────────────────────────────────────────────────────
 
 data class StatsUiState(
@@ -133,6 +137,7 @@ data class StatsUiState(
     val chartData: StatsChartData = StatsChartData.Empty,
     val rememberedChartType: ChartType? = null,
     val dashboardEnabled: Boolean = false,
+    val pinResult: PinResult? = null,
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -257,27 +262,44 @@ class StatsViewModel(
         val state = _uiState.value
         val cat1 = state.selectedCategory1 ?: return
         viewModelScope.launch {
-            val label = buildString {
-                append(cat1.name)
-                state.selectedCategory2?.let { append(" vs ${it.name}") }
-            }
+            val cat2Id = state.selectedCategory2?.id
             val timeRangeStr = when (val tr = state.timeRange) {
                 is TimeRange.AllTime -> "ALL_TIME"
                 is TimeRange.YearToDate -> "YTD"
                 is TimeRange.CalendarYear -> "YEAR:${tr.year}"
                 is TimeRange.SpecificMonth -> "MONTH:${tr.yearMonth}"
             }
+            val existing = loadPins()
+            val isDuplicate = existing.any { pin ->
+                pin.categoryId1 == cat1.id &&
+                pin.categoryId2 == cat2Id &&
+                pin.chartType == state.chartType.name &&
+                pin.timeRangeType == timeRangeStr
+            }
+            if (isDuplicate) {
+                _uiState.update { it.copy(pinResult = PinResult.DUPLICATE) }
+                return@launch
+            }
+            val label = buildString {
+                append(cat1.name)
+                state.selectedCategory2?.let { append(" vs ${it.name}") }
+            }
+            val comboHash = "${cat1.id}_${cat2Id ?: ""}_${state.chartType.name}_$timeRangeStr"
             val pin = PinnedStat(
-                id = java.util.UUID.randomUUID().toString(),
+                id = comboHash,
                 label = label,
                 categoryId1 = cat1.id,
-                categoryId2 = state.selectedCategory2?.id,
+                categoryId2 = cat2Id,
                 timeRangeType = timeRangeStr,
                 chartType = state.chartType.name
             )
-            val existing = loadPins()
             savePins(existing + pin)
+            _uiState.update { it.copy(pinResult = PinResult.ADDED) }
         }
+    }
+
+    fun clearPinResult() {
+        _uiState.update { it.copy(pinResult = null) }
     }
 
     private suspend fun loadPins(): List<PinnedStat> {
