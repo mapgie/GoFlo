@@ -325,19 +325,23 @@ class StatsViewModel(
         reloadChart()
     }
 
-    private fun recalcChartTypeForPair(
+  private fun recalcChartTypeForPair(
         cat1: TrackingCategory,
         cat2: TrackingCategory?,
         currentType: ChartType
     ): ChartType {
         val hiddenForTwoCats = cat2 != null &&
             (currentType == ChartType.TRENDS || currentType == ChartType.TIME_SERIES)
+            
         if (!hiddenForTwoCats && isValidChartType(currentType, cat1, cat2)) return currentType
-        return when {
+        
+        val newChartType = when {
             cat1.isNumeric && cat2?.isNumeric == true -> ChartType.SCATTER
             cat2 != null -> ChartType.DUAL_TIME_SERIES
             cat1.isNumeric -> ChartType.TIME_SCATTER
             else -> ChartType.TRENDS
+        } // <-- The missing brace!
+        
         preferencesStore?.let { store ->
             viewModelScope.launch {
                 store.setStatsCategory1Id(-1L)
@@ -345,6 +349,8 @@ class StatsViewModel(
                 store.setStatsChartType("")
             }
         }
+        
+        return newChartType
     }
 
     fun setTimeRange(range: TimeRange) {
