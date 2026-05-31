@@ -122,6 +122,7 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     categories = state.categories,
                     selectedCat1 = state.selectedCategory1,
                     selectedCat2 = state.selectedCategory2,
+                    chartType = state.chartType,
                     onSelect = viewModel::selectCategory,
                     onClear = viewModel::clearSelections
                 )
@@ -297,9 +298,14 @@ private fun CategoryPickerSection(
     categories: List<TrackingCategory>,
     selectedCat1: TrackingCategory?,
     selectedCat2: TrackingCategory?,
+    chartType: ChartType,
     onSelect: (TrackingCategory) -> Unit,
     onClear: () -> Unit
 ) {
+    // X/Y axis labels only make sense for scatter plots; all other chart types
+    // don't map selections to named axes, so dropping the X/Y prefix avoids confusion.
+    val useAxisLabels = chartType == ChartType.SCATTER
+
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -337,7 +343,7 @@ private fun CategoryPickerSection(
                 ) {
                     selectedCat1?.let {
                         Text(
-                            text = "X: ${it.name}",
+                            text = if (useAxisLabels) "X: ${it.name}" else it.name,
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -351,9 +357,9 @@ private fun CategoryPickerSection(
                             )
                         }
                         Text(
-                            text = "Y: ${it.name}",
+                            text = if (useAxisLabels) "Y: ${it.name}" else it.name,
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.secondary
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -374,25 +380,14 @@ private fun CategoryPickerSection(
                     val bubbleColor = category.colorToken.toCategoryColor()
                     val onBubbleColor = category.colorToken.toCategoryOnColor()
 
-                    val chipSelectedContainerColor = when {
-                        isCat1 -> MaterialTheme.colorScheme.primaryContainer
-                        isCat2 -> MaterialTheme.colorScheme.secondaryContainer
-                        else   -> MaterialTheme.colorScheme.surfaceVariant
-                    }
-                    val chipSelectedLabelColor = when {
-                        isCat1 -> MaterialTheme.colorScheme.onPrimaryContainer
-                        isCat2 -> MaterialTheme.colorScheme.onSecondaryContainer
-                        else   -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-
                     FilterChip(
                         selected = isSelected,
                         onClick = { onSelect(category) },
                         label = {
                             val prefix = when {
-                                isCat1 -> "X  "
-                                isCat2 -> "Y  "
-                                else   -> ""
+                                isCat1 && useAxisLabels -> "X  "
+                                isCat2 && useAxisLabels -> "Y  "
+                                else -> ""
                             }
                             Text("$prefix${category.name}")
                         },
@@ -413,9 +408,9 @@ private fun CategoryPickerSection(
                             }
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = chipSelectedContainerColor,
-                            selectedLabelColor = chipSelectedLabelColor,
-                            selectedLeadingIconColor = chipSelectedLabelColor
+                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
