@@ -19,7 +19,7 @@ Rules:
 
 ---
 
-## [0.15.0-beta.2] - 2026-05-31
+## [0.16.0-beta.1] - 2026-05-31
 
 ### Changed
 - **Navigation — Settings moved to top app bar** — the Settings tab has been removed from the bottom navigation bar. A gear icon button in the top-right of the Home screen app bar now opens Settings, keeping the bottom bar focused on the core destinations: Home, History, (Dashboard,) and Stats.
