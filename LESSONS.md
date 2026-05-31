@@ -79,6 +79,18 @@ For features you know are coming (e.g. user export, audit logging, sharing), des
 **Chip selected states must be unambiguous at a glance**
 The default Material3 `FilterChip` selected treatment (slightly brighter text, subtle border change) requires interpretation — it fails the "readable in 100ms" bar. Override `FilterChipDefaults.filterChipColors(selectedContainerColor, selectedLabelColor)` with a high-contrast fill (e.g. amber + dark text) to make selection state immediately obvious. Encapsulate this in a shared `FormChip` wrapper so the treatment is consistent everywhere.
 
+**Thick colored outlines read as alerts, not selections**
+High-contrast colored borders (primary-colored, 2 dp or more) on chips and tiles carry the visual semantics of form-validation errors, not selection. Users must decode them rather than read them. Use filled containers for selection state — fill is visually distinct from the outlined-means-warning convention. Reserve thick colored outlines for genuine warnings or required-field indicators.
+
+**One selection language per screen**
+Using different visual paradigms for "selected" across components on the same screen (filled pill for one, thick colored border for another, filled tile for a third) forces users to decode three visual languages at once. Pick one treatment — fill-based or outline-based — and apply it to every selectable element. Spot-check by covering the labels and asking whether you can still tell what is selected and how it differs from its neighbours.
+
+**All section headers must sit at least one weight step above body text**
+When every card or section header uses the same style as its neighbours — even if it is technically a heading style — the screen reads as a flat wall. Use at minimum `titleMedium` for section headers and `bodyMedium` for content within a card; the step between them is what creates scannability. If headers and body text look the same in a quick squint test, the hierarchy is broken.
+
+**Key configuration summaries need a visual container**
+State that captures the user's entire current configuration (e.g. "X axis = Category A · Y axis = Category B") carries more decision weight than inline annotation text implies. Burying it as low-style inline text treats the most important context on the screen as incidental. Wrap configuration summaries in a surface container (even a subtle `surfaceVariant` pill) so they read as a distinct UI element rather than a label.
+
 ---
 
 ### Code Quality / Review
