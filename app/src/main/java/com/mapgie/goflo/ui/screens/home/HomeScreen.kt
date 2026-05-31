@@ -305,8 +305,9 @@ private fun SpeedDial(
             },
             text = {
                 Text(
-                    text  = "Log",
-                    style = MaterialTheme.typography.titleMedium,
+                    text       = "Log",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontFamily = ComfortaaFamily,
                 )
             }
         )
