@@ -19,11 +19,54 @@ Rules:
 
 ---
 
-## [0.14.1-beta.1] - 2026-05-31
+## [0.16.1-beta.1] - 2026-05-31
 
 ### Changed
 - **Stats category picker — context-aware labels** — X/Y axis labels in the summary bar and chip prefixes now only appear when the Scatter chart type is active (where X and Y map to real axes). All other chart types show category names without axis terminology.
 - **Stats selection colour unified** — both the first and second selected category use the same `primaryContainer` fill, eliminating the arbitrary primary/secondary hue clash (pink vs teal). The summary bar now uses `primary` for both names rather than `primary` + `secondary`.
+
+---
+
+## [0.16.0-beta.1] - 2026-05-31
+
+### Changed
+- **Navigation — Settings moved to top app bar** — the Settings tab has been removed from the bottom navigation bar. A gear icon button in the top-right of the Home screen app bar now opens Settings, keeping the bottom bar focused on the core destinations: Home, History, (Dashboard,) and Stats.
+- **Settings — flat Material list layout** — the expandable accordion card layout has been replaced with a flat Material `ListItem` layout. Each section entry is a dense list row; tapping it opens a dedicated sub-screen with its own top app bar and back arrow, rather than expanding inline.
+- **Settings — section headers** — headers (TRACKING, NOTIFICATIONS, etc.) are now `SemiBold`, rendered in the primary colour, with increased top padding (20 dp) to clearly separate grouped items.
+- **Settings — navigation items** — items that open a sub-screen show a trailing Chevron Right icon. Items that control a binary setting show a trailing Material Switch that toggles immediately without navigating.
+- **Settings — section dividers** — `HorizontalDivider` separates the major setting groups (Tracking, Notifications, Personalisation, Privacy & Data, Widgets, Help & Feedback, About).
+- **Settings — icon alignment** — leading icons are constrained to 24×24 dp bounding boxes for consistent vertical alignment across all list items.
+- **Settings — standardised background** — list items use the `surface` container colour, removing the "boxed" `surfaceVariant` card look of the old layout.
+
+---
+
+## [0.15.0-beta.1] - 2026-05-31
+
+### Added
+- **Dashboard screen** — a new optional tab (Home | History | **Dashboard** | Stats | Settings) that displays pinned stats views as cards. Enable it via the new toggle in the Stats screen; pin any category/range/chart combination with "Pin this view".
+- **Stats — Trends chart** — shows logged value frequency as a labelled progress-bar chart. Available for any trackable category. Replaces the old Symptom Trends section that was previously in the History screen.
+- **Stats — Time Scatter chart** — plots log values against date (time on X, value on Y). This is now the default chart type when a single numeric category is selected.
+
+### Changed
+- **Beta feedback banner** — text updated to "Feedback is encouraged ♥".
+- **Stats month picker** — replaced the dialog with an inline `← MMMM yyyy →` arrow navigator inside the time-range card.
+- **Stats over-time granularity** — specific-month range now defaults to day-by-day view instead of weekly buckets.
+- **Stats scatter axes** — X and Y axes always start at 0 for specific-year and specific-month ranges (AllTime / YTD retain auto-scaling).
+- **Stats chart memory** — switching categories now restores the last explicitly chosen chart type when it is still valid for the new selection.
+- **Settings — Track Against Time** — the toggle is now visible for all category types, including the system Flow and Symptoms categories.
+- **Settings — category values screen** — the "Add a value" bottom button is replaced by a floating action button (FAB); the bottom button is now always "Save".
+
+### Fixed
+- **History** — Symptom Trends section removed from the History screen (superseded by the Stats Trends chart).
+
+---
+
+## [0.14.0-beta.3] - 2026-05-31
+
+### Changed
+- **FAB — icon-only at rest** — the floating action button now shows only the Add icon when the speed dial is closed, removing the "Log…" label from the resting state so the button feels like a proper FAB rather than a labelled afterthought.
+- **FAB — expands on open** — tapping the FAB opens the speed dial and simultaneously expands the button to show the Close icon alongside a "Log" label (ellipsis removed); font is `titleMedium` to match the visual weight of the icon.
+- **FAB — Comfortaa typeface on label** — the "Log" label uses the GoFlo brand font (Comfortaa Bold) for consistency with the rest of the app's typographic identity.
 
 ---
 

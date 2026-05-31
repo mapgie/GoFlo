@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
@@ -36,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mapgie.goflo.data.preferences.AppPreferences
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import com.mapgie.goflo.ui.AppState
 import com.mapgie.goflo.ui.MainViewModel
@@ -55,6 +57,8 @@ import com.mapgie.goflo.ui.screens.home.HomeScreen
 import com.mapgie.goflo.ui.screens.home.HomeViewModel
 import com.mapgie.goflo.ui.screens.log.LogCategoryScreen
 import com.mapgie.goflo.ui.screens.log.LogCategoryViewModel
+import com.mapgie.goflo.ui.screens.dashboard.DashboardScreen
+import com.mapgie.goflo.ui.screens.dashboard.DashboardViewModel
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
 import com.mapgie.goflo.ui.screens.stats.StatsScreen
@@ -149,6 +153,10 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
 @androidx.compose.runtime.Composable
 private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCategoryId: Long = -1L) {
     val navController = rememberNavController()
+    val scope = rememberCoroutineScope()
+
+    val appPrefs by app.preferencesStore.preferences.collectAsState(initial = AppPreferences())
+    val dashboardEnabled = appPrefs.dashboardEnabled
 
     // Deep-link from the Quick Log widget: navigate to the category log screen for today.
     LaunchedEffect(pendingCategoryId) {
@@ -161,7 +169,12 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    val bottomNavRoutes = listOf(Screen.Home.route, Screen.History.route, Screen.Stats.route, Screen.Settings.route)
+    val bottomNavRoutes = buildList {
+        add(Screen.Home.route)
+        add(Screen.History.route)
+        if (dashboardEnabled) add(Screen.Dashboard.route)
+        add(Screen.Stats.route)
+    }
     val showBottomBar = bottomNavRoutes.any { currentRoute?.startsWith(it) == true }
 
     Scaffold(
@@ -186,6 +199,17 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
                         label = { Text("History") }
                     )
+                    if (dashboardEnabled) {
+                        NavigationBarItem(
+                            selected = currentRoute == Screen.Dashboard.route,
+                            onClick = { navController.navigate(Screen.Dashboard.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true; restoreState = true
+                            } },
+                            icon = { Icon(Icons.Default.Dashboard, contentDescription = "Dashboard") },
+                            label = { Text("Dashboard") }
+                        )
+                    }
                     NavigationBarItem(
                         selected = currentRoute == Screen.Stats.route,
                         onClick = { navController.navigate(Screen.Stats.route) {
@@ -194,15 +218,6 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         } },
                         icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
                         label = { Text("Stats") }
-                    )
-                    NavigationBarItem(
-                        selected = currentRoute == Screen.Settings.route,
-                        onClick = { navController.navigate(Screen.Settings.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
-                        } },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings") }
                     )
                 }
             }
@@ -224,8 +239,22 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             }
 
             composable(Screen.Stats.route) {
-                val vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory(app.trackingRepository))
-                StatsScreen(viewModel = vm)
+                val vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory(app.trackingRepository, app.preferencesStore))
+                StatsScreen(
+                    viewModel = vm,
+                    dashboardEnabled = dashboardEnabled,
+                    onToggleDashboard = {
+                        scope.launch { app.preferencesStore.setDashboardEnabled(!dashboardEnabled) }
+                    },
+                    onPinStat = { vm.pinCurrentView() }
+                )
+            }
+
+            composable(Screen.Dashboard.route) {
+                val vm: DashboardViewModel = viewModel(
+                    factory = DashboardViewModel.Factory(app.preferencesStore, app.trackingRepository)
+                )
+                DashboardScreen(viewModel = vm)
             }
 
             composable(Screen.Settings.route) {

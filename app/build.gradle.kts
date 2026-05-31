@@ -13,8 +13,8 @@ android {
         applicationId = "com.mapgie.goflo"
         minSdk = 26
         targetSdk = 34
-        versionCode = 46
-        versionName = "0.14.1-beta.1"
+        versionCode = 49
+        versionName = "0.16.1-beta.1"
     }
 
     signingConfigs {

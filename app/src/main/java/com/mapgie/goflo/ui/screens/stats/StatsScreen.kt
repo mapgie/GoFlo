@@ -23,9 +23,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.BubbleChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DonutLarge
+import androidx.compose.material.icons.filled.NavigateBefore
+import androidx.compose.material.icons.filled.NavigateNext
+import androidx.compose.material.icons.filled.ScatterPlot
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
@@ -37,11 +41,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -70,7 +76,12 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(viewModel: StatsViewModel) {
+fun StatsScreen(
+    viewModel: StatsViewModel,
+    dashboardEnabled: Boolean = false,
+    onToggleDashboard: () -> Unit = {},
+    onPinStat: () -> Unit = {},
+) {
     val state by viewModel.uiState.collectAsState()
     var bannerExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -81,7 +92,18 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                ),
+                actions = {
+                    if (dashboardEnabled && state.selectedCategory1 != null) {
+                        IconButton(onClick = onPinStat) {
+                            Icon(
+                                Icons.Default.BookmarkAdd,
+                                contentDescription = "Pin this view",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -108,6 +130,27 @@ fun StatsScreen(viewModel: StatsViewModel) {
                     isExpanded = bannerExpanded,
                     onToggle = { bannerExpanded = !bannerExpanded }
                 )
+            }
+
+            // Dashboard toggle card
+            item {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Dashboard", style = MaterialTheme.typography.titleSmall)
+                            Text(
+                                if (dashboardEnabled) "Dashboard enabled — pin favourite views" else "Enable to create a quick-access dashboard",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(checked = dashboardEnabled, onCheckedChange = { onToggleDashboard() })
+                    }
+                }
             }
 
             item {
@@ -139,6 +182,22 @@ fun StatsScreen(viewModel: StatsViewModel) {
                 }
             }
 
+            // Pin this view button (when dashboard enabled and a category is selected)
+            if (dashboardEnabled && state.selectedCategory1 != null) {
+                item {
+                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                        TextButton(
+                            onClick = onPinStat,
+                            modifier = Modifier.fillMaxWidth().padding(4.dp)
+                        ) {
+                            Icon(Icons.Default.BookmarkAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Pin this view to Dashboard")
+                        }
+                    }
+                }
+            }
+
             item {
                 ChartArea(
                     chartData = state.chartData,
@@ -159,7 +218,6 @@ private fun TimeRangePicker(
     onSelect: (TimeRange) -> Unit
 ) {
     var showYearDialog by rememberSaveable { mutableStateOf(false) }
-    var showMonthDialog by rememberSaveable { mutableStateOf(false) }
 
     val today = LocalDate.now()
     val options = listOf("All Time", "YTD", "Year", "Month")
@@ -169,6 +227,12 @@ private fun TimeRangePicker(
         is TimeRange.YearToDate    -> 1
         is TimeRange.CalendarYear  -> 2
         is TimeRange.SpecificMonth -> 3
+    }
+
+    // Current month for inline navigation
+    val currentMonth = when (selectedRange) {
+        is TimeRange.SpecificMonth -> selectedRange.yearMonth
+        else -> YearMonth.now()
     }
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
@@ -188,7 +252,12 @@ private fun TimeRangePicker(
                                 0 -> onSelect(TimeRange.AllTime)
                                 1 -> onSelect(TimeRange.YearToDate)
                                 2 -> showYearDialog = true
-                                3 -> showMonthDialog = true
+                                3 -> {
+                                    // When Month tab tapped and not already SpecificMonth, default to now
+                                    if (selectedRange !is TimeRange.SpecificMonth) {
+                                        onSelect(TimeRange.SpecificMonth(YearMonth.now()))
+                                    }
+                                }
                             }
                         },
                         shape = SegmentedButtonDefaults.itemShape(index, options.size)
@@ -198,33 +267,60 @@ private fun TimeRangePicker(
                 }
             }
 
-            val rangeLabel = when (selectedRange) {
-                is TimeRange.AllTime -> null
-                is TimeRange.YearToDate -> "January 1 – Today"
-                is TimeRange.CalendarYear -> "Full year ${selectedRange.year}"
-                is TimeRange.SpecificMonth -> selectedRange.yearMonth.format(
-                    DateTimeFormatter.ofPattern("MMMM yyyy")
-                )
-            }
-            if (rangeLabel != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                // Tapping the range label reopens the picker so the user can jump to
-                // a different month or year without having to re-tap the chip first.
-                TextButton(
-                    onClick = {
-                        when (selectedRange) {
-                            is TimeRange.CalendarYear  -> showYearDialog  = true
-                            is TimeRange.SpecificMonth -> showMonthDialog = true
-                            else -> {}
-                        }
-                    },
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+            // Inline month navigation row for SpecificMonth
+            if (selectedRange is TimeRange.SpecificMonth) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    IconButton(onClick = {
+                        onSelect(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
+                    }) {
+                        Icon(Icons.Default.NavigateBefore, contentDescription = "Previous month")
+                    }
                     Text(
-                        text = rangeLabel,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    IconButton(
+                        onClick = {
+                            if (currentMonth < YearMonth.now()) {
+                                onSelect(TimeRange.SpecificMonth(currentMonth.plusMonths(1)))
+                            }
+                        },
+                        enabled = currentMonth < YearMonth.now()
+                    ) {
+                        Icon(Icons.Default.NavigateNext, contentDescription = "Next month")
+                    }
+                }
+            } else {
+                // Show range label for YTD and CalendarYear
+                val rangeLabel = when (selectedRange) {
+                    is TimeRange.AllTime -> null
+                    is TimeRange.YearToDate -> "January 1 – Today"
+                    is TimeRange.CalendarYear -> "Full year ${selectedRange.year}"
+                    is TimeRange.SpecificMonth -> null // handled above
+                }
+                if (rangeLabel != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    TextButton(
+                        onClick = {
+                            when (selectedRange) {
+                                is TimeRange.CalendarYear -> showYearDialog = true
+                                else -> {}
+                            }
+                        },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text(
+                            text = rangeLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
@@ -255,36 +351,6 @@ private fun TimeRangePicker(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showYearDialog = false }) { Text("Cancel") }
-            }
-        )
-    }
-
-    if (showMonthDialog) {
-        val months = (0 until 36).map { YearMonth.now().minusMonths(it.toLong()) }
-        val monthFmt = DateTimeFormatter.ofPattern("MMMM yyyy")
-        AlertDialog(
-            onDismissRequest = { showMonthDialog = false },
-            title = { Text("Select month") },
-            text = {
-                LazyColumn {
-                    items(months) { ym ->
-                        Text(
-                            text = ym.format(monthFmt),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onSelect(TimeRange.SpecificMonth(ym))
-                                    showMonthDialog = false
-                                }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { showMonthDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -449,9 +515,10 @@ private fun ChartTypeSelector(
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart,    "Compare"))
             }
             cat1.isNumeric && cat2 == null -> {
-                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart,   "Average"))
-                add(ChartOption(ChartType.TIME_SERIES,          Icons.Default.BarChart,    "Over Time"))
-                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.DonutLarge,  "Distribution"))
+                add(ChartOption(ChartType.TIME_SCATTER,         Icons.Default.ScatterPlot,  "Time"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart,    "Average"))
+                add(ChartOption(ChartType.TIME_SERIES,          Icons.Default.BarChart,     "Over Time"))
+                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.DonutLarge,   "Distribution"))
             }
             eitherNumeric -> {
                 add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,  "Over Time"))
@@ -459,12 +526,14 @@ private fun ChartTypeSelector(
                     add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart, "Compare"))
             }
             cat2 != null -> {
+                add(ChartOption(ChartType.TRENDS,           Icons.Default.BarChart,    "Trends"))
                 add(ChartOption(ChartType.PIE,              Icons.Default.DonutLarge,  "Distribution"))
                 add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,    "Over Time"))
                 add(ChartOption(ChartType.COMBO,            Icons.Default.TableChart,  "Combinations"))
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart,   "Compare"))
             }
             else -> {
+                add(ChartOption(ChartType.TRENDS,      Icons.Default.BarChart,   "Trends"))
                 add(ChartOption(ChartType.PIE,         Icons.Default.DonutLarge, "Distribution"))
                 add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart,   "Over Time"))
             }
@@ -620,6 +689,23 @@ private fun ChartArea(
                             modifier = Modifier.padding(bottom = 4.dp)
                         )
                         ScatterPlot(data = chartData)
+                    }
+                }
+
+                is StatsChartData.TimeScatterData -> {
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+                        Text(
+                            text = "${chartData.yAxisName} over time",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        TimeScatterChart(data = chartData)
+                    }
+                }
+
+                is StatsChartData.TrendsData -> {
+                    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        TrendsChart(data = chartData)
                     }
                 }
             }

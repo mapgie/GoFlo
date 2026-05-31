@@ -7,13 +7,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.mapgie.goflo.AppIconChoice
 import com.mapgie.goflo.ui.components.BetaFeedbackBanner
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,8 +31,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Eco
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.WaterDrop
@@ -67,6 +60,7 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -89,7 +83,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -101,13 +94,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Widgets
 import com.mapgie.goflo.BuildConfig
+import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.preferences.AppPreferences
+import com.mapgie.goflo.data.preferences.ReminderSettings
+import com.mapgie.goflo.data.preferences.SecuritySettings
 import com.mapgie.goflo.data.preferences.hasPinSet
 import com.mapgie.goflo.data.repository.ImportResult
 import androidx.compose.material3.Checkbox
@@ -125,33 +121,27 @@ private enum class StandardPalette(
     val lightTheme: AppTheme,
     val darkTheme: AppTheme,
     val systemTheme: AppTheme,
-    /** Primary colour shown in the top-left half of the diagonal swatch. */
     val previewArgb: Long,
-    /**
-     * Accent (tertiary or secondary) colour shown in the bottom-right half of the
-     * diagonal swatch — gives each palette a two-tone preview so the swatches look
-     * vibrant rather than flat single-colour circles.
-     */
     val accentArgb: Long,
 ) {
     // Classic
-    CORAL        ("Coral",                  AppTheme.CORAL,        AppTheme.CORAL_DARK,        AppTheme.CORAL_SYSTEM,          0xFFC15542L, 0xFFB5307AL), // coral-red + rose-magenta
-    TEAL         ("Teal",                   AppTheme.TURQUOISE,    AppTheme.TURQUOISE_DARK,    AppTheme.SYSTEM,                0xFF00696FL, 0xFF4E6078L), // deep teal + slate-blue
-    SAGE         ("Sage",                   AppTheme.GREEN,        AppTheme.GREEN_DARK,        AppTheme.GREEN_SYSTEM,          0xFF386A20L, 0xFF6B5BAEL), // forest-green + periwinkle
+    CORAL        ("Coral",                  AppTheme.CORAL,        AppTheme.CORAL_DARK,        AppTheme.CORAL_SYSTEM,          0xFFC15542L, 0xFFB5307AL),
+    TEAL         ("Teal",                   AppTheme.TURQUOISE,    AppTheme.TURQUOISE_DARK,    AppTheme.SYSTEM,                0xFF00696FL, 0xFF4E6078L),
+    SAGE         ("Sage",                   AppTheme.GREEN,        AppTheme.GREEN_DARK,        AppTheme.GREEN_SYSTEM,          0xFF386A20L, 0xFF6B5BAEL),
     // Fun
-    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY, AppTheme.SUMMER_CANDY_DARK, AppTheme.SUMMER_CANDY_SYSTEM,   0xFFC2185BL, 0xFF9B27AFL), // raspberry + electric-violet
-    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,  AppTheme.BEACH_VIBES_DARK,  AppTheme.BEACH_VIBES_SYSTEM,    0xFF0D47A1L, 0xFFD4700AL), // deep ocean-blue + vivid coral-orange
-    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,  AppTheme.PEACH_MELBA_DARK,  AppTheme.PEACH_MELBA_SYSTEM,    0xFFBF360CL, 0xFF9C5BA0L), // vivid terra-cotta + dusty lilac
-    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,        AppTheme.DISCO_DARK,        AppTheme.DISCO_SYSTEM,          0xFF7B0EA0L, 0xFF76B900L), // deep-violet + acid-lime
-    METAL_CHICK  ("Metal Chic",             AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL, 0xFF6B2D3EL), // charcoal + burgundy
-    WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,       AppTheme.WHIMSY_DARK,       AppTheme.WHIMSY_SYSTEM,         0xFF5050A0L, 0xFF2D7A6EL), // periwinkle + mint-teal
-    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFD63A26L, 0xFF00A8E8L), // vivid strawberry + electric cerulean
+    SUMMER_CANDY ("Summer Candy",           AppTheme.SUMMER_CANDY, AppTheme.SUMMER_CANDY_DARK, AppTheme.SUMMER_CANDY_SYSTEM,   0xFFC2185BL, 0xFF9B27AFL),
+    BEACH_VIBES  ("Beach Vibes",            AppTheme.BEACH_VIBES,  AppTheme.BEACH_VIBES_DARK,  AppTheme.BEACH_VIBES_SYSTEM,    0xFF0D47A1L, 0xFFD4700AL),
+    PEACH_MELBA  ("Peach Melba",            AppTheme.PEACH_MELBA,  AppTheme.PEACH_MELBA_DARK,  AppTheme.PEACH_MELBA_SYSTEM,    0xFFBF360CL, 0xFF9C5BA0L),
+    DISCO        ("All-Night Disco Party",  AppTheme.DISCO,        AppTheme.DISCO_DARK,        AppTheme.DISCO_SYSTEM,          0xFF7B0EA0L, 0xFF76B900L),
+    METAL_CHICK  ("Metal Chic",             AppTheme.METAL_CHICK,  AppTheme.METAL_CHICK_DARK,  AppTheme.METAL_CHICK_SYSTEM,    0xFF4A4A5AL, 0xFF6B2D3EL),
+    WHIMSY       ("Whimsy Whispers",        AppTheme.WHIMSY,       AppTheme.WHIMSY_DARK,       AppTheme.WHIMSY_SYSTEM,         0xFF5050A0L, 0xFF2D7A6EL),
+    COLOUR_HAPPY ("Colour Me Happy",        AppTheme.COLOUR_HAPPY, AppTheme.COLOUR_HAPPY_DARK, AppTheme.COLOUR_HAPPY_SYSTEM,   0xFFD63A26L, 0xFF00A8E8L),
     // Bold
-    DRAGON_FIRE   ("Dragon Fire",    AppTheme.DRAGON_FIRE,   AppTheme.DRAGON_FIRE_DARK,   AppTheme.DRAGON_FIRE_SYSTEM,   0xFFB71C1CL, 0xFFE07800L), // blood-red + lava-orange
-    MIDNIGHT_NEON ("Midnight Neon",  AppTheme.MIDNIGHT_NEON, AppTheme.MIDNIGHT_NEON_DARK, AppTheme.MIDNIGHT_NEON_SYSTEM, 0xFF6200EAL, 0xFF76B900L), // electric-violet + acid-lime
-    // Accessibility (max-contrast palette circles — always shown regardless of WCAG toggle)
-    MAX_CONTRAST     ("Max Contrast",  AppTheme.HIGH_CONTRAST_LIGHT, AppTheme.HIGH_CONTRAST_DARK, AppTheme.HIGH_CONTRAST_LIGHT, 0xFF1A1A1AL, 0xFF000000L), // near-black primary
-    BLUE_ORANGE_PAL  ("Blue & Orange", AppTheme.BLUE_ORANGE,         AppTheme.BLUE_ORANGE,        AppTheme.BLUE_ORANGE,         0xFF005FADL, 0xFF8B5000L), // cobalt-blue + burnt-sienna
+    DRAGON_FIRE   ("Dragon Fire",    AppTheme.DRAGON_FIRE,   AppTheme.DRAGON_FIRE_DARK,   AppTheme.DRAGON_FIRE_SYSTEM,   0xFFB71C1CL, 0xFFE07800L),
+    MIDNIGHT_NEON ("Midnight Neon",  AppTheme.MIDNIGHT_NEON, AppTheme.MIDNIGHT_NEON_DARK, AppTheme.MIDNIGHT_NEON_SYSTEM, 0xFF6200EAL, 0xFF76B900L),
+    // Accessibility
+    MAX_CONTRAST     ("Max Contrast",  AppTheme.HIGH_CONTRAST_LIGHT, AppTheme.HIGH_CONTRAST_DARK, AppTheme.HIGH_CONTRAST_LIGHT, 0xFF1A1A1AL, 0xFF000000L),
+    BLUE_ORANGE_PAL  ("Blue & Orange", AppTheme.BLUE_ORANGE,         AppTheme.BLUE_ORANGE,        AppTheme.BLUE_ORANGE,         0xFF005FADL, 0xFF8B5000L),
 }
 
 private val AppTheme.themeMode: ThemeMode? get() = when (this) {
@@ -180,7 +170,7 @@ private val AppTheme.themeMode: ThemeMode? get() = when (this) {
     AppTheme.METAL_CHICK_DARK, AppTheme.WHIMSY_DARK,
     AppTheme.COLOUR_HAPPY_DARK,
     AppTheme.DRAGON_FIRE_DARK, AppTheme.MIDNIGHT_NEON_DARK -> ThemeMode.DARK
-    else                                         -> null  // accessibility
+    else                                         -> null
 }
 
 private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
@@ -255,6 +245,12 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.BLUE_ORANGE           -> "Blue & Orange"
 }
 
+// ── Sub-screen routing ────────────────────────────────────────────────────────
+
+private enum class SettingsSubScreen {
+    NONE, CYCLE, QUICK_LOG, REMINDERS, APPEARANCE, SECURITY, DATA, WIDGETS, ABOUT
+}
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -278,18 +274,23 @@ fun SettingsScreen(
         AppIconChoice.valueOf(prefs.iconChoice)
     }.getOrDefault(AppIconChoice.DEFAULT)
 
-    var showTimePicker        by rememberSaveable { mutableStateOf(false) }
-    var showRemovePinDialog   by rememberSaveable { mutableStateOf(false) }
-    var customIconError       by remember { mutableStateOf<String?>(null) }
-    var showDisclaimer        by rememberSaveable { mutableStateOf(false) }
-    var showDeleteAllDialog   by rememberSaveable { mutableStateOf(false) }
-    var showChangelog         by rememberSaveable { mutableStateOf(false) }
-    var showExportDialog      by rememberSaveable { mutableStateOf(false) }
-    var pendingImportUri      by remember { mutableStateOf<Uri?>(null) }
+    var currentSubScreen        by rememberSaveable { mutableStateOf(SettingsSubScreen.NONE) }
+    var showTimePicker          by rememberSaveable { mutableStateOf(false) }
+    var showRemovePinDialog     by rememberSaveable { mutableStateOf(false) }
+    var customIconError         by remember { mutableStateOf<String?>(null) }
+    var showDisclaimer          by rememberSaveable { mutableStateOf(false) }
+    var showDeleteAllDialog     by rememberSaveable { mutableStateOf(false) }
+    var showChangelog           by rememberSaveable { mutableStateOf(false) }
+    var showExportDialog        by rememberSaveable { mutableStateOf(false) }
+    var pendingImportUri        by remember { mutableStateOf<Uri?>(null) }
     var showImportOptionsDialog by rememberSaveable { mutableStateOf(false) }
-    var importResult          by remember { mutableStateOf<ImportResult?>(null) }
-    var removePinInput        by rememberSaveable { mutableStateOf("") }
-    var removePinError        by rememberSaveable { mutableStateOf(false) }
+    var importResult            by remember { mutableStateOf<ImportResult?>(null) }
+    var removePinInput          by rememberSaveable { mutableStateOf("") }
+    var removePinError          by rememberSaveable { mutableStateOf(false) }
+
+    BackHandler(currentSubScreen != SettingsSubScreen.NONE) {
+        currentSubScreen = SettingsSubScreen.NONE
+    }
 
     val importFilePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -399,6 +400,8 @@ fun SettingsScreen(
         return
     }
 
+    // ── App-level dialogs (rendered above whichever sub-screen is active) ──────
+
     if (showChangelog) {
         ChangelogDialog(onDismiss = { showChangelog = false })
     }
@@ -413,8 +416,6 @@ fun SettingsScreen(
             }
         )
     }
-
-    // ── Dialogs ───────────────────────────────────────────────────────────────
 
     if (showTimePicker) {
         AlertDialog(
@@ -532,7 +533,94 @@ fun SettingsScreen(
         )
     }
 
-    // ── Computed summaries for collapsed headers ───────────────────────────────
+    // ── Route to sub-screens ──────────────────────────────────────────────────
+
+    when (currentSubScreen) {
+        SettingsSubScreen.NONE -> SettingsMainList(
+            prefs                        = prefs,
+            security                     = security,
+            categories                   = categories,
+            currentTheme                 = currentTheme,
+            reminder                     = reminder,
+            onNavigateTo                 = { currentSubScreen = it },
+            onNavigateToManageCategories = onNavigateToManageCategories,
+            onOpenDiscord                = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
+            onOpenSupport                = { openUrl(context, "https://github.com/sponsors/mapgie") },
+            onOpenPrivacy                = onNavigateToPrivacy
+        )
+        SettingsSubScreen.CYCLE -> CycleSubScreen(
+            prefs     = prefs,
+            viewModel = viewModel,
+            onBack    = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+        SettingsSubScreen.QUICK_LOG -> QuickLogSubScreen(
+            prefs      = prefs,
+            categories = categories,
+            viewModel  = viewModel,
+            onBack     = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+        SettingsSubScreen.REMINDERS -> RemindersSubScreen(
+            reminder        = reminder,
+            viewModel       = viewModel,
+            onShowTimePicker = { showTimePicker = true },
+            onBack          = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+        SettingsSubScreen.APPEARANCE -> AppearanceSubScreen(
+            currentTheme      = currentTheme,
+            prefs             = prefs,
+            currentIconChoice = currentIconChoice,
+            viewModel         = viewModel,
+            onPickCustomImage = { customIconPicker.launch("image/*") },
+            onBack            = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+        SettingsSubScreen.SECURITY -> SecuritySubScreen(
+            security              = security,
+            viewModel             = viewModel,
+            onNavigateToPinSetup  = onNavigateToPinSetup,
+            onShowRemovePinDialog = { showRemovePinDialog = true },
+            onBack                = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+        SettingsSubScreen.DATA -> DataSubScreen(
+            onShowExportDialog = { showExportDialog = true },
+            onShowImportPicker = { importFilePicker.launch("application/json") },
+            onShowDeleteDialog = { showDeleteAllDialog = true },
+            onBack             = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+        SettingsSubScreen.WIDGETS -> WidgetsSubScreen(
+            prefs     = prefs,
+            security  = security,
+            viewModel = viewModel,
+            onBack    = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+        SettingsSubScreen.ABOUT -> AboutSubScreen(
+            onNavigateToPrivacy  = onNavigateToPrivacy,
+            onNavigateToLicenses = onNavigateToLicenses,
+            onShowChangelog      = { showChangelog = true },
+            onShowDisclaimer     = { showDisclaimer = true },
+            onBack               = { currentSubScreen = SettingsSubScreen.NONE }
+        )
+    }
+}
+
+// ── Settings main flat list ───────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsMainList(
+    prefs:                        AppPreferences,
+    security:                     SecuritySettings,
+    categories:                   List<TrackingCategory>,
+    currentTheme:                 AppTheme,
+    reminder:                     ReminderSettings,
+    onNavigateTo:                 (SettingsSubScreen) -> Unit,
+    onNavigateToManageCategories: () -> Unit,
+    onOpenDiscord:                () -> Unit,
+    onOpenSupport:                () -> Unit,
+    onOpenPrivacy:                () -> Unit,
+) {
+    val cycleSummary = if (prefs.preferredCycleLength > 0)
+        "Custom: ${prefs.preferredCycleLength} days"
+    else "Auto — calculated from history"
 
     val activeReminderCount = listOf(
         reminder.preperiodEnabled,
@@ -542,20 +630,18 @@ fun SettingsScreen(
     val reminderSummary = if (activeReminderCount == 0) "No reminders enabled"
     else "$activeReminderCount active · %02d:%02d".format(reminder.reminderHour, reminder.reminderMinute)
 
-    val cycleSummary = if (prefs.preferredCycleLength > 0)
-        "Custom: ${prefs.preferredCycleLength} days"
-    else "Auto — calculated from history"
-
     val securitySummary = if (security.hasPinSet) "PIN lock enabled" else "No PIN set"
 
-    // ── Scaffold ──────────────────────────────────────────────────────────────
+    val quickLogSummary = if (prefs.quickLogCategoryId == -1L) "Tap → Period"
+    else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
+        ?.let { "Tap → $it" } ?: "Tap → Period"
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title  = { Text("Settings") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor   = MaterialTheme.colorScheme.primaryContainer,
+                    containerColor    = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             )
@@ -566,659 +652,741 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(top = padding.calculateTopPadding())
         ) {
-        BetaFeedbackBanner()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = padding.calculateBottomPadding())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-
-            // ── Medical device disclaimer banner (always visible at top) ─────
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors   = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
+            BetaFeedbackBanner()
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = padding.calculateBottomPadding())
             ) {
-                Row(
-                    modifier              = Modifier.padding(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment     = Alignment.Top
+
+                // Medical device disclaimer (always visible at top)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier              = Modifier.padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment     = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector        = Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint               = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier           = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text  = "Not a medical device. GoFlo is for personal tracking only and is not a substitute for professional medical advice.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    }
+                }
+
+                // ── TRACKING ─────────────────────────────────────────────────
+                SettingsSectionHeader("Tracking")
+                SettingsNavItem(
+                    title    = "What You Track",
+                    subtitle = "Customise the symptoms & metrics you log",
+                    icon     = Icons.Outlined.Tune,
+                    onClick  = onNavigateToManageCategories
+                )
+                SettingsNavItem(
+                    title    = "Cycle",
+                    subtitle = cycleSummary,
+                    icon     = Icons.Outlined.Autorenew,
+                    onClick  = { onNavigateTo(SettingsSubScreen.CYCLE) }
+                )
+                SettingsNavItem(
+                    title    = "One-Tap Quick Log",
+                    subtitle = quickLogSummary,
+                    icon     = Icons.Outlined.TouchApp,
+                    onClick  = { onNavigateTo(SettingsSubScreen.QUICK_LOG) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // ── NOTIFICATIONS ─────────────────────────────────────────────
+                SettingsSectionHeader("Notifications")
+                SettingsNavItem(
+                    title    = "Reminders",
+                    subtitle = reminderSummary,
+                    icon     = Icons.Outlined.NotificationsNone,
+                    onClick  = { onNavigateTo(SettingsSubScreen.REMINDERS) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // ── PERSONALISATION ───────────────────────────────────────────
+                SettingsSectionHeader("Personalisation")
+                SettingsNavItem(
+                    title    = "Appearance",
+                    subtitle = currentTheme.summaryLabel,
+                    icon     = Icons.Outlined.Palette,
+                    onClick  = { onNavigateTo(SettingsSubScreen.APPEARANCE) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // ── PRIVACY & DATA ────────────────────────────────────────────
+                SettingsSectionHeader("Privacy & Data")
+                SettingsNavItem(
+                    title    = "Security & Privacy",
+                    subtitle = securitySummary,
+                    icon     = Icons.Outlined.Lock,
+                    iconTint = if (!security.hasPinSet) MaterialTheme.colorScheme.error else null,
+                    onClick  = { onNavigateTo(SettingsSubScreen.SECURITY) }
+                )
+                SettingsNavItem(
+                    title    = "Data & Backup",
+                    subtitle = "Export, import & manage your data",
+                    icon     = Icons.Outlined.Storage,
+                    onClick  = { onNavigateTo(SettingsSubScreen.DATA) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // ── WIDGETS ───────────────────────────────────────────────────
+                SettingsSectionHeader("Widgets")
+                SettingsNavItem(
+                    title    = "Home Screen Widgets",
+                    subtitle = "Two widgets available",
+                    icon     = Icons.Outlined.Widgets,
+                    onClick  = { onNavigateTo(SettingsSubScreen.WIDGETS) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // ── HELP & FEEDBACK ───────────────────────────────────────────
+                SettingsSectionHeader("Help & Feedback")
+                SettingsNavItem(
+                    title    = "Bug report / Feature suggestion",
+                    subtitle = "Join the conversation on Discord",
+                    icon     = Icons.Outlined.BugReport,
+                    onClick  = onOpenDiscord
+                )
+                SupportCard(
+                    modifier  = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    onSupport = onOpenSupport
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+                // ── ABOUT ─────────────────────────────────────────────────────
+                SettingsSectionHeader("About")
+                SettingsNavItem(
+                    title    = "About GoFlo",
+                    subtitle = "v${BuildConfig.VERSION_NAME}",
+                    icon     = Icons.Outlined.Info,
+                    onClick  = { onNavigateTo(SettingsSubScreen.ABOUT) }
+                )
+
+                // Privacy Policy — always visible at the very bottom
+                OutlinedButton(
+                    onClick  = onOpenPrivacy,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Icon(
                         imageVector        = Icons.Outlined.Info,
                         contentDescription = null,
-                        tint               = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier           = Modifier.size(18.dp)
                     )
-                    Text(
-                        text  = "Not a medical device. GoFlo is for personal tracking only and is not a substitute for professional medical advice.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    Spacer(Modifier.width(8.dp))
+                    Text("Privacy Policy & Medical Disclaimer")
+                }
+
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+// ── Sub-screen: Cycle ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CycleSubScreen(
+    prefs:     AppPreferences,
+    viewModel: SettingsViewModel,
+    onBack:    () -> Unit
+) {
+    SettingsSubScreenScaffold(title = "Cycle", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+        ) {
+            val customEnabled = prefs.preferredCycleLength > 0
+
+            ListItem(
+                headlineContent    = { Text("Custom cycle length") },
+                supportingContent  = {
+                    Text(if (customEnabled) "Using ${prefs.preferredCycleLength} days"
+                         else "Auto — calculated from your history")
+                },
+                trailingContent    = {
+                    Switch(
+                        checked         = customEnabled,
+                        onCheckedChange = null
                     )
-                }
-            }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // TRACKING
-            // Core tracking configuration — most users visit this group first
-            // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("Tracking")
-
-            // Cycle ────────────────────────────────────────────────────────────
-            CollapsibleSection(
-                title   = "Cycle",
-                icon    = Icons.Outlined.Autorenew,
-                summary = cycleSummary
-            ) {
-                val customEnabled = prefs.preferredCycleLength > 0
-                SwitchRow(
-                    label    = "Custom cycle length",
-                    subtitle = if (customEnabled)
-                        "Using ${prefs.preferredCycleLength} days"
-                    else
-                        "Auto — calculated from your history",
-                    checked        = customEnabled,
-                    onCheckedChange = { on ->
+                },
+                modifier = Modifier
+                    .clickable {
                         viewModel.setPreferredCycleLength(
-                            if (on) prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
-                            else 0
+                            if (customEnabled) 0
+                            else prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
                         )
                     }
-                )
-                if (customEnabled) {
-                    var sliderDays by remember(prefs.preferredCycleLength) {
-                        mutableStateOf(prefs.preferredCycleLength.toFloat())
-                    }
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(
-                            "Cycle length: ${sliderDays.toInt()} days",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Slider(
-                            value                = sliderDays,
-                            onValueChange        = { sliderDays = it },
-                            onValueChangeFinished = { viewModel.setPreferredCycleLength(sliderDays.toInt()) },
-                            valueRange           = 21f..45f,
-                            steps                = 23
-                        )
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("21 days", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("45 days", style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                SwitchRow(
-                    label           = "Show period predictions",
-                    subtitle        = "Display predicted future period days on the calendar",
-                    checked         = prefs.showPeriodPrediction,
-                    onCheckedChange = { viewModel.setShowPeriodPrediction(it) }
-                )
-
-                SwitchRow(
-                    label           = "Show ovulation markers",
-                    subtitle        = "Display ovulation day and fertility window on the calendar",
-                    checked         = prefs.showOvulationMarkers,
-                    onCheckedChange = { viewModel.setShowOvulationMarkers(it) }
-                )
-            }
-
-            // What You Track — nav card (high-value feature, given prominent nav treatment) ──
-            SettingsNavCard(
-                title    = "What You Track",
-                subtitle = "Customise the symptoms & metrics you log",
-                icon     = Icons.Outlined.Tune,
-                onClick  = onNavigateToManageCategories
+                    .semantics { role = Role.Switch }
             )
 
-            // One-Tap Quick Log ────────────────────────────────────────────────
-            CollapsibleSection(
-                title   = "One-Tap Quick Log",
-                icon    = Icons.Outlined.TouchApp,
-                summary = if (prefs.quickLogCategoryId == -1L) "Tap → Period"
-                          else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
-                              ?.let { "Tap → $it" } ?: "Tap → Period"
+            if (customEnabled) {
+                var sliderDays by remember(prefs.preferredCycleLength) {
+                    mutableStateOf(prefs.preferredCycleLength.toFloat())
+                }
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    Text(
+                        "Cycle length: ${sliderDays.toInt()} days",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Slider(
+                        value                 = sliderDays,
+                        onValueChange         = { sliderDays = it },
+                        onValueChangeFinished = { viewModel.setPreferredCycleLength(sliderDays.toInt()) },
+                        valueRange            = 21f..45f,
+                        steps                 = 23
+                    )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("21 days", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("45 days", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+
+            HorizontalDivider()
+
+            ListItem(
+                headlineContent   = { Text("Show period predictions") },
+                supportingContent = { Text("Display predicted future period days on the calendar") },
+                trailingContent   = { Switch(checked = prefs.showPeriodPrediction, onCheckedChange = null) },
+                modifier          = Modifier
+                    .clickable { viewModel.setShowPeriodPrediction(!prefs.showPeriodPrediction) }
+                    .semantics { role = Role.Switch }
+            )
+
+            HorizontalDivider()
+
+            ListItem(
+                headlineContent   = { Text("Show ovulation markers") },
+                supportingContent = { Text("Display ovulation day and fertility window on the calendar") },
+                trailingContent   = { Switch(checked = prefs.showOvulationMarkers, onCheckedChange = null) },
+                modifier          = Modifier
+                    .clickable { viewModel.setShowOvulationMarkers(!prefs.showOvulationMarkers) }
+                    .semantics { role = Role.Switch }
+            )
+        }
+    }
+}
+
+// ── Sub-screen: One-Tap Quick Log ─────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun QuickLogSubScreen(
+    prefs:      AppPreferences,
+    categories: List<TrackingCategory>,
+    viewModel:  SettingsViewModel,
+    onBack:     () -> Unit
+) {
+    SettingsSubScreenScaffold(title = "One-Tap Quick Log", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                "When you tap the quick-add button, it logs:",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement   = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    "When you tap the quick-add button, it logs:",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                FilterChip(
+                    selected = prefs.quickLogCategoryId == -1L,
+                    onClick  = { viewModel.setQuickLogCategory(-1L) },
+                    label    = { Text("Period") },
+                    leadingIcon = if (prefs.quickLogCategoryId == -1L) {
+                        { Icon(Icons.Default.Check, contentDescription = null,
+                            modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else null
                 )
-                Spacer(Modifier.height(4.dp))
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement   = Arrangement.spacedBy(4.dp)
-                ) {
-                    // Log Period option
+                categories.forEach { cat ->
                     FilterChip(
-                        selected = prefs.quickLogCategoryId == -1L,
-                        onClick  = { viewModel.setQuickLogCategory(-1L) },
-                        label    = { Text("Period") },
-                        leadingIcon = if (prefs.quickLogCategoryId == -1L) {
+                        selected = prefs.quickLogCategoryId == cat.id,
+                        onClick  = { viewModel.setQuickLogCategory(cat.id) },
+                        label    = { Text(cat.name) },
+                        leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
                             { Icon(Icons.Default.Check, contentDescription = null,
                                 modifier = Modifier.size(FilterChipDefaults.IconSize)) }
                         } else null
                     )
-                    // One chip per tracking category
-                    categories.forEach { cat ->
-                        FilterChip(
-                            selected = prefs.quickLogCategoryId == cat.id,
-                            onClick  = { viewModel.setQuickLogCategory(cat.id) },
-                            label    = { Text(cat.name) },
-                            leadingIcon = if (prefs.quickLogCategoryId == cat.id) {
-                                { Icon(Icons.Default.Check, contentDescription = null,
-                                    modifier = Modifier.size(FilterChipDefaults.IconSize)) }
-                            } else null
-                        )
-                    }
-                }
-            }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // NOTIFICATIONS
-            // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("Notifications")
-
-            CollapsibleSection(
-                title   = "Reminders",
-                icon    = Icons.Outlined.NotificationsNone,
-                summary = reminderSummary
-            ) {
-                SwitchRow(
-                    label          = "Before period alert",
-                    subtitle       = "Notify ${reminder.preperiodDaysBefore} day(s) before predicted start",
-                    checked        = reminder.preperiodEnabled,
-                    onCheckedChange = viewModel::setPreperiodEnabled
-                )
-                if (reminder.preperiodEnabled) {
-                    Column(modifier = Modifier.padding(start = 8.dp)) {
-                        Text(
-                            "Days before: ${reminder.preperiodDaysBefore}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Slider(
-                            value         = reminder.preperiodDaysBefore.toFloat(),
-                            onValueChange = { viewModel.setPreperiodDays(it.toInt()) },
-                            valueRange    = 1f..7f,
-                            steps         = 5
-                        )
-                    }
-                }
-
-                SwitchRow(
-                    label          = "Ovulation window",
-                    subtitle       = "Notify around mid-cycle",
-                    checked        = reminder.ovulationEnabled,
-                    onCheckedChange = viewModel::setOvulationEnabled
-                )
-
-                SwitchRow(
-                    label          = "Daily log reminder",
-                    subtitle       = "Remind to log while period is active",
-                    checked        = reminder.dailyDuringPeriodEnabled,
-                    onCheckedChange = viewModel::setDailyEnabled
-                )
-
-                val anyEnabled = reminder.preperiodEnabled ||
-                        reminder.ovulationEnabled ||
-                        reminder.dailyDuringPeriodEnabled
-                if (anyEnabled) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment     = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text("Reminder time", style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                "%02d:%02d".format(reminder.reminderHour, reminder.reminderMinute),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        OutlinedButton(onClick = { showTimePicker = true }) { Text("Change") }
-                    }
-                }
-            }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // PERSONALISATION
-            // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("Personalisation")
-
-            CollapsibleSection(
-                title   = "Appearance",
-                icon    = Icons.Outlined.Palette,
-                summary = currentTheme.summaryLabel
-            ) {
-                CompactThemePicker(
-                    current      = currentTheme,
-                    wcagChecked  = prefs.wcagMode,
-                    onSelect     = { viewModel.setTheme(it.name) },
-                    onWcagToggle = { viewModel.setWcagMode(it) }
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color    = MaterialTheme.colorScheme.outlineVariant
-                )
-
-                AppIconPicker(
-                    currentChoice       = currentIconChoice,
-                    onSelect            = { viewModel.setIconChoice(it) },
-                    onPickCustomImage   = { customIconPicker.launch("image/*") }
-                )
-            }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // PRIVACY & DATA
-            // Security first — then data management
-            // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("Privacy & Data")
-
-            // Security & Privacy — icon tint shifts to error colour when unprotected
-            CollapsibleSection(
-                title    = "Security & Privacy",
-                icon     = Icons.Outlined.Lock,
-                summary  = securitySummary,
-                iconTint = if (!security.hasPinSet) MaterialTheme.colorScheme.error else null
-            ) {
-                if (!security.hasPinSet) {
-                    Text(
-                        "No PIN set — your data is accessible without authentication.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Button(
-                        onClick  = { onNavigateToPinSetup(false) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Set PIN Lock") }
-                } else {
-                    Text(
-                        "PIN lock is enabled.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(
-                            onClick  = { onNavigateToPinSetup(true) },
-                            modifier = Modifier.weight(1f)
-                        ) { Text("Change PIN") }
-                        OutlinedButton(
-                            onClick  = { showRemovePinDialog = true },
-                            modifier = Modifier.weight(1f),
-                            colors   = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.error
-                            )
-                        ) { Text("Remove PIN") }
-                    }
-                    if (viewModel.isBiometricAvailable) {
-                        Spacer(Modifier.height(4.dp))
-                        SwitchRow(
-                            label          = "Biometric unlock",
-                            subtitle       = "Use fingerprint or face to unlock",
-                            checked        = security.biometricEnabled,
-                            onCheckedChange = { viewModel.setBiometricEnabled(it) }
-                        )
-                    }
-                }
-            }
-
-            // Data & Backup (renamed from "Data" — title alone was too vague)
-            CollapsibleSection(
-                title   = "Data & Backup",
-                icon    = Icons.Outlined.Storage,
-                summary = "Export, import & manage your data"
-            ) {
-                Text(
-                    "Back up or transfer your data. Export JSON to keep a full backup; " +
-                    "CSV is useful for spreadsheets.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(4.dp))
-
-                OutlinedButton(
-                    onClick  = { showExportDialog = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Export Data") }
-
-                OutlinedButton(
-                    onClick  = { importFilePicker.launch("application/json") },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Import Data") }
-
-                Spacer(Modifier.height(4.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(Modifier.height(4.dp))
-
-                OutlinedButton(
-                    onClick  = { showDeleteAllDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors   = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) { Text("Delete All Data") }
-            }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // WIDGETS
-            // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("Widgets")
-
-            CollapsibleSection(
-                title   = "Home Screen Widgets",
-                icon    = Icons.Outlined.Widgets,
-                summary = "Two widgets available"
-            ) {
-                Text(
-                    "GoFlo offers two home-screen widgets. Long-press your home screen " +
-                    "and choose Widgets to add them.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-
-                // GoFlo Status widget description
-                Text("GoFlo Status (2×1)", style = MaterialTheme.typography.labelMedium)
-                Text(
-                    "Shows your cycle status at a glance — current cycle day, days until " +
-                    "your next period, or a privacy placeholder when PIN lock is active.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(8.dp))
-
-                // Quick Log widget description
-                Text("Quick Log (2×2)", style = MaterialTheme.typography.labelMedium)
-                Text(
-                    "Shows up to four of your active tracking categories. Tap any button " +
-                    "to jump straight to today's log entry for that category.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                // PIN guard toggle — only shown when a PIN is set
-                if (security.hasPinSet) {
-                    Spacer(Modifier.height(8.dp))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Spacer(Modifier.height(8.dp))
-                    SwitchRow(
-                        label    = "Show data on GoFlo Status widget",
-                        subtitle = "By default the widget hides cycle data when PIN lock is enabled. " +
-                                   "Turn this on to show live data on your home screen.",
-                        checked         = prefs.widgetDataVisible,
-                        onCheckedChange = { viewModel.setWidgetDataVisible(it) }
-                    )
-                }
-            }
-
-            // ═══════════════════════════════════════════════════════════════════
-            // HELP & FEEDBACK
-            // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("Help & Feedback")
-
-            SettingsNavCard(
-                title    = "Found a bug? Feature suggestion?",
-                subtitle = "Join the conversation on Discord",
-                icon     = Icons.Outlined.BugReport,
-                onClick  = { openUrl(context, "https://discord.gg/xphnQCZeYq") }
-            )
-
-            SupportCard(
-                onSupport = { openUrl(context, "https://github.com/sponsors/mapgie") }
-            )
-
-            // ═══════════════════════════════════════════════════════════════════
-            // ABOUT
-            // ═══════════════════════════════════════════════════════════════════
-            SettingsSectionHeader("About")
-
-            CollapsibleSection(
-                title   = "About",
-                icon    = Icons.Outlined.Info,
-                summary = "GoFlo v${BuildConfig.VERSION_NAME}"
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showChangelog = true }
-                        .semantics { role = Role.Button }
-                        .padding(vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(
-                        text  = "GoFlo v${BuildConfig.VERSION_NAME}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text  = "Tap to see changelog",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Text(
-                    "All your data stays on your device — nothing is sent anywhere.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(Modifier.height(4.dp))
-
-                Row(
-                    modifier              = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick  = onNavigateToPrivacy,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Privacy Policy") }
-                    OutlinedButton(
-                        onClick  = onNavigateToLicenses,
-                        modifier = Modifier.weight(1f)
-                    ) { Text("Licences") }
-                }
-            }
-
-            // Privacy & Disclaimer — always visible at the very bottom, never buried
-            OutlinedButton(
-                onClick  = onNavigateToPrivacy,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp)
-            ) {
-                Icon(
-                    imageVector        = Icons.Outlined.Info,
-                    contentDescription = null,
-                    modifier           = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Privacy Policy & Medical Disclaimer")
-            }
-
-            Spacer(Modifier.height(8.dp))
-        }
-        }
-    }
-}
-
-// ── Collapsible section card ──────────────────────────────────────────────────
-
-@Composable
-private fun CollapsibleSection(
-    title:    String,
-    icon:     ImageVector,
-    summary:  String,
-    iconTint: Color? = null,
-    content:  @Composable () -> Unit
-) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-    val chevronAngle by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        label       = "chevron"
-    )
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .animateContentSize(),
-        colors   = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column {
-            // Header row — always visible, tappable to expand/collapse
-            Row(
-                modifier              = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment     = Alignment.CenterVertically
-            ) {
-                Row(
-                    modifier              = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment     = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector        = icon,
-                        contentDescription = null,
-                        tint               = iconTint ?: MaterialTheme.colorScheme.primary,
-                        modifier           = Modifier.size(22.dp)
-                    )
-                    Column {
-                        Text(title, style = MaterialTheme.typography.titleSmall)
-                        if (!expanded && summary.isNotEmpty()) {
-                            Text(
-                                text     = summary,
-                                style    = MaterialTheme.typography.bodySmall,
-                                color    = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-                Icon(
-                    imageVector        = Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
-                    modifier           = Modifier
-                        .size(20.dp)
-                        .rotate(chevronAngle),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Expandable content
-            AnimatedVisibility(
-                visible = expanded,
-                enter   = expandVertically() + fadeIn(),
-                exit    = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier              = Modifier
-                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    verticalArrangement   = Arrangement.spacedBy(12.dp)
-                ) {
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    content()
                 }
             }
         }
     }
 }
 
-// ── Section header label ──────────────────────────────────────────────────────
+// ── Sub-screen: Reminders ─────────────────────────────────────────────────────
 
-/** Subtle uppercase label that visually separates semantic groups. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsSectionHeader(title: String) {
-    Text(
-        text     = title.uppercase(),
-        style    = MaterialTheme.typography.labelMedium,
-        color    = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 2.dp)
-    )
-}
-
-// ── External link helper ───────────────────────────────────────────────────────
-
-/** Opens [url] in the user's browser (or matching app) via an ACTION_VIEW intent. */
-private fun openUrl(context: Context, url: String) {
-    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-}
-
-// ── Navigation card (forward-chevron rows) ─────────────────────────────────────
-
-/**
- * A tappable card that navigates to another screen.
- * Visually distinct from [CollapsibleSection] — uses a ChevronRight instead of
- * the animated expand/collapse arrow, signalling "go somewhere" not "open here".
- */
-@Composable
-private fun SettingsNavCard(
-    title:   String,
-    subtitle: String,
-    icon:    ImageVector,
-    onClick: () -> Unit
+private fun RemindersSubScreen(
+    reminder:        ReminderSettings,
+    viewModel:       SettingsViewModel,
+    onShowTimePicker: () -> Unit,
+    onBack:          () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick  = onClick,
-        colors   = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Row(
-            modifier              = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment     = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+    SettingsSubScreenScaffold(title = "Reminders", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
         ) {
-            Icon(
-                imageVector        = icon,
-                contentDescription = null,
-                tint               = MaterialTheme.colorScheme.primary,
-                modifier           = Modifier.size(22.dp)
+            ListItem(
+                headlineContent   = { Text("Before period alert") },
+                supportingContent = { Text("Notify ${reminder.preperiodDaysBefore} day(s) before predicted start") },
+                trailingContent   = { Switch(checked = reminder.preperiodEnabled, onCheckedChange = null) },
+                modifier          = Modifier
+                    .clickable { viewModel.setPreperiodEnabled(!reminder.preperiodEnabled) }
+                    .semantics { role = Role.Switch }
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title,    style = MaterialTheme.typography.titleSmall)
-                Text(subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+            if (reminder.preperiodEnabled) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    Text("Days before: ${reminder.preperiodDaysBefore}", style = MaterialTheme.typography.bodyMedium)
+                    Slider(
+                        value         = reminder.preperiodDaysBefore.toFloat(),
+                        onValueChange = { viewModel.setPreperiodDays(it.toInt()) },
+                        valueRange    = 1f..7f,
+                        steps         = 5
+                    )
+                }
             }
+
+            HorizontalDivider()
+
+            ListItem(
+                headlineContent   = { Text("Ovulation window") },
+                supportingContent = { Text("Notify around mid-cycle") },
+                trailingContent   = { Switch(checked = reminder.ovulationEnabled, onCheckedChange = null) },
+                modifier          = Modifier
+                    .clickable { viewModel.setOvulationEnabled(!reminder.ovulationEnabled) }
+                    .semantics { role = Role.Switch }
+            )
+
+            HorizontalDivider()
+
+            ListItem(
+                headlineContent   = { Text("Daily log reminder") },
+                supportingContent = { Text("Remind to log while period is active") },
+                trailingContent   = { Switch(checked = reminder.dailyDuringPeriodEnabled, onCheckedChange = null) },
+                modifier          = Modifier
+                    .clickable { viewModel.setDailyEnabled(!reminder.dailyDuringPeriodEnabled) }
+                    .semantics { role = Role.Switch }
+            )
+
+            val anyEnabled = reminder.preperiodEnabled || reminder.ovulationEnabled || reminder.dailyDuringPeriodEnabled
+            if (anyEnabled) {
+                HorizontalDivider()
+                ListItem(
+                    headlineContent   = { Text("Reminder time") },
+                    supportingContent = {
+                        Text(
+                            "%02d:%02d".format(reminder.reminderHour, reminder.reminderMinute),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    },
+                    trailingContent   = {
+                        OutlinedButton(onClick = onShowTimePicker) { Text("Change") }
+                    }
+                )
+            }
+        }
+    }
+}
+
+// ── Sub-screen: Appearance ────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun AppearanceSubScreen(
+    currentTheme:      AppTheme,
+    prefs:             AppPreferences,
+    currentIconChoice: AppIconChoice,
+    viewModel:         SettingsViewModel,
+    onPickCustomImage: () -> Unit,
+    onBack:            () -> Unit
+) {
+    SettingsSubScreenScaffold(title = "Appearance", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            CompactThemePicker(
+                current      = currentTheme,
+                wcagChecked  = prefs.wcagMode,
+                onSelect     = { viewModel.setTheme(it.name) },
+                onWcagToggle = { viewModel.setWcagMode(it) }
+            )
+
+            HorizontalDivider()
+
+            AppIconPicker(
+                currentChoice     = currentIconChoice,
+                onSelect          = { viewModel.setIconChoice(it) },
+                onPickCustomImage = onPickCustomImage
+            )
+        }
+    }
+}
+
+// ── Sub-screen: Security & Privacy ────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SecuritySubScreen(
+    security:             SecuritySettings,
+    viewModel:            SettingsViewModel,
+    onNavigateToPinSetup: (changing: Boolean) -> Unit,
+    onShowRemovePinDialog: () -> Unit,
+    onBack:               () -> Unit
+) {
+    SettingsSubScreenScaffold(title = "Security & Privacy", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            if (!security.hasPinSet) {
+                Text(
+                    "No PIN set — your data is accessible without authentication.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(
+                    onClick  = { onNavigateToPinSetup(false) },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Set PIN Lock") }
+            } else {
+                Text(
+                    "PIN lock is enabled.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick  = { onNavigateToPinSetup(true) },
+                        modifier = Modifier.weight(1f)
+                    ) { Text("Change PIN") }
+                    OutlinedButton(
+                        onClick  = onShowRemovePinDialog,
+                        modifier = Modifier.weight(1f),
+                        colors   = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) { Text("Remove PIN") }
+                }
+                if (viewModel.isBiometricAvailable) {
+                    HorizontalDivider()
+                    SwitchRow(
+                        label           = "Biometric unlock",
+                        subtitle        = "Use fingerprint or face to unlock",
+                        checked         = security.biometricEnabled,
+                        onCheckedChange = { viewModel.setBiometricEnabled(it) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Sub-screen: Data & Backup ─────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DataSubScreen(
+    onShowExportDialog: () -> Unit,
+    onShowImportPicker: () -> Unit,
+    onShowDeleteDialog: () -> Unit,
+    onBack:             () -> Unit
+) {
+    SettingsSubScreenScaffold(title = "Data & Backup", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                "Back up or transfer your data. Export JSON to keep a full backup; " +
+                "CSV is useful for spreadsheets.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            OutlinedButton(
+                onClick  = onShowExportDialog,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Export Data") }
+
+            OutlinedButton(
+                onClick  = onShowImportPicker,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Import Data") }
+
+            HorizontalDivider()
+
+            OutlinedButton(
+                onClick  = onShowDeleteDialog,
+                modifier = Modifier.fillMaxWidth(),
+                colors   = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) { Text("Delete All Data") }
+        }
+    }
+}
+
+// ── Sub-screen: Widgets ───────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WidgetsSubScreen(
+    prefs:     AppPreferences,
+    security:  SecuritySettings,
+    viewModel: SettingsViewModel,
+    onBack:    () -> Unit
+) {
+    SettingsSubScreenScaffold(title = "Home Screen Widgets", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                "GoFlo offers two home-screen widgets. Long-press your home screen " +
+                "and choose Widgets to add them.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text("GoFlo Status (2×1)", style = MaterialTheme.typography.labelMedium)
+            Text(
+                "Shows your cycle status at a glance — current cycle day, days until " +
+                "your next period, or a privacy placeholder when PIN lock is active.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(Modifier.height(4.dp))
+            Text("Quick Log (2×2)", style = MaterialTheme.typography.labelMedium)
+            Text(
+                "Shows up to four of your active tracking categories. Tap any button " +
+                "to jump straight to today's log entry for that category.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (security.hasPinSet) {
+                HorizontalDivider()
+                SwitchRow(
+                    label           = "Show data on GoFlo Status widget",
+                    subtitle        = "By default the widget hides cycle data when PIN lock is enabled. " +
+                                      "Turn this on to show live data on your home screen.",
+                    checked         = prefs.widgetDataVisible,
+                    onCheckedChange = { viewModel.setWidgetDataVisible(it) }
+                )
+            }
+        }
+    }
+}
+
+// ── Sub-screen: About ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AboutSubScreen(
+    onNavigateToPrivacy:  () -> Unit,
+    onNavigateToLicenses: () -> Unit,
+    onShowChangelog:      () -> Unit,
+    onShowDisclaimer:     () -> Unit,
+    onBack:               () -> Unit
+) {
+    SettingsSubScreenScaffold(title = "About", onBack = onBack) { padding ->
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ListItem(
+                headlineContent   = { Text("GoFlo v${BuildConfig.VERSION_NAME}") },
+                supportingContent = { Text("Tap to see changelog", color = MaterialTheme.colorScheme.primary) },
+                modifier          = Modifier.clickable(onClick = onShowChangelog)
+            )
+
+            HorizontalDivider()
+
+            Text(
+                "All your data stays on your device — nothing is sent anywhere.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick  = onNavigateToPrivacy,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Privacy Policy") }
+                OutlinedButton(
+                    onClick  = onNavigateToLicenses,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Licences") }
+            }
+
+            OutlinedButton(
+                onClick  = onShowDisclaimer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Medical Disclaimer")
+            }
+        }
+    }
+}
+
+// ── Sub-screen scaffold wrapper ───────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsSubScreenScaffold(
+    title:   String,
+    onBack:  () -> Unit,
+    content: @Composable (androidx.compose.foundation.layout.PaddingValues) -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor          = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor       = MaterialTheme.colorScheme.onPrimaryContainer,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        },
+        content = content
+    )
+}
+
+// ── Flat list item — navigation ────────────────────────────────────────────────
+
+@Composable
+private fun SettingsNavItem(
+    title:    String,
+    subtitle: String,
+    icon:     ImageVector,
+    iconTint: Color? = null,
+    onClick:  () -> Unit
+) {
+    ListItem(
+        headlineContent   = { Text(title) },
+        supportingContent = { Text(subtitle) },
+        leadingContent    = {
+            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector        = icon,
+                    contentDescription = null,
+                    tint               = iconTint ?: MaterialTheme.colorScheme.primary,
+                    modifier           = Modifier.size(24.dp)
+                )
+            }
+        },
+        trailingContent   = {
             Icon(
                 imageVector        = Icons.Default.ChevronRight,
                 contentDescription = null,
                 tint               = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }
-    }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}
+
+// ── Section header label ──────────────────────────────────────────────────────
+
+@Composable
+private fun SettingsSectionHeader(title: String) {
+    Text(
+        text     = title.uppercase(),
+        style    = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+        color    = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 4.dp, end = 16.dp)
+    )
+}
+
+// ── External link helper ──────────────────────────────────────────────────────
+
+private fun openUrl(context: Context, url: String) {
+    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 }
 
 // ── Support card ───────────────────────────────────────────────────────────────
 
-/**
- * A visually distinct "buy me a coffee" style card with a filled Support button,
- * set apart from the plain navigation rows to give the ask a gentle, friendly tone.
- */
 @Composable
-private fun SupportCard(onSupport: () -> Unit) {
+private fun SupportCard(
+    onSupport: () -> Unit,
+    modifier:  Modifier = Modifier
+) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         colors   = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
         )
@@ -1234,7 +1402,7 @@ private fun SupportCard(onSupport: () -> Unit) {
                 imageVector        = Icons.Outlined.FavoriteBorder,
                 contentDescription = null,
                 tint               = MaterialTheme.colorScheme.onTertiaryContainer,
-                modifier           = Modifier.size(22.dp)
+                modifier           = Modifier.size(24.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1268,7 +1436,6 @@ private fun CompactThemePicker(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-        // ── Mode segmented control ────────────────────────────────────────────
         Text(
             "Mode",
             style = MaterialTheme.typography.labelMedium,
@@ -1300,8 +1467,6 @@ private fun CompactThemePicker(
                         .clickable {
                             when (mode) {
                                 ThemeMode.SYSTEM -> {
-                                    // Preserve the current palette so "Auto" uses the
-                                    // user's chosen colour, not the hardcoded teal default.
                                     val palette = currentPalette ?: StandardPalette.TEAL
                                     onSelect(palette.systemTheme)
                                 }
@@ -1337,7 +1502,6 @@ private fun CompactThemePicker(
                         )
                     }
                 }
-                // Divider between segments
                 if (index < modes.size - 1) {
                     Box(
                         modifier = Modifier
@@ -1349,7 +1513,6 @@ private fun CompactThemePicker(
             }
         }
 
-        // ── WCAG accessible toggle ────────────────────────────────────────────
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
@@ -1367,7 +1530,6 @@ private fun CompactThemePicker(
             )
         }
 
-        // ── Palette circles ───────────────────────────────────────────────────
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 "Colour",
@@ -1385,9 +1547,6 @@ private fun CompactThemePicker(
                         palette  = palette,
                         selected = selected,
                         onClick  = {
-                            // MAX_CONTRAST and BLUE_ORANGE_PAL don't have distinct
-                            // light/dark/system variants — their lightTheme is always
-                            // used (both lightTheme and darkTheme point to the same entry).
                             val mode = currentMode ?: ThemeMode.LIGHT
                             onSelect(
                                 when (mode) {
@@ -1424,28 +1583,22 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
             modifier         = Modifier.size(44.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Diagonal-split circle: upper-left = primary, lower-right = accent.
-            // Shows the palette's two key colours at a glance instead of a flat
-            // single-colour disc.
             Canvas(modifier = Modifier.size(40.dp)) {
                 val w = size.width
                 val h = size.height
                 val r = w / 2f
 
                 clipPath(Path().apply { addOval(Rect(0f, 0f, w, h)) }) {
-                    // Upper-left triangle — primary (period colour)
                     drawPath(
                         path  = Path().apply { moveTo(0f, 0f); lineTo(w, 0f); lineTo(0f, h); close() },
                         color = primaryColor,
                     )
-                    // Lower-right triangle — accent (ovulation / tertiary colour)
                     drawPath(
                         path  = Path().apply { moveTo(w, 0f); lineTo(w, h); lineTo(0f, h); close() },
                         color = accentColor,
                     )
                 }
 
-                // Selection / outline ring drawn over the fill
                 val strokePx = if (selected) 3.dp.toPx() else 1.dp.toPx()
                 drawCircle(
                     color  = if (selected) selRingColor else outlineColor,
@@ -1474,27 +1627,25 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
 
 // ── App icon picker ───────────────────────────────────────────────────────────
 
-/** Preview background colour for each icon choice (matches the adaptive-icon background). */
 private val AppIconChoice.previewBg: Color get() = when (this) {
-    AppIconChoice.DEFAULT -> Color(0xFFFFD5CBL) // original GoFlo icon background (light salmon)
-    AppIconChoice.LEAF -> Color(0xFFC8E6C9L)
-    AppIconChoice.MOON -> Color(0xFF1A237EL)   // deep night-sky indigo
-    AppIconChoice.STAR -> Color(0xFF311B92L)   // deep purple
+    AppIconChoice.DEFAULT -> Color(0xFFFFD5CBL)
+    AppIconChoice.LEAF    -> Color(0xFFC8E6C9L)
+    AppIconChoice.MOON    -> Color(0xFF1A237EL)
+    AppIconChoice.STAR    -> Color(0xFF311B92L)
 }
 
-/** Icon foreground / tint colour for each choice. */
 private val AppIconChoice.previewFg: Color get() = when (this) {
-    AppIconChoice.DEFAULT -> Color(0xFFD9604AL) // original GoFlo coral drop
-    AppIconChoice.LEAF -> Color(0xFF2E7D32L)
-    AppIconChoice.MOON -> Color(0xFFFFF8E1L)   // warm ivory crescent
-    AppIconChoice.STAR -> Color(0xFFFFD740L)   // bright gold sparkle
+    AppIconChoice.DEFAULT -> Color(0xFFD9604AL)
+    AppIconChoice.LEAF    -> Color(0xFF2E7D32L)
+    AppIconChoice.MOON    -> Color(0xFFFFF8E1L)
+    AppIconChoice.STAR    -> Color(0xFFFFD740L)
 }
 
 private val AppIconChoice.previewIcon: androidx.compose.ui.graphics.vector.ImageVector get() = when (this) {
     AppIconChoice.DEFAULT -> Icons.Filled.WaterDrop
-    AppIconChoice.LEAF -> Icons.Filled.Eco
-    AppIconChoice.MOON -> Icons.Filled.NightsStay
-    AppIconChoice.STAR -> Icons.Filled.AutoAwesome
+    AppIconChoice.LEAF    -> Icons.Filled.Eco
+    AppIconChoice.MOON    -> Icons.Filled.NightsStay
+    AppIconChoice.STAR    -> Icons.Filled.AutoAwesome
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1506,7 +1657,6 @@ private fun AppIconPicker(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
 
-        // ── Default GoFlo icon ────────────────────────────────────────────────
         FlowRow(
             modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -1518,7 +1668,6 @@ private fun AppIconPicker(
             )
         }
 
-        // ── Discreet icons ────────────────────────────────────────────────────
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Text(
             "Discreet icons",
@@ -1543,7 +1692,6 @@ private fun AppIconPicker(
             }
         }
 
-        // ── Custom icon ───────────────────────────────────────────────────────
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Text(
             "Your own icon",
@@ -1572,11 +1720,11 @@ private fun IconChoiceCell(
     selected: Boolean,
     onClick:  () -> Unit,
 ) {
-    val bg     = choice.previewBg
-    val fg     = choice.previewFg
-    val icon   = choice.previewIcon
-    val border = if (selected) MaterialTheme.colorScheme.primary
-                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
+    val bg          = choice.previewBg
+    val fg          = choice.previewFg
+    val icon        = choice.previewIcon
+    val border      = if (selected) MaterialTheme.colorScheme.primary
+                      else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
     val borderWidth = if (selected) 2.5.dp else 1.dp
 
     Column(
@@ -1632,9 +1780,9 @@ private fun IconChoiceCell(
 
 @Composable
 private fun SwitchRow(
-    label:          String,
-    subtitle:       String,
-    checked:        Boolean,
+    label:           String,
+    subtitle:        String,
+    checked:         Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Row(

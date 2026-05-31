@@ -26,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -129,7 +131,9 @@ fun HomeScreen(
                 viewModel.clearSelectedDay()
                 logMenuTargetDate = data.date
                 showLogMenu = true
-            }
+            },
+            flowCategoryName = data.flowCategoryName,
+            symptomsCategoryName = data.symptomsCategoryName,
         )
     }
 
@@ -154,6 +158,15 @@ fun HomeScreen(
                             style    = MaterialTheme.typography.labelMedium,
                             color    = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f),
                             modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { onNavigate(Screen.Settings.route) }) {
+                        Icon(
+                            imageVector        = Icons.Default.Settings,
+                            contentDescription = "Settings",
+                            tint               = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
                 },
@@ -289,9 +302,10 @@ private fun SpeedDial(
             }
         }
 
-        // Main Extended FAB
+        // Main Extended FAB — icon-only when closed, expands to show "Log" when speed dial is open
         ExtendedFloatingActionButton(
             onClick          = onToggle,
+            expanded         = expanded,
             containerColor   = MaterialTheme.colorScheme.primaryContainer,
             contentColor     = MaterialTheme.colorScheme.onPrimaryContainer,
             icon = {
@@ -303,9 +317,11 @@ private fun SpeedDial(
                 }
             },
             text = {
-                AnimatedContent(targetState = expanded) { open ->
-                    Text(if (open) "Close" else "Log…")
-                }
+                Text(
+                    text       = "Log",
+                    style      = MaterialTheme.typography.titleMedium,
+                    fontFamily = ComfortaaFamily,
+                )
             }
         )
     }
