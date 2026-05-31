@@ -33,7 +33,7 @@ import androidx.compose.material.icons.filled.NavigateNext
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ScatterPlot
-import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -199,8 +199,11 @@ fun StatsScreen(
                     selectedCat1 = state.selectedCategory1,
                     selectedCat2 = state.selectedCategory2,
                     chartType = state.chartType,
+                    activeSlot = state.activeSlot,
                     onSelect = viewModel::selectCategory,
-                    onClear = viewModel::clearSelections
+                    onSetActiveSlot = viewModel::setActiveSlot,
+                    onSwap = viewModel::swapCategories,
+                    onClear = viewModel::clearSelections,
                 )
             }
 
@@ -235,6 +238,8 @@ fun StatsScreen(
                 ChartArea(
                     chartData = state.chartData,
                     hasCategorySelected = state.selectedCategory1 != null,
+                    timeRange = state.timeRange,
+                    onSelectRange = viewModel::setTimeRange,
                     zoomLevel = state.zoomLevel,
                     showZoom = state.timeRange is TimeRange.SpecificMonth,
                 )
@@ -304,8 +309,15 @@ private fun TimeRangePicker(
                 }
             }
 
-            // Inline month navigation row for SpecificMonth
             if (selectedRange is TimeRange.SpecificMonth) {
+                // Month name shown as a label here; navigation arrows appear above the chart
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -430,74 +442,76 @@ private fun CategoryPickerSection(
     selectedCat1: TrackingCategory?,
     selectedCat2: TrackingCategory?,
     chartType: ChartType,
+    activeSlot: Int,
     onSelect: (TrackingCategory) -> Unit,
-    onClear: () -> Unit
+    onSetActiveSlot: (Int) -> Unit,
+    onSwap: () -> Unit,
+    onClear: () -> Unit,
 ) {
-    // X/Y axis labels only make sense for scatter plots; all other chart types
-    // don't map selections to named axes, so dropping the X/Y prefix avoids confusion.
     val useAxisLabels = chartType == ChartType.SCATTER
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
+            // Header row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Pick up to 2 categories",
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Text(text = "Categories", style = MaterialTheme.typography.titleMedium)
                 if (selectedCat1 != null) {
                     TextButton(onClick = onClear) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Clear")
                     }
                 }
             }
 
-            if (selectedCat1 != null || selectedCat2 != null) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    selectedCat1?.let {
-                        Text(
-                            text = if (useAxisLabels) "X: ${it.name}" else it.name,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    selectedCat2?.let {
-                        if (selectedCat1 != null) {
-                            Text(
-                                text = "·",
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Text(
-                            text = if (useAxisLabels) "Y: ${it.name}" else it.name,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary
+            // Slot selector row
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Slot 1
+                val slot1Label = if (useAxisLabels) "X" else "1"
+                CategorySlotChip(
+                    slotLabel = slot1Label,
+                    category = selectedCat1,
+                    isActive = activeSlot == 1,
+                    placeholder = "Pick a category",
+                    onClick = { onSetActiveSlot(1) },
+                )
+
+                // Slot 2 (only when slot 1 is filled)
+                if (selectedCat1 != null) {
+                    val slot2Label = if (useAxisLabels) "Y" else "2"
+                    CategorySlotChip(
+                        slotLabel = slot2Label,
+                        category = selectedCat2,
+                        isActive = activeSlot == 2,
+                        placeholder = "Add second...",
+                        onClick = { onSetActiveSlot(2) },
+                    )
+                }
+
+                // Swap button when both slots filled
+                if (selectedCat1 != null && selectedCat2 != null) {
+                    IconButton(onClick = onSwap, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Default.SwapHoriz,
+                            contentDescription = "Swap categories",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
+            // Category chip list — clicking fills the active slot
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -506,6 +520,7 @@ private fun CategoryPickerSection(
                     val isCat1 = selectedCat1?.id == category.id
                     val isCat2 = selectedCat2?.id == category.id
                     val isSelected = isCat1 || isCat2
+                    val isActiveSlotSelected = (activeSlot == 1 && isCat1) || (activeSlot == 2 && isCat2)
 
                     val icon = category.iconName.toCategoryIcon()
                     val bubbleColor = category.colorToken.toCategoryColor()
@@ -514,14 +529,7 @@ private fun CategoryPickerSection(
                     FilterChip(
                         selected = isSelected,
                         onClick = { onSelect(category) },
-                        label = {
-                            val prefix = when {
-                                isCat1 && useAxisLabels -> "X  "
-                                isCat2 && useAxisLabels -> "Y  "
-                                else -> ""
-                            }
-                            Text("$prefix${category.name}")
-                        },
+                        label = { Text(category.name) },
                         leadingIcon = {
                             Box(
                                 modifier = Modifier
@@ -539,9 +547,14 @@ private fun CategoryPickerSection(
                             }
                         },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            selectedContainerColor = if (isActiveSlotSelected)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.secondaryContainer,
+                            selectedLabelColor = if (isActiveSlotSelected)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSecondaryContainer,
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
@@ -556,6 +569,61 @@ private fun CategoryPickerSection(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategorySlotChip(
+    slotLabel: String,
+    category: TrackingCategory?,
+    isActive: Boolean,
+    placeholder: String,
+    onClick: () -> Unit,
+) {
+    val bubbleColor = category?.colorToken?.toCategoryColor()
+    val onBubbleColor = category?.colorToken?.toCategoryOnColor()
+    val icon = category?.iconName?.toCategoryIcon()
+
+    FilterChip(
+        selected = isActive,
+        onClick = onClick,
+        label = {
+            Text(
+                text = if (category != null) "$slotLabel: ${category.name}" else "$slotLabel: $placeholder",
+                maxLines = 1,
+            )
+        },
+        leadingIcon = if (category != null && bubbleColor != null && onBubbleColor != null && icon != null) {
+            {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(bubbleColor),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon.vector,
+                        contentDescription = null,
+                        tint = onBubbleColor,
+                        modifier = Modifier.size(11.dp)
+                    )
+                }
+            }
+        } else null,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = isActive,
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+            selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            borderWidth = 1.dp,
+            selectedBorderWidth = 1.5.dp,
+        )
+    )
 }
 
 // ── Chart Type Selector ───────────────────────────────────────────────────────
@@ -575,27 +643,27 @@ private fun ChartTypeSelector(
         when {
             cat1.isNumeric && cat2?.isNumeric == true -> {
                 add(ChartOption(ChartType.SCATTER,          Icons.Default.BubbleChart, "Scatter"))
-                add(ChartOption(ChartType.NUMERIC_AVERAGE,  Icons.Default.ShowChart,   "Average"))
-                add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,    "Over Time"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE,  Icons.Default.BarChart,    "Average"))
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart,    "Compare"))
             }
             cat1.isNumeric && cat2 == null -> {
-                add(ChartOption(ChartType.TIME_SCATTER,         Icons.Default.ScatterPlot,  "Time"))
-                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.ShowChart,    "Average"))
-                add(ChartOption(ChartType.TIME_SERIES,          Icons.Default.BarChart,     "Over Time"))
-                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.DonutLarge,   "Distribution"))
+                add(ChartOption(ChartType.TIME_SCATTER,         Icons.Default.ScatterPlot, "Time"))
+                add(ChartOption(ChartType.NUMERIC_AVERAGE,      Icons.Default.BarChart,    "Average"))
+                add(ChartOption(ChartType.TIME_SERIES,          Icons.Default.BarChart,    "Over Time"))
+                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.DonutLarge,  "Distribution"))
             }
             eitherNumeric -> {
-                add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,  "Over Time"))
+                // One numeric, one non-numeric: only Compare makes sense for two cats
                 if (cat2 != null)
-                    add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart, "Compare"))
+                    add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart, "Compare"))
+                else
+                    add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
             }
             cat2 != null -> {
-                add(ChartOption(ChartType.TRENDS,           Icons.Default.BarChart,    "Trends"))
-                add(ChartOption(ChartType.PIE,              Icons.Default.DonutLarge,  "Distribution"))
-                add(ChartOption(ChartType.TIME_SERIES,      Icons.Default.BarChart,    "Over Time"))
-                add(ChartOption(ChartType.COMBO,            Icons.Default.TableChart,  "Combinations"))
-                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.ShowChart,   "Compare"))
+                // Two non-numeric categories: Trends and Over Time hidden
+                add(ChartOption(ChartType.PIE,              Icons.Default.DonutLarge, "Distribution"))
+                add(ChartOption(ChartType.COMBO,            Icons.Default.TableChart, "Combinations"))
+                add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart,   "Compare"))
             }
             else -> {
                 add(ChartOption(ChartType.TRENDS,      Icons.Default.BarChart,   "Trends"))
@@ -669,10 +737,47 @@ private fun ChartTypeSelector(
 private fun ChartArea(
     chartData: StatsChartData,
     hasCategorySelected: Boolean,
+    timeRange: TimeRange,
+    onSelectRange: (TimeRange) -> Unit,
     zoomLevel: Int = 1,
     showZoom: Boolean = false,
 ) {
+    val currentMonth = (timeRange as? TimeRange.SpecificMonth)?.yearMonth
+
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            // Month navigation directly above the chart when in Monthly view
+            if (currentMonth != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        onSelectRange(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
+                    }) {
+                        Icon(Icons.Default.NavigateBefore, contentDescription = "Previous month")
+                    }
+                    Text(
+                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    IconButton(
+                        onClick = {
+                            if (currentMonth < YearMonth.now()) {
+                                onSelectRange(TimeRange.SpecificMonth(currentMonth.plusMonths(1)))
+                            }
+                        },
+                        enabled = currentMonth < YearMonth.now()
+                    ) {
+                        Icon(Icons.Default.NavigateNext, contentDescription = "Next month")
+                    }
+                }
+            }
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -777,5 +882,6 @@ private fun ChartArea(
                 }
             }
         }
+        } // Column
     }
 }

@@ -22,6 +22,17 @@ Rules:
 ## [0.18.0-beta.1] - 2026-05-31
 
 ### Added
+- **Stats — selectable category slots** — two labelled slot chips now appear in the category picker. Tap a slot to make it active, then tap any category to fill it. This lets you browse different categories in one slot without losing the other.
+- **Stats — category swap button** — when two categories are selected, a swap icon appears next to the slot chips to instantly reverse which is in slot 1 and slot 2 (flips X/Y axes on Scatter plots).
+- **Stats — month navigation moved above chart** — the `< Month Year >` row now lives at the top of the chart card so it sits directly above the data, rather than inside the time range picker.
+
+### Changed
+- **Stats — Distribution charts now consistent** — numeric Distribution renders as a donut/ring to match the categorical Distribution view; both use the DonutLarge icon.
+- **Stats — Average icon corrected** — "Average" chart type now uses a bar-chart icon to match the bar chart it renders.
+- **Stats — single-category views hidden for two-category selections** — "Trends" and "Over Time" no longer appear in the chart type selector when two categories are selected.
+- **Stats — Scatter plot baseline** — X and Y axes now always start at 0.
+- **Stats — chart colour cycling** — colour order changed to primary/tertiary/error/secondary so that themes with similar primary and secondary colours are less likely to assign indistinguishable colours to two series.
+- **Stats — dual-series charts use category colours** — the Compare chart uses each category's own colour token for its bars instead of fixed theme colours.
 - **Settings — back button on main list** — the main Settings screen now shows a back-arrow in the toolbar so users have a clear, visible way to return.
 - **Settings — Full backup export** — a new "Export scope" toggle lets users choose between "Data only" (existing behaviour) and "Full backup", which also includes all category names, values, colors, archive status, and dashboard pins. Useful for transferring everything to a new phone.
 - **Stats — Year before YTD in time range selector** — the segment order is now All Time, Year, YTD, Month.
