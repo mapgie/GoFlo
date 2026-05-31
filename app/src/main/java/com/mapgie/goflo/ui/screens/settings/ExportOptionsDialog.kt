@@ -239,7 +239,7 @@ fun ExportOptionsDialog(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExportDatePickerDialog(
+internal fun ExportDatePickerDialog(
     initial: LocalDate,
     minDate: LocalDate? = null,
     onConfirm: (LocalDate) -> Unit,

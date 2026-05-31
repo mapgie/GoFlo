@@ -19,6 +19,18 @@ Rules:
 
 ---
 
+## [0.17.0-beta.1] - 2026-05-31
+
+### Added
+- **Settings — Export Data full-page screen** — "Export Data" now opens a dedicated scrollable full-page screen (replacing the cropped `AlertDialog`). All options — date range presets, include/exclude toggles, JSON/CSV format selection — are fully accessible with a sticky Export button at the bottom.
+- **Widgets — Quick Log category picker** — users can now choose which specific categories appear in the Quick Log (4×2) widget (up to 4). If none are selected the first four active categories are shown automatically, preserving previous behaviour.
+- **Widgets — Status widget privacy opt-in** — the "Show data when PIN is set" toggle is now always visible in the Widgets settings sub-screen, with clear explanatory copy. It is disabled (with a hint) when no PIN is set, so users know the option exists before they set one.
+
+### Changed
+- **Settings — section header spacing** — top padding on section headers reduced from 20 dp to 12 dp for a slightly denser layout; touch-target sizes are unaffected (accessibility-safe).
+
+---
+
 ## [0.16.1-beta.1] - 2026-05-31
 
 ### Changed

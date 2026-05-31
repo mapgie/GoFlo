@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +53,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -99,8 +104,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Widgets
+import androidx.compose.material.icons.filled.Archive
 import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.export.DateRangePreset
+import com.mapgie.goflo.data.export.ExportConfig
+import com.mapgie.goflo.data.export.ExportFormat
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import com.mapgie.goflo.data.preferences.AppPreferences
 import com.mapgie.goflo.data.preferences.ReminderSettings
 import com.mapgie.goflo.data.preferences.SecuritySettings
@@ -245,10 +258,14 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.BLUE_ORANGE           -> "Blue & Orange"
 }
 
+// ── Export date display format ─────────────────────────────────────────────────
+
+private val exportDateFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
+
 // ── Sub-screen routing ────────────────────────────────────────────────────────
 
 private enum class SettingsSubScreen {
-    NONE, CYCLE, QUICK_LOG, REMINDERS, APPEARANCE, SECURITY, DATA, WIDGETS, ABOUT
+    NONE, CYCLE, QUICK_LOG, REMINDERS, APPEARANCE, SECURITY, DATA, EXPORT_DATA, WIDGETS, ABOUT
 }
 
 // ── Main screen ───────────────────────────────────────────────────────────────
@@ -274,6 +291,7 @@ fun SettingsScreen(
         AppIconChoice.valueOf(prefs.iconChoice)
     }.getOrDefault(AppIconChoice.DEFAULT)
 
+    val mainListScrollState      = rememberScrollState()
     var currentSubScreen        by rememberSaveable { mutableStateOf(SettingsSubScreen.NONE) }
     var showTimePicker          by rememberSaveable { mutableStateOf(false) }
     var showRemovePinDialog     by rememberSaveable { mutableStateOf(false) }
@@ -281,7 +299,6 @@ fun SettingsScreen(
     var showDisclaimer          by rememberSaveable { mutableStateOf(false) }
     var showDeleteAllDialog     by rememberSaveable { mutableStateOf(false) }
     var showChangelog           by rememberSaveable { mutableStateOf(false) }
-    var showExportDialog        by rememberSaveable { mutableStateOf(false) }
     var pendingImportUri        by remember { mutableStateOf<Uri?>(null) }
     var showImportOptionsDialog by rememberSaveable { mutableStateOf(false) }
     var importResult            by remember { mutableStateOf<ImportResult?>(null) }
@@ -289,7 +306,10 @@ fun SettingsScreen(
     var removePinError          by rememberSaveable { mutableStateOf(false) }
 
     BackHandler(currentSubScreen != SettingsSubScreen.NONE) {
-        currentSubScreen = SettingsSubScreen.NONE
+        currentSubScreen = when (currentSubScreen) {
+            SettingsSubScreen.EXPORT_DATA -> SettingsSubScreen.DATA
+            else -> SettingsSubScreen.NONE
+        }
     }
 
     val importFilePicker = rememberLauncherForActivityResult(
@@ -404,17 +424,6 @@ fun SettingsScreen(
 
     if (showChangelog) {
         ChangelogDialog(onDismiss = { showChangelog = false })
-    }
-
-    if (showExportDialog) {
-        ExportOptionsDialog(
-            categories = allCategoriesForExport,
-            onDismiss  = { showExportDialog = false },
-            onExport   = { config ->
-                showExportDialog = false
-                viewModel.exportWithOptions(config) { intent -> context.startActivity(intent) }
-            }
-        )
     }
 
     if (showTimePicker) {
@@ -542,6 +551,7 @@ fun SettingsScreen(
             categories                   = categories,
             currentTheme                 = currentTheme,
             reminder                     = reminder,
+            scrollState                  = mainListScrollState,
             onNavigateTo                 = { currentSubScreen = it },
             onNavigateToManageCategories = onNavigateToManageCategories,
             onOpenDiscord                = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
@@ -581,16 +591,25 @@ fun SettingsScreen(
             onBack                = { currentSubScreen = SettingsSubScreen.NONE }
         )
         SettingsSubScreen.DATA -> DataSubScreen(
-            onShowExportDialog = { showExportDialog = true },
+            onNavigateToExport = { currentSubScreen = SettingsSubScreen.EXPORT_DATA },
             onShowImportPicker = { importFilePicker.launch("application/json") },
             onShowDeleteDialog = { showDeleteAllDialog = true },
             onBack             = { currentSubScreen = SettingsSubScreen.NONE }
         )
+        SettingsSubScreen.EXPORT_DATA -> ExportDataSubScreen(
+            categories = allCategoriesForExport,
+            onExport   = { config ->
+                viewModel.exportWithOptions(config) { intent -> context.startActivity(intent) }
+                currentSubScreen = SettingsSubScreen.DATA
+            },
+            onBack = { currentSubScreen = SettingsSubScreen.DATA }
+        )
         SettingsSubScreen.WIDGETS -> WidgetsSubScreen(
-            prefs     = prefs,
-            security  = security,
-            viewModel = viewModel,
-            onBack    = { currentSubScreen = SettingsSubScreen.NONE }
+            prefs      = prefs,
+            security   = security,
+            categories = categories,
+            viewModel  = viewModel,
+            onBack     = { currentSubScreen = SettingsSubScreen.NONE }
         )
         SettingsSubScreen.ABOUT -> AboutSubScreen(
             onNavigateToPrivacy  = onNavigateToPrivacy,
@@ -612,6 +631,7 @@ private fun SettingsMainList(
     categories:                   List<TrackingCategory>,
     currentTheme:                 AppTheme,
     reminder:                     ReminderSettings,
+    scrollState:                  ScrollState,
     onNavigateTo:                 (SettingsSubScreen) -> Unit,
     onNavigateToManageCategories: () -> Unit,
     onOpenDiscord:                () -> Unit,
@@ -657,7 +677,7 @@ private fun SettingsMainList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(bottom = padding.calculateBottomPadding())
             ) {
 
@@ -1139,7 +1159,7 @@ private fun SecuritySubScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DataSubScreen(
-    onShowExportDialog: () -> Unit,
+    onNavigateToExport: () -> Unit,
     onShowImportPicker: () -> Unit,
     onShowDeleteDialog: () -> Unit,
     onBack:             () -> Unit
@@ -1161,7 +1181,7 @@ private fun DataSubScreen(
             )
 
             OutlinedButton(
-                onClick  = onShowExportDialog,
+                onClick  = onNavigateToExport,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Export Data") }
 
@@ -1185,13 +1205,14 @@ private fun DataSubScreen(
 
 // ── Sub-screen: Widgets ───────────────────────────────────────────────────────
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun WidgetsSubScreen(
-    prefs:     AppPreferences,
-    security:  SecuritySettings,
-    viewModel: SettingsViewModel,
-    onBack:    () -> Unit
+    prefs:      AppPreferences,
+    security:   SecuritySettings,
+    categories: List<TrackingCategory>,
+    viewModel:  SettingsViewModel,
+    onBack:     () -> Unit
 ) {
     SettingsSubScreenScaffold(title = "Home Screen Widgets", onBack = onBack) { padding ->
         Column(
@@ -1209,16 +1230,42 @@ private fun WidgetsSubScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            // ── GoFlo Status (2×1) ────────────────────────────────────────────
+            HorizontalDivider()
             Text("GoFlo Status (2×1)", style = MaterialTheme.typography.labelMedium)
             Text(
-                "Shows your cycle status at a glance — current cycle day, days until " +
-                "your next period, or a privacy placeholder when PIN lock is active.",
+                "Shows your cycle status at a glance — current cycle day and days " +
+                "until your next period.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(Modifier.height(4.dp))
-            Text("Quick Log (2×2)", style = MaterialTheme.typography.labelMedium)
+            ListItem(
+                headlineContent   = { Text("Show data when PIN is set") },
+                supportingContent = {
+                    Text(
+                        if (!security.hasPinSet)
+                            "Set a PIN in Security & Privacy to enable this option"
+                        else
+                            "Show live cycle data on your home screen instead of the privacy placeholder"
+                    )
+                },
+                trailingContent = {
+                    Switch(
+                        checked         = prefs.widgetDataVisible,
+                        onCheckedChange = null,
+                        enabled         = security.hasPinSet
+                    )
+                },
+                modifier = if (security.hasPinSet) Modifier
+                    .clickable { viewModel.setWidgetDataVisible(!prefs.widgetDataVisible) }
+                    .semantics { role = Role.Switch }
+                else Modifier
+            )
+
+            // ── Quick Log (4×2) ───────────────────────────────────────────────
+            HorizontalDivider()
+            Text("Quick Log (4×2)", style = MaterialTheme.typography.labelMedium)
             Text(
                 "Shows up to four of your active tracking categories. Tap any button " +
                 "to jump straight to today's log entry for that category.",
@@ -1226,15 +1273,41 @@ private fun WidgetsSubScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (security.hasPinSet) {
-                HorizontalDivider()
-                SwitchRow(
-                    label           = "Show data on GoFlo Status widget",
-                    subtitle        = "By default the widget hides cycle data when PIN lock is enabled. " +
-                                      "Turn this on to show live data on your home screen.",
-                    checked         = prefs.widgetDataVisible,
-                    onCheckedChange = { viewModel.setWidgetDataVisible(it) }
+            if (categories.isNotEmpty()) {
+                Text(
+                    "Choose which categories appear (up to 4). If none are chosen, " +
+                    "the first four active categories are shown automatically.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                val selectedIds = prefs.widgetCategoryIds
+                    .split(",")
+                    .mapNotNull { it.trim().toLongOrNull() }
+                    .filter { it > 0L }
+                    .toSet()
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement   = Arrangement.spacedBy(4.dp)
+                ) {
+                    categories.forEach { cat ->
+                        val isSelected = cat.id in selectedIds
+                        val atLimit    = selectedIds.size >= 4 && !isSelected
+                        FilterChip(
+                            selected    = isSelected,
+                            enabled     = !atLimit,
+                            onClick     = {
+                                val newIds = if (isSelected) selectedIds - cat.id else selectedIds + cat.id
+                                viewModel.setWidgetCategoryIds(newIds.joinToString(","))
+                            },
+                            label       = { Text(cat.name) },
+                            leadingIcon = if (isSelected) {
+                                { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                            } else null
+                        )
+                    }
+                }
             }
         }
     }
@@ -1292,6 +1365,178 @@ private fun AboutSubScreen(
                 Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Medical Disclaimer")
+            }
+        }
+    }
+}
+
+// ── Sub-screen: Export Data ───────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun ExportDataSubScreen(
+    categories: List<TrackingCategory>,
+    onExport:   (ExportConfig) -> Unit,
+    onBack:     () -> Unit,
+) {
+    var format              by rememberSaveable { mutableStateOf(ExportFormat.JSON) }
+    var datePreset          by rememberSaveable { mutableStateOf(DateRangePreset.ALL_TIME) }
+    var customStart         by remember { mutableStateOf<LocalDate?>(null) }
+    var customEnd           by remember { mutableStateOf<LocalDate?>(null) }
+    var includePeriods      by rememberSaveable { mutableStateOf(true) }
+    var selectedCategoryIds by remember { mutableStateOf(categories.map { it.id }.toSet()) }
+    var showStartPicker     by rememberSaveable { mutableStateOf(false) }
+    var showEndPicker       by rememberSaveable { mutableStateOf(false) }
+
+    if (showStartPicker) {
+        ExportDatePickerDialog(
+            initial   = customStart ?: LocalDate.now().minusYears(1),
+            onConfirm = { customStart = it; showStartPicker = false },
+            onDismiss = { showStartPicker = false }
+        )
+    }
+    if (showEndPicker) {
+        ExportDatePickerDialog(
+            initial   = customEnd ?: LocalDate.now(),
+            minDate   = customStart,
+            onConfirm = { customEnd = it; showEndPicker = false },
+            onDismiss = { showEndPicker = false }
+        )
+    }
+
+    val customRangeReady = datePreset != DateRangePreset.CUSTOM || (customStart != null && customEnd != null)
+    val hasAnything      = includePeriods || selectedCategoryIds.isNotEmpty()
+
+    SettingsSubScreenScaffold(title = "Export Data", onBack = onBack) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // ── Date range ───────────────────────────────────────────────
+                Text("Date range", style = MaterialTheme.typography.labelLarge)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement   = Arrangement.spacedBy(4.dp)
+                ) {
+                    DateRangePreset.entries.forEach { preset ->
+                        FilterChip(
+                            selected = datePreset == preset,
+                            onClick  = { datePreset = preset },
+                            label    = { Text(preset.label) }
+                        )
+                    }
+                }
+                if (datePreset == DateRangePreset.CUSTOM) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment     = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick  = { showStartPicker = true },
+                            modifier = Modifier.weight(1f)
+                        ) { Text(customStart?.format(exportDateFmt) ?: "From") }
+                        Text("–")
+                        OutlinedButton(
+                            onClick  = { showEndPicker = true },
+                            modifier = Modifier.weight(1f)
+                        ) { Text(customEnd?.format(exportDateFmt) ?: "To") }
+                    }
+                }
+
+                HorizontalDivider()
+
+                // ── What to include ──────────────────────────────────────────
+                Text("What to include", style = MaterialTheme.typography.labelLarge)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement   = Arrangement.spacedBy(4.dp)
+                ) {
+                    FilterChip(
+                        selected = includePeriods,
+                        onClick  = { includePeriods = !includePeriods },
+                        label    = { Text("Periods") }
+                    )
+                    categories.forEach { cat ->
+                        val selected = cat.id in selectedCategoryIds
+                        FilterChip(
+                            selected = selected,
+                            onClick  = {
+                                selectedCategoryIds = if (selected)
+                                    selectedCategoryIds - cat.id
+                                else
+                                    selectedCategoryIds + cat.id
+                            },
+                            label = {
+                                Row(
+                                    verticalAlignment     = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(cat.name)
+                                    if (cat.isArchived) {
+                                        Icon(
+                                            Icons.Filled.Archive,
+                                            contentDescription = "Archived",
+                                            modifier           = Modifier.size(12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+
+                HorizontalDivider()
+
+                // ── Format ───────────────────────────────────────────────────
+                Text("Format", style = MaterialTheme.typography.labelLarge)
+                ExportFormat.entries.forEach { f ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { format = f }
+                            .padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = format == f, onClick = { format = f })
+                        Spacer(Modifier.width(4.dp))
+                        Column {
+                            Text(f.name, style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                when (f) {
+                                    ExportFormat.JSON -> "Full backup — can be re-imported"
+                                    ExportFormat.CSV  -> "Spreadsheet-friendly flat table"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ── Sticky Export button ─────────────────────────────────────────
+            HorizontalDivider()
+            Box(modifier = Modifier.padding(16.dp)) {
+                Button(
+                    onClick  = {
+                        onExport(
+                            ExportConfig(
+                                format              = format,
+                                includePeriods      = includePeriods,
+                                selectedCategoryIds = selectedCategoryIds,
+                                dateRangePreset     = datePreset,
+                                customStartDate     = customStart,
+                                customEndDate       = customEnd
+                            )
+                        )
+                    },
+                    enabled  = customRangeReady && hasAnything,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Export") }
             }
         }
     }
@@ -1368,7 +1613,7 @@ private fun SettingsSectionHeader(title: String) {
         text     = title.uppercase(),
         style    = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
         color    = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 4.dp, end = 16.dp)
+        modifier = Modifier.padding(start = 16.dp, top = 12.dp, bottom = 4.dp, end = 16.dp)
     )
 }
 
