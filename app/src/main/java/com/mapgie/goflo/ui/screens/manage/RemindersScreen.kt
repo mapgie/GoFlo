@@ -45,7 +45,7 @@ fun RemindersScreen(
     onBack: () -> Unit,
 ) {
     val prefs by viewModel.prefs.collectAsState()
-    val reminder = prefs.reminderSettings
+    val reminder = prefs.reminder
 
     var showTimePicker by rememberSaveable { mutableStateOf(false) }
     val timeState = rememberTimePickerState(
