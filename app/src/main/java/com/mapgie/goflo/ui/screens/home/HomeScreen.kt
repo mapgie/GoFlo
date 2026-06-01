@@ -208,6 +208,16 @@ fun HomeScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                val showOnboardingBanner = !state.onboardingBannerDismissed &&
+                    state.periods.isEmpty() && state.trackingLogDates.isEmpty()
+                AnimatedVisibility(
+                    visible = showOnboardingBanner,
+                    enter   = expandVertically() + fadeIn(),
+                    exit    = shrinkVertically() + fadeOut(),
+                ) {
+                    OnboardingBanner(onDismiss = { viewModel.dismissOnboardingBanner() })
+                }
+
                 CalendarGrid(
                     periodDays           = state.periodDays,
                     predictedDays        = state.predictedDays,
@@ -358,6 +368,41 @@ private fun SpeedDialItem(
             contentColor   = contentColor,
         ) {
             icon()
+        }
+    }
+}
+
+// ── Onboarding banner ─────────────────────────────────────────────────────────
+
+@Composable
+private fun OnboardingBanner(onDismiss: () -> Unit) {
+    Surface(
+        modifier      = Modifier.fillMaxWidth(),
+        shape         = RoundedCornerShape(12.dp),
+        color         = MaterialTheme.colorScheme.secondaryContainer,
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier             = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
+            verticalAlignment    = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text     = "Long-press any day to start logging. Add your own categories in the Manage tab.",
+                style    = MaterialTheme.typography.bodyMedium,
+                color    = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick  = onDismiss,
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    imageVector        = Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint               = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
         }
     }
 }

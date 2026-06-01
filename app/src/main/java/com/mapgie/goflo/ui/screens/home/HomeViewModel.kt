@@ -46,6 +46,8 @@ data class HomeUiState(
     val trackingCategories: List<TrackingCategory> = emptyList(),
     /** The preferred Quick Log category ID (-1L = Log Period). */
     val quickLogCategoryId: Long = -1L,
+    /** True once the new-user onboarding banner has been dismissed. */
+    val onboardingBannerDismissed: Boolean = false,
 )
 
 /** Data loaded for the Day Log bottom sheet. */
@@ -116,8 +118,9 @@ class HomeViewModel(
             predictedDays        = predictedDays,
             trackingLogDates     = trackingDates,
             daysWithAnyData      = periodDays + trackingDates,
-            trackingCategories   = categories,
-            quickLogCategoryId   = prefs.quickLogCategoryId,
+            trackingCategories          = categories,
+            quickLogCategoryId          = prefs.quickLogCategoryId,
+            onboardingBannerDismissed   = prefs.onboardingBannerDismissed,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -245,6 +248,10 @@ class HomeViewModel(
     }
 
     fun clearQuickLogMessage() { _quickLogMessage.value = null }
+
+    fun dismissOnboardingBanner() {
+        viewModelScope.launch { preferencesStore.setOnboardingBannerDismissed(true) }
+    }
 
     class Factory(
         private val repository: PeriodRepository,
