@@ -1,8 +1,11 @@
 package com.mapgie.goflo.ui.screens.settings
 
+import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings as AndroidSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.mapgie.goflo.AppIconChoice
@@ -43,6 +46,7 @@ import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.NotificationImportant
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.SettingsBrightness
@@ -63,6 +67,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -974,6 +982,14 @@ private fun RemindersSubScreen(
     onShowTimePicker: () -> Unit,
     onBack:          () -> Unit
 ) {
+    val context = LocalContext.current
+    val canScheduleExact = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else true
+    }
+
     SettingsSubScreenScaffold(title = "Reminders", onBack = onBack) { padding ->
         Column(
             Modifier
@@ -981,6 +997,58 @@ private fun RemindersSubScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
+            if (reminder.deliveryMode == "ALARM" && !canScheduleExact) {
+                ListItem(
+                    headlineContent = { Text("Exact alarms require a permission") },
+                    supportingContent = { Text("Tap to grant the Alarms and reminders permission in Settings") },
+                    leadingContent = {
+                        Icon(Icons.Outlined.NotificationImportant, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    },
+                    colors = ListItemDefaults.colors(
+                        containerColor  = MaterialTheme.colorScheme.errorContainer,
+                        headlineColor   = MaterialTheme.colorScheme.onErrorContainer,
+                        supportingColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
+                    modifier = Modifier.clickable {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            context.startActivity(
+                                Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                )
+                HorizontalDivider()
+            }
+
+            ListItem(
+                headlineContent = { Text("Delivery mode") },
+                supportingContent = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            if (reminder.deliveryMode == "ALARM")
+                                "Plays alarm sound. Requires the Alarms and reminders permission."
+                            else
+                                "Standard notification. No special permission needed."
+                        )
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            SegmentedButton(
+                                selected = reminder.deliveryMode == "NOTIFICATION",
+                                onClick  = { viewModel.setReminderDeliveryMode("NOTIFICATION") },
+                                shape    = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                            ) { Text("Notification") }
+                            SegmentedButton(
+                                selected = reminder.deliveryMode == "ALARM",
+                                onClick  = { viewModel.setReminderDeliveryMode("ALARM") },
+                                shape    = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                            ) { Text("Alarm") }
+                        }
+                    }
+                }
+            )
+
+            HorizontalDivider()
+
             ListItem(
                 headlineContent   = { Text("Before period alert") },
                 supportingContent = { Text("Notify ${reminder.preperiodDaysBefore} day(s) before predicted start") },

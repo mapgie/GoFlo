@@ -18,7 +18,9 @@ data class ReminderSettings(
     val ovulationEnabled: Boolean = false,
     val dailyDuringPeriodEnabled: Boolean = false,
     val reminderHour: Int = 8,
-    val reminderMinute: Int = 0
+    val reminderMinute: Int = 0,
+    /** "NOTIFICATION" (inexact, no special permission) or "ALARM" (exact, requires SCHEDULE_EXACT_ALARM). */
+    val deliveryMode: String = "NOTIFICATION",
 )
 
 data class AppPreferences(
@@ -50,6 +52,8 @@ data class AppPreferences(
      * MAX_CONTRAST and BLUE_ORANGE are unaffected — they are already maximum-contrast.
      */
     val wcagMode: Boolean = false,
+    /** When true, the archive-category warning dialog is skipped permanently. */
+    val archiveWarningDisabled: Boolean = false,
     val bannerStyle: String = "PLAIN",
     /**
      * True once the one-time migration of period flow data into TrackingLog has
@@ -96,11 +100,13 @@ class AppPreferencesStore(private val context: Context) {
         val DAILY_ENABLED = booleanPreferencesKey("daily_enabled")
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
+        val REMINDER_DELIVERY_MODE = stringPreferencesKey("reminder_delivery_mode")
         val PREFERRED_CYCLE_LENGTH = intPreferencesKey("preferred_cycle_length")
         val QUICK_LOG_CATEGORY_ID = longPreferencesKey("quick_log_category_id")
         val SHOW_PERIOD_PREDICTION = booleanPreferencesKey("show_period_prediction")
         val SHOW_OVULATION_MARKERS = booleanPreferencesKey("show_ovulation_markers")
         val WCAG_MODE = booleanPreferencesKey("wcag_mode")
+        val ARCHIVE_WARNING_DISABLED = booleanPreferencesKey("archive_warning_disabled")
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
         val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
@@ -124,6 +130,7 @@ class AppPreferencesStore(private val context: Context) {
             showPeriodPrediction = prefs[Keys.SHOW_PERIOD_PREDICTION] ?: true,
             showOvulationMarkers = prefs[Keys.SHOW_OVULATION_MARKERS] ?: true,
             wcagMode = prefs[Keys.WCAG_MODE] ?: false,
+            archiveWarningDisabled = prefs[Keys.ARCHIVE_WARNING_DISABLED] ?: false,
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
             widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
@@ -142,7 +149,8 @@ class AppPreferencesStore(private val context: Context) {
                 ovulationEnabled = prefs[Keys.OVULATION_ENABLED] ?: false,
                 dailyDuringPeriodEnabled = prefs[Keys.DAILY_ENABLED] ?: false,
                 reminderHour = prefs[Keys.REMINDER_HOUR] ?: 8,
-                reminderMinute = prefs[Keys.REMINDER_MINUTE] ?: 0
+                reminderMinute = prefs[Keys.REMINDER_MINUTE] ?: 0,
+                deliveryMode = prefs[Keys.REMINDER_DELIVERY_MODE] ?: "NOTIFICATION",
             )
         )
     }
@@ -178,6 +186,10 @@ class AppPreferencesStore(private val context: Context) {
         }
     }
 
+    suspend fun setReminderDeliveryMode(mode: String) {
+        context.dataStore.edit { it[Keys.REMINDER_DELIVERY_MODE] = mode }
+    }
+
     /**
      * Persists the user's preferred cycle length.
      *
@@ -211,6 +223,10 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setWcagMode(enabled: Boolean) {
         context.dataStore.edit { it[Keys.WCAG_MODE] = enabled }
+    }
+
+    suspend fun setArchiveWarningDisabled(disabled: Boolean) {
+        context.dataStore.edit { it[Keys.ARCHIVE_WARNING_DISABLED] = disabled }
     }
 
     suspend fun setBannerStyle(style: String) {

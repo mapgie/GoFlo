@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -267,6 +267,38 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /** Inserts "Bleeding (non-period)" into the Symptoms system category values (v13). */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                val catCursor = database.query(
+                    "SELECT id FROM tracking_categories WHERE systemKey = 'symptoms' LIMIT 1"
+                )
+                if (!catCursor.moveToFirst()) { catCursor.close(); return }
+                val symptomsId = catCursor.getLong(0)
+                catCursor.close()
+
+                val existsCursor = database.query(
+                    "SELECT COUNT(*) FROM tracking_values WHERE categoryId = ? AND label = 'Bleeding (non-period)'",
+                    arrayOf(symptomsId)
+                )
+                val alreadyExists = existsCursor.moveToFirst() && existsCursor.getInt(0) > 0
+                existsCursor.close()
+                if (alreadyExists) return
+
+                val orderCursor = database.query(
+                    "SELECT COALESCE(MAX(displayOrder), -1) FROM tracking_values WHERE categoryId = ?",
+                    arrayOf(symptomsId)
+                )
+                val nextOrder = if (orderCursor.moveToFirst()) orderCursor.getInt(0) + 1 else 0
+                orderCursor.close()
+
+                database.execSQL(
+                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                    arrayOf(symptomsId, "Bleeding (non-period)", nextOrder)
+                )
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -382,7 +414,7 @@ abstract class GoFloDatabase : RoomDatabase() {
             val symptomId = symptomIdCursor.getLong(0)
             symptomIdCursor.close()
 
-            listOf("Cramps", "Headache", "Bloating", "Fatigue", "Back Pain", "Mood Swings")
+            listOf("Cramps", "Headache", "Bloating", "Fatigue", "Back Pain", "Mood Swings", "Bleeding (non-period)")
                 .forEachIndexed { index, label ->
                     database.execSQL(
                         "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
@@ -398,7 +430,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

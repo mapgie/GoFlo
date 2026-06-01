@@ -370,7 +370,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
 
             composable(Screen.ManageCategories.route) {
                 val vm: ManageCategoriesViewModel = viewModel(
-                    factory = ManageCategoriesViewModel.Factory(app.trackingRepository)
+                    factory = ManageCategoriesViewModel.Factory(app.trackingRepository, app.preferencesStore)
                 )
                 ManageCategoriesScreen(
                     viewModel = vm,

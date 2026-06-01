@@ -142,6 +142,7 @@ data class StatsUiState(
     val activeSlot: Int = 1,
     val zoomLevel: Int = 1,
     val pinResult: PinResult? = null,
+    val isCurrentViewPinned: Boolean = false,
 )
 
 // ── ViewModel ─────────────────────────────────────────────────────────────────
@@ -178,7 +179,7 @@ class StatsViewModel(
         viewModelScope.launch {
             repository.getAllCategories().collect { cats ->
                 val alreadySelected = _uiState.value.selectedCategory1 != null
-                _uiState.update { it.copy(categories = cats) }
+                _uiState.update { it.copy(categories = cats.filter { !it.isArchived }) }
                 // Restore saved category selections after categories are first loaded.
                 if (!alreadySelected && savedCat1Id != -1L) {
                     val cat1 = cats.firstOrNull { it.id == savedCat1Id }
@@ -188,6 +189,7 @@ class StatsViewModel(
                         reloadChart()
                     }
                 }
+                refreshPinnedState()
             }
         }
 
@@ -283,6 +285,7 @@ class StatsViewModel(
         }
         persistCategorySelections()
         reloadChart()
+        refreshPinnedState()
     }
 
     private fun persistCategorySelections() {
@@ -359,6 +362,7 @@ class StatsViewModel(
             viewModelScope.launch { store.setStatsTimeRange(range.toPrefsString()) }
         }
         reloadChart()
+        refreshPinnedState()
     }
 
     fun setChartType(type: ChartType) {
@@ -367,6 +371,7 @@ class StatsViewModel(
             viewModelScope.launch { store.setStatsChartType(type.name) }
         }
         reloadChart()
+        refreshPinnedState()
     }
 
     fun setZoomLevel(level: Int) {
@@ -382,17 +387,43 @@ class StatsViewModel(
         }
     }
 
+    private fun computePinHash(
+        cat1Id: Long,
+        cat2Id: Long?,
+        chartType: ChartType,
+        timeRangeStr: String,
+    ): String = "${cat1Id}_${cat2Id ?: ""}_${chartType.name}_$timeRangeStr"
+
+    private fun currentTimeRangeStr(timeRange: TimeRange): String = when (val tr = timeRange) {
+        is TimeRange.AllTime -> "ALL_TIME"
+        is TimeRange.YearToDate -> "YTD"
+        is TimeRange.CalendarYear -> "YEAR:${tr.year}"
+        is TimeRange.SpecificMonth -> "MONTH"
+    }
+
+    private fun refreshPinnedState() {
+        viewModelScope.launch {
+            val state = _uiState.value
+            val cat1 = state.selectedCategory1
+            if (cat1 == null) {
+                _uiState.update { it.copy(isCurrentViewPinned = false) }
+                return@launch
+            }
+            val cat2Id = state.selectedCategory2?.id
+            val timeRangeStr = currentTimeRangeStr(state.timeRange)
+            val hash = computePinHash(cat1.id, cat2Id, state.chartType, timeRangeStr)
+            val existing = loadPins()
+            val isPinned = existing.any { it.id == hash }
+            _uiState.update { it.copy(isCurrentViewPinned = isPinned) }
+        }
+    }
+
     fun pinCurrentView() {
         val state = _uiState.value
         val cat1 = state.selectedCategory1 ?: return
         viewModelScope.launch {
             val cat2Id = state.selectedCategory2?.id
-            val timeRangeStr = when (val tr = state.timeRange) {
-                is TimeRange.AllTime -> "ALL_TIME"
-                is TimeRange.YearToDate -> "YTD"
-                is TimeRange.CalendarYear -> "YEAR:${tr.year}"
-                is TimeRange.SpecificMonth -> "MONTH:${tr.yearMonth}"
-            }
+            val timeRangeStr = currentTimeRangeStr(state.timeRange)
             val existing = loadPins()
             val isDuplicate = existing.any { pin ->
                 pin.categoryId1 == cat1.id &&
@@ -401,14 +432,14 @@ class StatsViewModel(
                 pin.timeRangeType == timeRangeStr
             }
             if (isDuplicate) {
-                _uiState.update { it.copy(pinResult = PinResult.DUPLICATE) }
+                _uiState.update { it.copy(pinResult = PinResult.DUPLICATE, isCurrentViewPinned = true) }
                 return@launch
             }
             val label = buildString {
                 append(cat1.name)
                 state.selectedCategory2?.let { append(" vs ${it.name}") }
             }
-            val comboHash = "${cat1.id}_${cat2Id ?: ""}_${state.chartType.name}_$timeRangeStr"
+            val comboHash = computePinHash(cat1.id, cat2Id, state.chartType, timeRangeStr)
             val pin = PinnedStat(
                 id = comboHash,
                 label = label,
@@ -418,7 +449,21 @@ class StatsViewModel(
                 chartType = state.chartType.name
             )
             savePins(existing + pin)
-            _uiState.update { it.copy(pinResult = PinResult.ADDED) }
+            _uiState.update { it.copy(pinResult = PinResult.ADDED, isCurrentViewPinned = true) }
+        }
+    }
+
+    fun unpinCurrentView() {
+        val state = _uiState.value
+        val cat1 = state.selectedCategory1 ?: return
+        viewModelScope.launch {
+            val cat2Id = state.selectedCategory2?.id
+            val timeRangeStr = currentTimeRangeStr(state.timeRange)
+            val hash = computePinHash(cat1.id, cat2Id, state.chartType, timeRangeStr)
+            val existing = loadPins()
+            val updated = existing.filter { it.id != hash }
+            savePins(updated)
+            _uiState.update { it.copy(isCurrentViewPinned = false) }
         }
     }
 
@@ -945,6 +990,7 @@ fun parseTimeRangeString(s: String): TimeRange = runCatching {
     when {
         s == "ALL_TIME" -> TimeRange.AllTime
         s == "YTD"      -> TimeRange.YearToDate
+        s == "MONTH"    -> TimeRange.SpecificMonth(YearMonth.now())
         s.startsWith("YEAR:")  -> TimeRange.CalendarYear(s.removePrefix("YEAR:").toInt())
         s.startsWith("MONTH:") -> TimeRange.SpecificMonth(YearMonth.parse(s.removePrefix("MONTH:")))
         else -> TimeRange.YearToDate

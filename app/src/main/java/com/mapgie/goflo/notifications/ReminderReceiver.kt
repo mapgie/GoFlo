@@ -15,29 +15,33 @@ class ReminderReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         ReminderScheduler.createChannel(context)
+        val useAlarm = intent.getBooleanExtra(EXTRA_USE_ALARM_CHANNEL, false)
         when (intent.action) {
             ACTION_PREPERIOD -> showNotification(
                 context,
                 id = 1,
                 title = context.getString(R.string.notification_preperiod_title),
-                text = context.getString(R.string.notification_preperiod_text)
+                text = context.getString(R.string.notification_preperiod_text),
+                useAlarm = useAlarm,
             )
             ACTION_OVULATION -> showNotification(
                 context,
                 id = 2,
                 title = context.getString(R.string.notification_ovulation_title),
-                text = context.getString(R.string.notification_ovulation_text)
+                text = context.getString(R.string.notification_ovulation_text),
+                useAlarm = useAlarm,
             )
             ACTION_DAILY -> showNotification(
                 context,
                 id = 3,
                 title = context.getString(R.string.notification_daily_title),
-                text = context.getString(R.string.notification_daily_text)
+                text = context.getString(R.string.notification_daily_text),
+                useAlarm = useAlarm,
             )
         }
     }
 
-    private fun showNotification(context: Context, id: Int, title: String, text: String) {
+    private fun showNotification(context: Context, id: Int, title: String, text: String, useAlarm: Boolean = false) {
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -46,7 +50,8 @@ class ReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val channelId = if (useAlarm) CHANNEL_ID else CHANNEL_NOTIF_ID
+        val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(text)

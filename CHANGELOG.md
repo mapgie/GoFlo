@@ -19,6 +19,22 @@ Rules:
 
 ---
 
+## [0.20.0-beta.1] - 2026-06-01
+
+### Added
+- **Archived categories section** — archived tracking categories are now hidden in a collapsible "Archived (N)" section at the bottom of the Manage Categories screen, keeping the active list clean.
+- **Archive warning: don't show again** — the archive confirmation dialog now has a "Don't show this again" checkbox. Once checked, future archives skip the dialog.
+- **Bleeding (non-period) symptom** — added as a seeded value in the Symptoms system category for all users (via DB migration 12 to 13).
+- **Stats: pin/unpin toggle** — the pin button on the Stats screen now shows "Unpin from Dashboard" when the current view is already pinned, and removes the pin on tap.
+- **Stats: relative month pinning** — pinning a monthly view now always tracks the current calendar month instead of pinning the specific month at pin time.
+- **Reminders: delivery mode** — new Notification vs Alarm toggle in Reminders settings. "Notification" uses a standard notification (no special permission); "Alarm" uses an exact alarm with alarm sound.
+
+### Fixed
+- **Reminders: broken alarms** — when the Alarms and reminders permission is not granted, reminders now fall back to an inexact alarm instead of being silently skipped. A warning banner appears in Reminders settings linking directly to the permission screen.
+- **Stats: archived categories hidden from picker** — archived tracking categories no longer appear in the Stats category selector.
+- **Stats: Compare bar widths** — in dual-category Compare mode, both bars in each time bucket are now equal width at all zoom levels.
+- **Slider explanation text** — the flow slider helper text no longer says "1-4"; it now reads "a numeric slider" to reflect user-configurable ranges.
+
 ## [0.19.0-beta.1] - 2026-06-01
 
 ### Added
