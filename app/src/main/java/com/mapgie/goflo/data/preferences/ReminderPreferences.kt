@@ -18,7 +18,9 @@ data class ReminderSettings(
     val ovulationEnabled: Boolean = false,
     val dailyDuringPeriodEnabled: Boolean = false,
     val reminderHour: Int = 8,
-    val reminderMinute: Int = 0
+    val reminderMinute: Int = 0,
+    /** "NOTIFICATION" (inexact, no special permission) or "ALARM" (exact, requires SCHEDULE_EXACT_ALARM). */
+    val deliveryMode: String = "NOTIFICATION",
 )
 
 data class AppPreferences(
@@ -98,6 +100,7 @@ class AppPreferencesStore(private val context: Context) {
         val DAILY_ENABLED = booleanPreferencesKey("daily_enabled")
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
+        val REMINDER_DELIVERY_MODE = stringPreferencesKey("reminder_delivery_mode")
         val PREFERRED_CYCLE_LENGTH = intPreferencesKey("preferred_cycle_length")
         val QUICK_LOG_CATEGORY_ID = longPreferencesKey("quick_log_category_id")
         val SHOW_PERIOD_PREDICTION = booleanPreferencesKey("show_period_prediction")
@@ -146,7 +149,8 @@ class AppPreferencesStore(private val context: Context) {
                 ovulationEnabled = prefs[Keys.OVULATION_ENABLED] ?: false,
                 dailyDuringPeriodEnabled = prefs[Keys.DAILY_ENABLED] ?: false,
                 reminderHour = prefs[Keys.REMINDER_HOUR] ?: 8,
-                reminderMinute = prefs[Keys.REMINDER_MINUTE] ?: 0
+                reminderMinute = prefs[Keys.REMINDER_MINUTE] ?: 0,
+                deliveryMode = prefs[Keys.REMINDER_DELIVERY_MODE] ?: "NOTIFICATION",
             )
         )
     }
@@ -180,6 +184,10 @@ class AppPreferencesStore(private val context: Context) {
             it[Keys.REMINDER_HOUR] = hour
             it[Keys.REMINDER_MINUTE] = minute
         }
+    }
+
+    suspend fun setReminderDeliveryMode(mode: String) {
+        context.dataStore.edit { it[Keys.REMINDER_DELIVERY_MODE] = mode }
     }
 
     /**

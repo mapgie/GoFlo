@@ -1,22 +1,34 @@
 package com.mapgie.goflo.ui.screens.manage
 
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.NotificationImportant
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -29,9 +41,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -45,7 +59,15 @@ fun RemindersScreen(
     onBack: () -> Unit,
 ) {
     val prefs by viewModel.prefs.collectAsState()
-    val reminder = prefs.reminderSettings
+    val reminder = prefs.reminder
+
+    val context = LocalContext.current
+    val canScheduleExact = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else true
+    }
 
     var showTimePicker by rememberSaveable { mutableStateOf(false) }
     val timeState = rememberTimePickerState(
@@ -90,6 +112,64 @@ fun RemindersScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
+            // Alarm permission warning (only relevant when ALARM mode is selected)
+            if (reminder.deliveryMode == "ALARM" && !canScheduleExact) {
+                ListItem(
+                    headlineContent = { Text("Exact alarms require a permission") },
+                    supportingContent = { Text("Tap to grant the Alarms and reminders permission in Settings") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Outlined.NotificationImportant,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                        )
+                    },
+                    colors = ListItemDefaults.colors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        headlineColor  = MaterialTheme.colorScheme.onErrorContainer,
+                        supportingColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
+                    modifier = Modifier.clickable {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            context.startActivity(
+                                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                    }
+                )
+                HorizontalDivider()
+            }
+
+            // Delivery mode picker
+            ListItem(
+                headlineContent = { Text("Delivery mode") },
+                supportingContent = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            if (reminder.deliveryMode == "ALARM")
+                                "Plays alarm sound. Requires the Alarms and reminders permission."
+                            else
+                                "Standard notification. No special permission needed."
+                        )
+                        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                            SegmentedButton(
+                                selected = reminder.deliveryMode == "NOTIFICATION",
+                                onClick  = { viewModel.setReminderDeliveryMode("NOTIFICATION") },
+                                shape    = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                            ) { Text("Notification") }
+                            SegmentedButton(
+                                selected = reminder.deliveryMode == "ALARM",
+                                onClick  = { viewModel.setReminderDeliveryMode("ALARM") },
+                                shape    = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                            ) { Text("Alarm") }
+                        }
+                    }
+                }
+            )
+
+            HorizontalDivider()
+
             ListItem(
                 headlineContent   = { Text("Before period alert") },
                 supportingContent = { Text("Notify ${reminder.preperiodDaysBefore} day(s) before predicted start") },

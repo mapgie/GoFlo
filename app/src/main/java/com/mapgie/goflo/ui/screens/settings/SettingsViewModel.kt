@@ -182,6 +182,10 @@ class SettingsViewModel(
         store.setReminderTime(hour, minute); reschedule()
     }
 
+    fun setReminderDeliveryMode(mode: String) = viewModelScope.launch {
+        store.setReminderDeliveryMode(mode); reschedule()
+    }
+
     // ── Cycle ─────────────────────────────────────────────────────────────────
 
     /** 0 clears the override (reverts to auto-calculated average from history). */
