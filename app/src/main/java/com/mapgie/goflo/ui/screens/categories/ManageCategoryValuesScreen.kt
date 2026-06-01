@@ -460,7 +460,7 @@ private fun DefaultCategoryValues(
                     ValueRow(
                         value    = value,
                         onRename = { onRenameValue(value) },
-                        onDelete = { onDeleteValue(value) }
+                        onDelete = if (value.isSeeded) null else ({ onDeleteValue(value) }),
                     )
                 }
             }
@@ -876,7 +876,7 @@ private fun TrackAgainstTimeRow(checked: Boolean, onChecked: (Boolean) -> Unit) 
 private fun ValueRow(
     value: TrackingValue,
     onRename: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: (() -> Unit)?,
 ) {
     Row(
         modifier = Modifier
@@ -895,9 +895,11 @@ private fun ValueRow(
                 Icon(Icons.Default.Edit, contentDescription = "Rename ${value.label}",
                     tint = MaterialTheme.colorScheme.primary)
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete ${value.label}",
-                    tint = MaterialTheme.colorScheme.error)
+            if (onDelete != null) {
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete ${value.label}",
+                        tint = MaterialTheme.colorScheme.error)
+                }
             }
         }
     }

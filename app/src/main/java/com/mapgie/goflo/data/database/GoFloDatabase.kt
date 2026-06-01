@@ -29,7 +29,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -299,6 +299,23 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds [isSeeded] to tracking_values (v14).
+         * Marks all existing values that belong to a system category as seeded
+         * so they cannot be deleted via the UI.
+         */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE tracking_values ADD COLUMN `isSeeded` INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "UPDATE tracking_values SET isSeeded=1 " +
+                    "WHERE categoryId IN (SELECT id FROM tracking_categories WHERE isSystem=1)"
+                )
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -430,7 +447,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
