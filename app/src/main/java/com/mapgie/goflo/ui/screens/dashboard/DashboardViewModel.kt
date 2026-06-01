@@ -97,6 +97,10 @@ class DashboardViewModel(
         return when {
             timeRangeType == "ALL_TIME" -> LocalDate.of(2000, 1, 1) to today
             timeRangeType == "YTD" -> LocalDate.of(today.year, 1, 1) to today
+            timeRangeType == "MONTH" -> {
+                val ym = YearMonth.now()
+                ym.atDay(1) to ym.atEndOfMonth()
+            }
             timeRangeType.startsWith("YEAR:") -> {
                 val year = timeRangeType.removePrefix("YEAR:").toIntOrNull() ?: today.year
                 LocalDate.of(year, 1, 1) to LocalDate.of(year, 12, 31)
@@ -115,6 +119,7 @@ class DashboardViewModel(
         return when {
             timeRangeType == "ALL_TIME" -> TimeRange.AllTime
             timeRangeType == "YTD" -> TimeRange.YearToDate
+            timeRangeType == "MONTH" -> TimeRange.SpecificMonth(YearMonth.now())
             timeRangeType.startsWith("YEAR:") -> {
                 val year = timeRangeType.removePrefix("YEAR:").toIntOrNull()
                     ?: LocalDate.now().year

@@ -26,7 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.NavigateBefore
 import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.outlined.BookmarkAdd
+import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.filled.BubbleChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DonutLarge
@@ -121,12 +122,22 @@ fun StatsScreen(
                 scrollBehavior = scrollBehavior,
                 actions = {
                     if (dashboardEnabled && state.selectedCategory1 != null) {
-                        IconButton(onClick = onPinStat) {
-                            Icon(
-                                Icons.Default.BookmarkAdd,
-                                contentDescription = "Pin this view",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                        if (state.isCurrentViewPinned) {
+                            IconButton(onClick = { viewModel.unpinCurrentView() }) {
+                                Icon(
+                                    Icons.Outlined.BookmarkRemove,
+                                    contentDescription = "Unpin from Dashboard",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = onPinStat) {
+                                Icon(
+                                    Icons.Outlined.BookmarkAdd,
+                                    contentDescription = "Pin this view to Dashboard",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
                         }
                     }
                 }
@@ -176,7 +187,7 @@ fun StatsScreen(
                             Column(Modifier.weight(1f)) {
                                 Text("Dashboard", style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    if (dashboardEnabled) "Dashboard enabled — pin favourite views" else "Enable to create a quick-access dashboard",
+                                    if (dashboardEnabled) "Dashboard enabled. Pin favourite views below." else "Enable to create a quick-access dashboard",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -222,23 +233,40 @@ fun StatsScreen(
                     }
                 }
 
-                // Pin this view button (when dashboard enabled and a category is selected)
+                // Pin / Unpin button (when dashboard enabled and a category is selected)
                 if (dashboardEnabled && state.selectedCategory1 != null) {
                     item {
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            TextButton(
-                                onClick = onPinStat,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(4.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.BookmarkAdd,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text("Pin this view to Dashboard")
+                            if (state.isCurrentViewPinned) {
+                                TextButton(
+                                    onClick = { viewModel.unpinCurrentView() },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.BookmarkRemove,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Unpin from Dashboard")
+                                }
+                            } else {
+                                TextButton(
+                                    onClick = onPinStat,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Outlined.BookmarkAdd,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Pin this view to Dashboard")
+                                }
                             }
                         }
                     }
