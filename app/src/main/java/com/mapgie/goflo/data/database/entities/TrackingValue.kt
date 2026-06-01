@@ -1,5 +1,6 @@
 package com.mapgie.goflo.data.database.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -25,5 +26,7 @@ data class TrackingValue(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val categoryId: Long,
     val label: String,
-    val displayOrder: Int = 0
+    val displayOrder: Int = 0,
+    /** True for values that ship with a system category (Flow, Symptoms). Cannot be deleted. */
+    @ColumnInfo(defaultValue = "0") val isSeeded: Boolean = false,
 )

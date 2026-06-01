@@ -19,6 +19,11 @@ Rules:
 
 ---
 
+## [0.21.0-beta.1] - 2026-06-01
+
+### Added
+- **User-extensible Symptoms** — the Symptoms (and Flow) system categories now show an "Add value" button so users can add their own options alongside the built-in ones (Cramps, Headache, etc.). Built-in values are protected and cannot be deleted; user-added values can be removed normally. DB migration 13 to 14 marks all existing system category values as seeded.
+
 ## [0.20.0-beta.1] - 2026-06-01
 
 ### Added
