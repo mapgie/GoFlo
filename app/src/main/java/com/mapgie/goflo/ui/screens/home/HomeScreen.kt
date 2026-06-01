@@ -42,6 +42,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,9 +56,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
+import com.mapgie.goflo.ui.screens.settings.ChangelogDialog
 import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
@@ -76,6 +79,11 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsState()
     val dayLogData by viewModel.dayLogData.collectAsState()
     val quickLogMessage by viewModel.quickLogMessage.collectAsState()
+
+    var showChangelog by rememberSaveable { mutableStateOf(false) }
+    if (showChangelog) {
+        ChangelogDialog(onDismiss = { showChangelog = false })
+    }
 
     // Speed dial state
     var showLogMenu by rememberSaveable { mutableStateOf(false) }
@@ -235,6 +243,17 @@ fun HomeScreen(
                 )
 
                 CycleInfoCard(state = state)
+
+                TextButton(
+                    onClick  = { showChangelog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text  = "v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
             }
 
             // Scrim — closes speed dial when tapped outside it

@@ -19,6 +19,20 @@ Rules:
 
 ---
 
+## [0.19.0-beta.1] - 2026-06-01
+
+### Added
+- **Manage tab** — new bottom navigation tab combining "What You Track" (category management) and Reminders, so tracking setup is one tap from anywhere.
+- **Onboarding banner** — first-time users see a dismissable hint on the Home screen explaining how to start logging.
+- **About: personal note from Margarida** — the About screen now opens with a personal statement about GoFlo's privacy principles and the use of LLM tooling during development.
+- **Privacy Policy** — the in-app Privacy Policy is now a dedicated screen reading from `PRIVACY_POLICY.md`, with a link to the hosted version on GitHub. Medical Disclaimer and Privacy Policy are now two separate buttons in Settings > About.
+- **Changelog footer** — a subtle tappable version label at the bottom of the Home screen opens the "What's New" dialog.
+- **Changelog pill button** — the version entry in Settings > About is now a pill-shaped "v... What's New" button.
+
+### Changed
+- "Privacy Policy & Medical Disclaimer" merged button removed from main Settings list. Both items are accessible individually from Settings > About.
+- Privacy Policy link added to the bottom of the Medical Disclaimer screen.
+
 ## [0.18.2-beta.1] - 2026-06-01
 
 ### Fixed
