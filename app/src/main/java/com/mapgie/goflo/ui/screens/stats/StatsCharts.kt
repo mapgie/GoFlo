@@ -207,13 +207,14 @@ fun DualBarChart(
                 ) {
                     Row(
                         modifier = Modifier
+                            .fillMaxWidth()
                             .height(160.dp)
                             .padding(horizontal = 4.dp),
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
-                        DualBarSegment(count = bucket.count1, maxCount = maxCount, color = color1)
-                        DualBarSegment(count = bucket.count2, maxCount = maxCount, color = color2)
+                        DualBarSegment(count = bucket.count1, maxCount = maxCount, color = color1, modifier = Modifier.weight(1f))
+                        DualBarSegment(count = bucket.count2, maxCount = maxCount, color = color2, modifier = Modifier.weight(1f))
                     }
                     Text(
                         text = bucket.label,
@@ -232,12 +233,10 @@ fun DualBarChart(
 }
 
 @Composable
-private fun DualBarSegment(count: Int, maxCount: Int, color: Color) {
+private fun DualBarSegment(count: Int, maxCount: Int, color: Color, modifier: Modifier = Modifier) {
     val fraction = if (count == 0) 0f else count.toFloat() / maxCount.toFloat()
     Column(
-        modifier = Modifier
-            .width(22.dp)
-            .height(160.dp),
+        modifier = modifier.height(160.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
         if (count > 0) {
