@@ -842,7 +842,7 @@ private fun FlowSliderRow(isSlider: Boolean, onToggle: (Boolean) -> Unit) {
         Column(Modifier.weight(1f)) {
             Text("Use slider", style = MaterialTheme.typography.titleSmall)
             Text(
-                "Replace the Spotting/Light/Medium/Heavy selector with a 1-4 slider. Stats will treat each log as a number.",
+                "Replace the Spotting/Light/Medium/Heavy selector with a numeric slider. Stats will treat each log as a number.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
