@@ -89,8 +89,11 @@ class HomeViewModel(
             }
         }
 
-        val predictedDays = if (prefs.showPeriodPrediction) buildSet<LocalDate> {
-            nextStart?.let { start ->
+        val today = LocalDate.now()
+        val nextStartIsFuture = nextStart != null && !nextStart.isBefore(today)
+
+        val predictedDays = if (prefs.showPeriodPrediction && nextStartIsFuture) buildSet<LocalDate> {
+            nextStart!!.let { start ->
                 val predictedEnd = start.plusDays(4)
                 var d = start
                 while (!d.isAfter(predictedEnd)) {
@@ -106,7 +109,7 @@ class HomeViewModel(
             cycleDay             = cycleDay,
             avgCycleLength       = avg,
             cycleOverrideActive  = customCycle != null,
-            predictedNextPeriod  = if (prefs.showPeriodPrediction) nextStart else null,
+            predictedNextPeriod  = if (prefs.showPeriodPrediction && nextStartIsFuture) nextStart else null,
             ovulationDay         = if (prefs.showOvulationMarkers) ovulationDay else null,
             ovulationWindow      = if (prefs.showOvulationMarkers) ovulationWindow else emptySet(),
             periodDays           = periodDays,

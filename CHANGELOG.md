@@ -19,6 +19,15 @@ Rules:
 
 ---
 
+## [0.18.2-beta.1] - 2026-06-01
+
+### Fixed
+- **Period prediction** — predicted next period no longer displays on past dates when a period is overdue. Predictions are only shown when the calculated start date is today or in the future.
+- **History undo** — fixed a race condition where tapping "Undo" very quickly after swiping could fail silently because symptom data had not yet been cached. Symptom data is now always cached before the delete is staged.
+- **History delete** — added a confirmation dialog before a period entry is permanently removed, so accidental swipes no longer result in data loss without warning.
+- **Beta banner** — the heart symbol (♥) now sits outside the hyperlink and no longer opens the browser when tapped.
+- **Screen state** — set `launchMode="singleTop"` on MainActivity so returning to the app via the recents screen no longer recreates the activity and resets navigation to the home view.
+
 ## [0.18.1beta.1] - 2026-06-01
 
 ### Changed 

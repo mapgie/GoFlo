@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -31,6 +32,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
@@ -38,8 +40,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -172,7 +176,9 @@ fun HistoryScreen(
  *  3. If the user taps Undo the period reappears; otherwise the DB write happens
  *     after the snackbar times out.
  *
- * There is no confirmation dialog — the Undo snackbar is the safety net.
+ * A confirmation dialog is shown before the deletion is committed. If the user
+ * cancels, the swipe state is reset. After confirmation the Undo snackbar acts
+ * as a second safety net.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -182,18 +188,44 @@ private fun SwipeablePeriodCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showConfirm by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
     val state = rememberSwipeToDismissBoxState(
         confirmValueChange = { it == SwipeToDismissBoxValue.EndToStart }
     )
 
-    // Trigger onDelete the moment the state settles to dismissed.
-    // onDelete stages the deletion in the ViewModel, which removes this item
-    // from the LazyColumn list. The snackbar coroutine (launched from the screen
-    // scope) keeps running even after this composable is disposed.
     LaunchedEffect(state.currentValue) {
         if (state.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDelete()
+            showConfirm = true
         }
+    }
+
+    if (showConfirm) {
+        AlertDialog(
+            onDismissRequest = {
+                showConfirm = false
+                scope.launch { state.reset() }
+            },
+            title = { Text("Delete period?") },
+            text  = { Text("This will permanently remove this period entry. You can undo immediately after.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showConfirm = false
+                        onDelete()
+                    }
+                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showConfirm = false
+                        scope.launch { state.reset() }
+                    }
+                ) { Text("Cancel") }
+            }
+        )
     }
 
     SwipeToDismissBox(
