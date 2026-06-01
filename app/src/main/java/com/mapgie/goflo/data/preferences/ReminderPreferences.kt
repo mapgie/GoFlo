@@ -50,6 +50,8 @@ data class AppPreferences(
      * MAX_CONTRAST and BLUE_ORANGE are unaffected — they are already maximum-contrast.
      */
     val wcagMode: Boolean = false,
+    /** When true, the archive-category warning dialog is skipped permanently. */
+    val archiveWarningDisabled: Boolean = false,
     val bannerStyle: String = "PLAIN",
     /**
      * True once the one-time migration of period flow data into TrackingLog has
@@ -101,6 +103,7 @@ class AppPreferencesStore(private val context: Context) {
         val SHOW_PERIOD_PREDICTION = booleanPreferencesKey("show_period_prediction")
         val SHOW_OVULATION_MARKERS = booleanPreferencesKey("show_ovulation_markers")
         val WCAG_MODE = booleanPreferencesKey("wcag_mode")
+        val ARCHIVE_WARNING_DISABLED = booleanPreferencesKey("archive_warning_disabled")
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
         val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
@@ -124,6 +127,7 @@ class AppPreferencesStore(private val context: Context) {
             showPeriodPrediction = prefs[Keys.SHOW_PERIOD_PREDICTION] ?: true,
             showOvulationMarkers = prefs[Keys.SHOW_OVULATION_MARKERS] ?: true,
             wcagMode = prefs[Keys.WCAG_MODE] ?: false,
+            archiveWarningDisabled = prefs[Keys.ARCHIVE_WARNING_DISABLED] ?: false,
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
             widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
@@ -211,6 +215,10 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setWcagMode(enabled: Boolean) {
         context.dataStore.edit { it[Keys.WCAG_MODE] = enabled }
+    }
+
+    suspend fun setArchiveWarningDisabled(disabled: Boolean) {
+        context.dataStore.edit { it[Keys.ARCHIVE_WARNING_DISABLED] = disabled }
     }
 
     suspend fun setBannerStyle(style: String) {

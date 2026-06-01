@@ -4,24 +4,34 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.repository.TrackingRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class ManageCategoriesUiState(
-    val categories: List<TrackingCategory> = emptyList()
+    val categories: List<TrackingCategory> = emptyList(),
+    val archiveWarningDisabled: Boolean = false,
 )
 
 class ManageCategoriesViewModel(
-    private val repository: TrackingRepository
+    private val repository: TrackingRepository,
+    private val store: AppPreferencesStore,
 ) : ViewModel() {
 
     val uiState: StateFlow<ManageCategoriesUiState> =
-        repository.getAllCategories()
-            .map { ManageCategoriesUiState(it) }
+        combine(
+            repository.getAllCategories(),
+            store.preferences,
+        ) { cats, prefs ->
+            ManageCategoriesUiState(
+                categories = cats,
+                archiveWarningDisabled = prefs.archiveWarningDisabled,
+            )
+        }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
@@ -77,10 +87,17 @@ class ManageCategoriesViewModel(
         viewModelScope.launch { repository.deleteCategory(category) }
     }
 
-    class Factory(private val repository: TrackingRepository) : ViewModelProvider.Factory {
+    fun setArchiveWarningDisabled(disabled: Boolean) {
+        viewModelScope.launch { store.setArchiveWarningDisabled(disabled) }
+    }
+
+    class Factory(
+        private val repository: TrackingRepository,
+        private val store: AppPreferencesStore,
+    ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return ManageCategoriesViewModel(repository) as T
+            return ManageCategoriesViewModel(repository, store) as T
         }
     }
 }

@@ -40,12 +40,15 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -111,6 +114,14 @@ fun ManageCategoriesScreen(
     val categoryToDelete         = state.categories.firstOrNull { it.id == pendingDelete }
     val categoryToArchive        = state.categories.firstOrNull { it.id == pendingArchive }
     val categoryToEditAppearance = state.categories.firstOrNull { it.id == pendingEditAppearance }
+
+    fun requestArchive(category: TrackingCategory) {
+        if (!category.isArchived && state.archiveWarningDisabled) {
+            viewModel.archiveCategory(category)
+        } else {
+            pendingArchive = category.id
+        }
+    }
 
     // ── Add category dialog ───────────────────────────────────────────────────
 
@@ -180,17 +191,32 @@ fun ManageCategoriesScreen(
                 }
             )
         } else {
+            var doNotShowAgain by rememberSaveable { mutableStateOf(false) }
             AlertDialog(
                 onDismissRequest = { pendingArchive = null },
                 title = { Text("Archive \"${categoryToArchive.name}\"?") },
                 text = {
-                    Text(
-                        "${categoryToArchive.name} will be hidden from tracking but all your " +
-                        "logged data will be preserved. You can unarchive it here at any time."
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(
+                            "${categoryToArchive.name} will be hidden from tracking but all your " +
+                            "logged data will be preserved. You can unarchive it here at any time."
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.clickable { doNotShowAgain = !doNotShowAgain }
+                        ) {
+                            Checkbox(
+                                checked = doNotShowAgain,
+                                onCheckedChange = { doNotShowAgain = it }
+                            )
+                            Spacer(Modifier.width(4.dp))
+                            Text("Don't show this again", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 },
                 confirmButton = {
                     TextButton(onClick = {
+                        if (doNotShowAgain) viewModel.setArchiveWarningDisabled(true)
                         viewModel.archiveCategory(categoryToArchive)
                         pendingArchive = null
                     }) { Text("Archive") }
@@ -272,6 +298,10 @@ fun ManageCategoriesScreen(
                 )
             }
         } else {
+            val active   = state.categories.filter { !it.isArchived }
+            val archived = state.categories.filter { it.isArchived }
+            var archivedExpanded by rememberSaveable { mutableStateOf(false) }
+
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -279,14 +309,51 @@ fun ManageCategoriesScreen(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(state.categories, key = { it.id }) { category ->
+                items(active, key = { it.id }) { category ->
                     SwipeableCategoryRow(
                         category         = category,
                         onClick          = { onNavigateToCategory(category.id) },
                         onEditAppearance = { pendingEditAppearance = category.id },
-                        onArchiveToggle  = { pendingArchive = category.id },
+                        onArchiveToggle  = { requestArchive(category) },
                         onDelete         = { pendingDelete = category.id }
                     )
+                }
+
+                if (archived.isNotEmpty()) {
+                    item(key = "archived_header") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { archivedExpanded = !archivedExpanded }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text  = "Archived (${archived.size})",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(
+                                imageVector = if (archivedExpanded) Icons.Default.ExpandLess
+                                              else Icons.Default.ExpandMore,
+                                contentDescription = if (archivedExpanded) "Collapse archived" else "Expand archived",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    if (archivedExpanded) {
+                        items(archived, key = { it.id }) { category ->
+                            SwipeableCategoryRow(
+                                category         = category,
+                                onClick          = { onNavigateToCategory(category.id) },
+                                onEditAppearance = { pendingEditAppearance = category.id },
+                                onArchiveToggle  = { pendingArchive = category.id },
+                                onDelete         = { pendingDelete = category.id }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -463,7 +530,6 @@ private fun CategoryRow(
 
 private fun buildCategorySubtitle(category: TrackingCategory): String = buildString {
     if (category.isSystem) append("Built-in · ")
-    if (category.isArchived) append("Archived · ")
     if (category.showInLogPeriod) append("Log with period · ")
     when (category.categoryType) {
         "numeric_slider" -> {
