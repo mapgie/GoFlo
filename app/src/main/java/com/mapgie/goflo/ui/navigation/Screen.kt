@@ -22,6 +22,9 @@ sealed class Screen(val route: String) {
 
     // ── Tracking categories management ─────────────────────────────────────────────
 
+    data object Manage : Screen("manage")
+    data object Reminders : Screen("reminders")
+
     data object ManageCategories : Screen("manage_categories")
 
     data object ManageCategoryValues : Screen("manage_category_values/{categoryId}") {

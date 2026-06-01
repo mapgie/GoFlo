@@ -52,6 +52,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -557,8 +558,7 @@ fun SettingsScreen(
             onNavigateTo                 = { currentSubScreen = it },
             onNavigateToManageCategories = onNavigateToManageCategories,
             onOpenDiscord                = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
-            onOpenSupport                = { openUrl(context, "https://github.com/sponsors/mapgie") },
-            onOpenPrivacy                = onNavigateToPrivacy
+            onOpenSupport                = { openUrl(context, "https://github.com/sponsors/mapgie") }
         )
         SettingsSubScreen.CYCLE -> CycleSubScreen(
             prefs     = prefs,
@@ -639,7 +639,6 @@ private fun SettingsMainList(
     onNavigateToManageCategories: () -> Unit,
     onOpenDiscord:                () -> Unit,
     onOpenSupport:                () -> Unit,
-    onOpenPrivacy:                () -> Unit,
 ) {
     val cycleSummary = if (prefs.preferredCycleLength > 0)
         "Custom: ${prefs.preferredCycleLength} days"
@@ -815,22 +814,6 @@ private fun SettingsMainList(
                     icon     = Icons.Outlined.Info,
                     onClick  = { onNavigateTo(SettingsSubScreen.ABOUT) }
                 )
-
-                // Privacy Policy — always visible at the very bottom
-                OutlinedButton(
-                    onClick  = onOpenPrivacy,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Icon(
-                        imageVector        = Icons.Outlined.Info,
-                        contentDescription = null,
-                        modifier           = Modifier.size(18.dp)
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text("Privacy Policy & Medical Disclaimer")
-                }
 
                 Spacer(Modifier.height(8.dp))
             }
@@ -1340,21 +1323,36 @@ private fun AboutSubScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            ListItem(
-                headlineContent   = { Text("GoFlo v${BuildConfig.VERSION_NAME}") },
-                supportingContent = { Text("Tap to see changelog", color = MaterialTheme.colorScheme.primary) },
-                modifier          = Modifier.clickable(onClick = onShowChangelog)
-            )
+            listOf(
+                "The world is a scary place right now.",
+                "My name is Margarida and my creation of GoFlo is driven by a desire to allow you to track whatever you need to track about yourself with as much privacy as possible.",
+                "I want you to wholly own your data.",
+                "The code is all available on GitHub, licenced under a GPLv3 license.",
+                "I need you to know that this app wouldn't have been possible for me to develop without the use of LLM technology.",
+                "GoFlo does NOT provide your data to anyone, including not to any LLM.",
+                "I know that's highly polarising and for many it will mean you cannot use or support it. I respect and admire that and hope that one day we will be able to have ethical consumption under capitalism.",
+                "You're encouraged to join me on Discord and give me feedback, report bugs, or suggest features or improvements. You're also free to raise an Issue or pull-request on GitHub."
+            ).forEach { paragraph ->
+                Text(
+                    text  = paragraph,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
             HorizontalDivider()
 
-            Text(
-                "All your data stays on your device — nothing is sent anywhere.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            FilledTonalButton(
+                onClick  = onShowChangelog,
+                shape    = RoundedCornerShape(50),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("v${BuildConfig.VERSION_NAME}. What's New")
+            }
+
+            HorizontalDivider()
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(

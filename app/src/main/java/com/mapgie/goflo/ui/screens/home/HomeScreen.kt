@@ -42,6 +42,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,9 +56,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.BuildConfig
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
+import com.mapgie.goflo.ui.screens.settings.ChangelogDialog
 import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
@@ -76,6 +79,11 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsState()
     val dayLogData by viewModel.dayLogData.collectAsState()
     val quickLogMessage by viewModel.quickLogMessage.collectAsState()
+
+    var showChangelog by rememberSaveable { mutableStateOf(false) }
+    if (showChangelog) {
+        ChangelogDialog(onDismiss = { showChangelog = false })
+    }
 
     // Speed dial state
     var showLogMenu by rememberSaveable { mutableStateOf(false) }
@@ -208,6 +216,16 @@ fun HomeScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                val showOnboardingBanner = !state.onboardingBannerDismissed &&
+                    state.periods.isEmpty() && state.trackingLogDates.isEmpty()
+                AnimatedVisibility(
+                    visible = showOnboardingBanner,
+                    enter   = expandVertically() + fadeIn(),
+                    exit    = shrinkVertically() + fadeOut(),
+                ) {
+                    OnboardingBanner(onDismiss = { viewModel.dismissOnboardingBanner() })
+                }
+
                 CalendarGrid(
                     periodDays           = state.periodDays,
                     predictedDays        = state.predictedDays,
@@ -225,6 +243,17 @@ fun HomeScreen(
                 )
 
                 CycleInfoCard(state = state)
+
+                TextButton(
+                    onClick  = { showChangelog = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text  = "v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                }
             }
 
             // Scrim — closes speed dial when tapped outside it
@@ -358,6 +387,41 @@ private fun SpeedDialItem(
             contentColor   = contentColor,
         ) {
             icon()
+        }
+    }
+}
+
+// ── Onboarding banner ─────────────────────────────────────────────────────────
+
+@Composable
+private fun OnboardingBanner(onDismiss: () -> Unit) {
+    Surface(
+        modifier      = Modifier.fillMaxWidth(),
+        shape         = RoundedCornerShape(12.dp),
+        color         = MaterialTheme.colorScheme.secondaryContainer,
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier             = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp, end = 4.dp),
+            verticalAlignment    = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text     = "Long-press any day to start logging. Add your own categories in the Manage tab.",
+                style    = MaterialTheme.typography.bodyMedium,
+                color    = MaterialTheme.colorScheme.onSecondaryContainer,
+                modifier = Modifier.weight(1f),
+            )
+            IconButton(
+                onClick  = onDismiss,
+                modifier = Modifier.size(44.dp),
+            ) {
+                Icon(
+                    imageVector        = Icons.Default.Close,
+                    contentDescription = "Dismiss",
+                    tint               = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+            }
         }
     }
 }

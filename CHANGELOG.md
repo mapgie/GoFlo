@@ -19,6 +19,29 @@ Rules:
 
 ---
 
+## [0.19.0-beta.1] - 2026-06-01
+
+### Added
+- **Manage tab** — new bottom navigation tab combining "What You Track" (category management) and Reminders, so tracking setup is one tap from anywhere.
+- **Onboarding banner** — first-time users see a dismissable hint on the Home screen explaining how to start logging.
+- **About: personal note from Margarida** — the About screen now opens with a personal statement about GoFlo's privacy principles and the use of LLM tooling during development.
+- **Privacy Policy** — the in-app Privacy Policy is now a dedicated screen reading from `PRIVACY_POLICY.md`, with a link to the hosted version on GitHub. Medical Disclaimer and Privacy Policy are now two separate buttons in Settings > About.
+- **Changelog footer** — a subtle tappable version label at the bottom of the Home screen opens the "What's New" dialog.
+- **Changelog pill button** — the version entry in Settings > About is now a pill-shaped "v... What's New" button.
+
+### Changed
+- "Privacy Policy & Medical Disclaimer" merged button removed from main Settings list. Both items are accessible individually from Settings > About.
+- Privacy Policy link added to the bottom of the Medical Disclaimer screen.
+
+## [0.18.2-beta.1] - 2026-06-01
+
+### Fixed
+- **Period prediction** — predicted next period no longer displays on past dates when a period is overdue. Predictions are only shown when the calculated start date is today or in the future.
+- **History undo** — fixed a race condition where tapping "Undo" very quickly after swiping could fail silently because symptom data had not yet been cached. Symptom data is now always cached before the delete is staged.
+- **History delete** — added a confirmation dialog before a period entry is permanently removed, so accidental swipes no longer result in data loss without warning.
+- **Beta banner** — the heart symbol (♥) now sits outside the hyperlink and no longer opens the browser when tapped.
+- **Screen state** — set `launchMode="singleTop"` on MainActivity so returning to the app via the recents screen no longer recreates the activity and resets navigation to the home view.
+
 ## [0.18.1beta.1] - 2026-06-01
 
 ### Changed 

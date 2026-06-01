@@ -81,6 +81,8 @@ data class AppPreferences(
     val statsChartType: String = "",
     /** Zoom level for the month bar chart. 0=compact, 1=normal, 2=wide. */
     val statsZoomLevel: Int = 1,
+    /** True once the new-user onboarding banner has been dismissed. */
+    val onboardingBannerDismissed: Boolean = false,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -110,6 +112,7 @@ class AppPreferencesStore(private val context: Context) {
         val STATS_CATEGORY2_ID = longPreferencesKey("stats_category2_id")
         val STATS_CHART_TYPE = stringPreferencesKey("stats_chart_type")
         val STATS_ZOOM_LEVEL = intPreferencesKey("stats_zoom_level")
+        val ONBOARDING_BANNER_DISMISSED = booleanPreferencesKey("onboarding_banner_dismissed")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -132,6 +135,7 @@ class AppPreferencesStore(private val context: Context) {
             statsCategory2Id = prefs[Keys.STATS_CATEGORY2_ID] ?: -1L,
             statsChartType = prefs[Keys.STATS_CHART_TYPE] ?: "",
             statsZoomLevel = prefs[Keys.STATS_ZOOM_LEVEL] ?: 1,
+            onboardingBannerDismissed = prefs[Keys.ONBOARDING_BANNER_DISMISSED] ?: false,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -251,5 +255,9 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setStatsZoomLevel(level: Int) {
         context.dataStore.edit { it[Keys.STATS_ZOOM_LEVEL] = level }
+    }
+
+    suspend fun setOnboardingBannerDismissed(dismissed: Boolean) {
+        context.dataStore.edit { it[Keys.ONBOARDING_BANNER_DISMISSED] = dismissed }
     }
 }

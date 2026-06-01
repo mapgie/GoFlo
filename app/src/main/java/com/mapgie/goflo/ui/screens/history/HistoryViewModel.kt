@@ -59,10 +59,12 @@ class HistoryViewModel(
      * navigates away before the snackbar times out.
      */
     fun stageDeletion(period: PeriodEntry) {
-        _pendingDeleteIds.update { it + period.id }
         viewModelScope.launch {
+            // Read symptoms before hiding or deleting so the undo cache is always
+            // populated before the snackbar can be tapped.
             val (builtIn, custom) = repository.getSymptomsParsed(period.id)
             pendingUndo[period.id] = UndoData(period, builtIn, custom)
+            _pendingDeleteIds.update { it + period.id }
             repository.deletePeriod(period)
             application?.let { GoFloWidget.updateAllWidgets(it) }
         }

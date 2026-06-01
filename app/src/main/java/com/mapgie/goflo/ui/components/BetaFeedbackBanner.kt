@@ -24,9 +24,9 @@ private const val URL_TAG = "url"
 /**
  * A slim, full-width banner shown directly beneath the top app bar.
  *
- * Reads: "Thank you for using this Beta version. Feedback / Bug reports /
- * Feature suggestions welcome." — where the second sentence is a hyperlink to
- * the project's GitHub Issues page.
+ * Reads: "Thank you for using this Beta version. Feedback is encouraged ♥" —
+ * where the middle phrase is a hyperlink to Discord. The heart sits outside the
+ * hyperlink so tapping it does not open the browser.
  */
 @Composable
 fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
@@ -49,10 +49,10 @@ fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
             ) {
                 append("Feedback is encouraged")
             }
-            withStyle(SpanStyle(color = baseColor)) {
-                append("♥")
-            }
             pop()
+            withStyle(SpanStyle(color = baseColor)) {
+                append(" ♥")
+            }
         }
     }
 

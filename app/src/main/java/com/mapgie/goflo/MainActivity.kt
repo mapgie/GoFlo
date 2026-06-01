@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -59,8 +60,11 @@ import com.mapgie.goflo.ui.screens.log.LogCategoryScreen
 import com.mapgie.goflo.ui.screens.log.LogCategoryViewModel
 import com.mapgie.goflo.ui.screens.dashboard.DashboardScreen
 import com.mapgie.goflo.ui.screens.dashboard.DashboardViewModel
+import com.mapgie.goflo.ui.screens.settings.PrivacyPolicyScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
+import com.mapgie.goflo.ui.screens.manage.ManageScreen
+import com.mapgie.goflo.ui.screens.manage.RemindersScreen
 import com.mapgie.goflo.ui.screens.stats.StatsScreen
 import com.mapgie.goflo.ui.screens.stats.StatsViewModel
 import android.annotation.SuppressLint
@@ -175,6 +179,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
         add(Screen.Home.route)
         add(Screen.History.route)
         if (dashboardEnabled) add(Screen.Dashboard.route)
+        add(Screen.Manage.route)
         add(Screen.Stats.route)
     }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -213,6 +218,15 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                             label = { Text("Dashboard") }
                         )
                     }
+                    NavigationBarItem(
+                        selected = currentRoute == Screen.Manage.route,
+                        onClick = { navController.navigate(Screen.Manage.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        } },
+                        icon = { Icon(Icons.Outlined.Tune, contentDescription = "Manage") },
+                        label = { Text("Manage") }
+                    )
                     NavigationBarItem(
                         selected = currentRoute == Screen.Stats.route,
                         onClick = { navController.navigate(Screen.Stats.route) {
@@ -324,8 +338,31 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             }
 
             composable(Screen.Privacy.route) {
-                com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen(
-                    onAcknowledge = { navController.popBackStack() }
+                PrivacyPolicyScreen(onBack = { navController.popBackStack() })
+            }
+
+            // ── Manage tab ────────────────────────────────────────────────────────
+
+            composable(Screen.Manage.route) {
+                ManageScreen(
+                    onNavigateToCategories = { navController.navigate(Screen.ManageCategories.route) },
+                    onNavigateToReminders  = { navController.navigate(Screen.Reminders.route) }
+                )
+            }
+
+            composable(Screen.Reminders.route) {
+                val vm: SettingsViewModel = viewModel(
+                    factory = SettingsViewModel.Factory(
+                        store                = app.preferencesStore,
+                        securityPreferences  = app.securityPreferences,
+                        repository           = app.repository,
+                        trackingRepository   = app.trackingRepository,
+                        context              = app.applicationContext
+                    )
+                )
+                RemindersScreen(
+                    viewModel = vm,
+                    onBack    = { navController.popBackStack() }
                 )
             }
 
