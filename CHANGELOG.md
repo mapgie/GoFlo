@@ -24,6 +24,11 @@ Rules:
 ### Added
 - **Drag to reorder categories** — long-press the drag handle on any active tracking category to reorder it. The new order is persisted immediately. Works alongside existing swipe-to-archive and swipe-to-delete gestures.
 
+## [0.21.2-beta.1] - 2026-06-02
+
+### Changed
+- Licences screen maintainer note expanded to document all excluded dependencies (`junit`, `room-compiler`, `ui-tooling`).
+
 ## [0.21.1-beta.1] - 2026-06-02
 
 ### Changed
