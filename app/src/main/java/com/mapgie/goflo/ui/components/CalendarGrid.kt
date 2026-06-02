@@ -36,8 +36,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
@@ -296,7 +298,7 @@ private fun DayCell(
             )
             // clearAndSetSemantics replaces all child semantics so TalkBack reads
             // only this description, not the raw day-number Text inside the Box.
-            .clearAndSetSemantics { contentDescription = cellDescription }
+            .clearAndSetSemantics { contentDescription = cellDescription; role = Role.Button }
             .padding(2.dp),
         contentAlignment = Alignment.Center
     ) {

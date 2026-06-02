@@ -18,6 +18,16 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.22.4-beta.1] - 2026-06-02
+
+### Fixed
+- Additional accessibility role fixes missed in the initial audit: archive-dialog "Don't show this again" row (`Role.Checkbox`), alarm-permission list item in reminder settings (`Role.Button`), export-scope and export-format radio rows (`Role.RadioButton` with `RadioButton(onClick = null)`), theme-mode selector (`Role.RadioButton`), palette picker (`Role.RadioButton`), app-icon picker (`Role.RadioButton`), calendar day cells (`role = Role.Button` inside `clearAndSetSemantics`), and speed-dial scrim dismiss overlay (`Role.Button` + contentDescription).
+
+### Added
+- `a11y_check.py`: Python CI script that scans all Compose source files and fails if any `.clickable` or `.combinedClickable` modifier chain is missing a `.semantics { role = Role.* }` declaration. Runs as an early fast-fail step on every PR.
+- CI workflow (`build.yml`) now runs the accessibility role check before the build step so violations are caught before a full Gradle build.
+- Accessibility coding rules added to `.claude/CLAUDE.md` so future AI-assisted changes follow the same patterns automatically.
+
 ## [0.22.3-beta.1] - 2026-06-02
 
 ### Fixed

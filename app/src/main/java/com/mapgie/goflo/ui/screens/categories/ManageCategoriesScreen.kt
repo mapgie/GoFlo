@@ -215,11 +215,13 @@ fun ManageCategoriesScreen(
                         )
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable { doNotShowAgain = !doNotShowAgain }
+                            modifier = Modifier
+                                .clickable { doNotShowAgain = !doNotShowAgain }
+                                .semantics { role = Role.Checkbox }
                         ) {
                             Checkbox(
                                 checked = doNotShowAgain,
-                                onCheckedChange = { doNotShowAgain = it }
+                                onCheckedChange = null
                             )
                             Spacer(Modifier.width(4.dp))
                             Text("Don't show this again", style = MaterialTheme.typography.bodySmall)

@@ -1009,14 +1009,16 @@ private fun RemindersSubScreen(
                         headlineColor   = MaterialTheme.colorScheme.onErrorContainer,
                         supportingColor = MaterialTheme.colorScheme.onErrorContainer,
                     ),
-                    modifier = Modifier.clickable {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            context.startActivity(
-                                Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            )
+                    modifier = Modifier
+                        .clickable {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                context.startActivity(
+                                    Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }
                         }
-                    }
+                        .semantics { role = Role.Button }
                 )
                 HorizontalDivider()
             }
@@ -1500,10 +1502,11 @@ private fun ExportDataSubScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { fullBackup = false }
+                        .semantics { role = Role.RadioButton }
                         .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = !fullBackup, onClick = { fullBackup = false })
+                    RadioButton(selected = !fullBackup, onClick = null)
                     Spacer(Modifier.width(4.dp))
                     Column {
                         Text("Data only", style = MaterialTheme.typography.bodyMedium)
@@ -1518,10 +1521,11 @@ private fun ExportDataSubScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { fullBackup = true }
+                        .semantics { role = Role.RadioButton }
                         .padding(vertical = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(selected = fullBackup, onClick = { fullBackup = true })
+                    RadioButton(selected = fullBackup, onClick = null)
                     Spacer(Modifier.width(4.dp))
                     Column {
                         Text("Full backup", style = MaterialTheme.typography.bodyMedium)
@@ -1624,10 +1628,11 @@ private fun ExportDataSubScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { format = f }
+                                .semantics { role = Role.RadioButton }
                                 .padding(vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            RadioButton(selected = format == f, onClick = { format = f })
+                            RadioButton(selected = format == f, onClick = null)
                             Spacer(Modifier.width(4.dp))
                             Column {
                                 Text(f.name, style = MaterialTheme.typography.bodyMedium)
@@ -1839,6 +1844,7 @@ private fun CompactThemePicker(
                             if (selected) MaterialTheme.colorScheme.primary
                             else Color.Transparent
                         )
+                        .semantics { role = Role.RadioButton }
                         .clickable {
                             when (mode) {
                                 ThemeMode.SYSTEM -> {
@@ -1945,6 +1951,7 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
     Column(
         modifier            = Modifier
             .clickable(onClick = onClick)
+            .semantics { role = Role.RadioButton }
             .padding(horizontal = 12.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -2105,6 +2112,7 @@ private fun IconChoiceCell(
     Column(
         modifier            = Modifier
             .clickable(onClick = onClick)
+            .semantics { role = Role.RadioButton }
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
