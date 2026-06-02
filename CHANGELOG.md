@@ -19,6 +19,11 @@ Rules:
 
 ---
 
+## [0.22.1-beta.1] - 2026-06-02
+
+### Changed
+- Upgraded Android Gradle Plugin from 8.4.0 to 8.13.2 and Gradle wrapper from 8.6 to 8.11.1.
+
 ## [0.22.0-beta.1] - 2026-06-02
 
 ### Added
