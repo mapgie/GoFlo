@@ -25,6 +25,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 
 private const val SHORT_TEXT =
@@ -65,7 +69,11 @@ fun StatsWarningBanner(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onToggle),
+                    .clickable(onClick = onToggle)
+                    .semantics {
+                        role = Role.Button
+                        stateDescription = if (isExpanded) "Expanded" else "Collapsed"
+                    },
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(

@@ -43,8 +43,18 @@ Rules:
 
 - [x] All interactive elements have a minimum touch / click target of **48×48dp** (Android) or **44×44pt** (iOS)
 - [x] Every icon-only control has a **content description** (or equivalent accessible label) — buttons, icon buttons, image-only elements
+  - Icons that are purely decorative (adjacent text label already describes the control) must use `contentDescription = null` so screen readers skip them
+  - Icons that are the **sole identifier** of an interactive control (e.g. icon-only FAB, icon-only chip) must carry a meaningful `contentDescription` equal to the action they perform
 - [x] Text and interactive elements meet **WCAG AA contrast ratios**: 4.5:1 for body text, 3:1 for large text and UI components
 - [x] The app is navigable without colour alone — selection state, errors, and status are also communicated via shape, label, or icon
+- [x] **Every interactive element is keyboard/switch-accessible**: any element that uses a low-level `.clickable {}` modifier instead of a semantic component (Button, IconButton, Card with onClick, etc.) must declare an explicit `.semantics { role = Role.Button }` (or the appropriate role: `Role.RadioButton`, `Role.Switch`, `Role.Checkbox`) so that keyboard focus, switch access, and screen readers can discover and activate it
+  - `Role.Button` — navigation, generic action, expand/collapse
+  - `Role.RadioButton` — mutually exclusive single-select options (colour swatches, icon pickers, format selectors)
+  - `Role.Switch` — toggle with two named states; pair with `stateDescription` to announce the current state
+  - Combine with `stateDescription` for elements that toggle (e.g. "Expanded" / "Collapsed") so TalkBack announces the post-tap state
+- [x] **Supports dynamic text scaling**: all font sizes must use `MaterialTheme.typography.*` styles or `sp` units (never hardcoded `dp` for text); fixed-height containers that hold user-visible text must use `wrapContentHeight()` or `heightIn(min = …)` rather than a hard `height(…)` so text is never clipped at the system's largest font scale
+- [x] **Logical focus order**: focus traversal follows the visual reading order (top-to-bottom, then left-to-right); avoid `asReversed()` on displayed lists when it would invert tab order relative to screen position; use `FocusRequester` only when an explicit focus transition is needed (e.g. moving focus into a dialog on open)
+- [x] **Status changes are announced via accessibility events**: any text that appears or changes in response to user action (error messages, validation feedback, progress indicators, confirmation notices) must be wrapped in `.semantics { liveRegion = LiveRegionMode.Polite }` (or `Assertive` for errors that must interrupt); do not rely on visibility changes or colour changes alone to communicate status — screen readers observe `liveRegion` nodes, not visual transitions
 
 ### Error states
 

@@ -31,6 +31,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import androidx.core.content.ContextCompat
@@ -87,8 +91,12 @@ fun LockScreen(
 
             if (state.isError) {
                 Spacer(Modifier.height(8.dp))
-                Text("Incorrect PIN", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = "Incorrect PIN",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive }
+                )
             }
 
             Spacer(Modifier.height(40.dp))
@@ -113,7 +121,13 @@ fun LockScreen(
 @Composable
 private fun PinDots(filledCount: Int, isError: Boolean) {
     val dotColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.semantics {
+            contentDescription = "$filledCount of 4 digits entered"
+            liveRegion = LiveRegionMode.Polite
+        }
+    ) {
         repeat(4) { index ->
             Box(
                 modifier = Modifier
@@ -161,7 +175,12 @@ private fun NumberPad(
                 Spacer(Modifier.size(72.dp))
             }
             PadKey(label = "0", onClick = { onDigit(0) })
-            TextButton(onClick = onDelete, modifier = Modifier.size(72.dp)) {
+            TextButton(
+                onClick = onDelete,
+                modifier = Modifier
+                    .size(72.dp)
+                    .semantics { contentDescription = "Delete" }
+            ) {
                 Text("⌫", style = MaterialTheme.typography.titleLarge)
             }
         }

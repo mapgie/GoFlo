@@ -1729,7 +1729,9 @@ private fun SettingsNavItem(
                 tint               = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .semantics { role = Role.Button }
     )
 }
 

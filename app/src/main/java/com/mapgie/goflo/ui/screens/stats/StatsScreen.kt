@@ -73,6 +73,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -426,6 +429,7 @@ private fun TimeRangePicker(
                                     onSelect(TimeRange.CalendarYear(year))
                                     showYearDialog = false
                                 }
+                                .semantics { role = Role.Button }
                                 .padding(vertical = 12.dp, horizontal = 8.dp),
                             style = MaterialTheme.typography.bodyLarge
                         )
@@ -711,7 +715,8 @@ private fun ChartTypeSelector(
                     Card(
                         modifier = Modifier
                             .width(80.dp)
-                            .clickable { onSelect(option.type) },
+                            .clickable { onSelect(option.type) }
+                            .semantics { role = Role.Button },
                         colors = CardDefaults.cardColors(
                             containerColor = if (isSelected)
                                 MaterialTheme.colorScheme.primaryContainer

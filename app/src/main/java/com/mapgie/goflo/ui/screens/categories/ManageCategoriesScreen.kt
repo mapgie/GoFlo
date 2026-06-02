@@ -90,6 +90,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -388,7 +394,11 @@ fun ManageCategoriesScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { archivedExpanded = !archivedExpanded }
-                                .padding(vertical = 8.dp),
+                                .padding(vertical = 8.dp)
+                                .semantics {
+                                    role = Role.Button
+                                    stateDescription = if (archivedExpanded) "Expanded" else "Collapsed"
+                                },
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
@@ -987,12 +997,17 @@ private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
                         if (isSelected) MaterialTheme.colorScheme.primaryContainer
                         else MaterialTheme.colorScheme.surfaceVariant
                     )
-                    .clickable { onSelect(icon.key) },
+                    .clickable { onSelect(icon.key) }
+                    .semantics {
+                        role = Role.RadioButton
+                        selected = isSelected
+                        contentDescription = icon.displayName
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector        = icon.vector,
-                    contentDescription = icon.displayName,
+                    contentDescription = null,
                     tint               = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
                                          else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier           = Modifier.size(26.dp)
@@ -1062,13 +1077,18 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                                     Modifier.border(3.dp, MaterialTheme.colorScheme.outline, CircleShape)
                                 else Modifier
                             )
-                            .clickable { onSelect(colorOption.key) },
+                            .clickable { onSelect(colorOption.key) }
+                            .semantics {
+                                role = Role.RadioButton
+                                selected = isSelected
+                                contentDescription = colorOption.displayName
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         if (isSelected) {
                             Icon(
                                 imageVector        = Icons.Default.Check,
-                                contentDescription = "Selected",
+                                contentDescription = null,
                                 tint               = onSwatchColor,
                                 modifier           = Modifier.size(22.dp)
                             )
@@ -1112,13 +1132,18 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                                 Modifier.border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
                             else Modifier
                         )
-                        .clickable { onSelect(hexKey) },
+                        .clickable { onSelect(hexKey) }
+                        .semantics {
+                            role = Role.RadioButton
+                            selected = isSelected
+                            contentDescription = "#$hexKey"
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (isSelected) {
                         Icon(
                             imageVector        = Icons.Default.Check,
-                            contentDescription = "Selected",
+                            contentDescription = null,
                             tint               = onSwatchColor,
                             modifier           = Modifier.size(18.dp)
                         )
@@ -1139,12 +1164,16 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                         .clip(CircleShape)
                         .background(customColor)
                         .border(3.dp, primaryColor, CircleShape)
-                        .clickable { showFullPicker = true },
+                        .clickable { showFullPicker = true }
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Custom colour (selected). Tap to change"
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector        = Icons.Default.Check,
-                        contentDescription = "Custom colour selected",
+                        contentDescription = null,
                         tint               = onCustomColor,
                         modifier           = Modifier.size(18.dp)
                     )
@@ -1153,7 +1182,11 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clickable { showFullPicker = true },
+                        .clickable { showFullPicker = true }
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Choose custom colour"
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.size(38.dp)) {

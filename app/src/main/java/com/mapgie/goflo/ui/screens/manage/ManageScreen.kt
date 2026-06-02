@@ -2,6 +2,9 @@ package com.mapgie.goflo.ui.screens.manage
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -47,7 +50,9 @@ fun ManageScreen(
                     Icon(Icons.Outlined.Category, contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
-                modifier = Modifier.clickable(onClick = onNavigateToCategories)
+                modifier = Modifier
+                    .clickable(onClick = onNavigateToCategories)
+                    .semantics { role = Role.Button }
             )
             ListItem(
                 headlineContent   = { Text("Reminders") },
@@ -56,7 +61,9 @@ fun ManageScreen(
                     Icon(Icons.Outlined.NotificationsNone, contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
-                modifier = Modifier.clickable(onClick = onNavigateToReminders)
+                modifier = Modifier
+                    .clickable(onClick = onNavigateToReminders)
+                    .semantics { role = Role.Button }
             )
         }
     }

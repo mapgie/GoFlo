@@ -39,6 +39,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.export.DateRangePreset
@@ -187,10 +190,11 @@ fun ExportOptionsDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { format = f }
-                            .padding(vertical = 2.dp),
+                            .padding(vertical = 2.dp)
+                            .semantics { role = Role.RadioButton },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        RadioButton(selected = format == f, onClick = { format = f })
+                        RadioButton(selected = format == f, onClick = null)
                         Spacer(Modifier.width(4.dp))
                         Column {
                             Text(f.name, style = MaterialTheme.typography.bodyMedium)
