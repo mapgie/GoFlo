@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.22.6-beta.1] - 2026-06-02
+
+### Changed
+- Custom cycle length slider now goes up to 90 days (was 45), supporting longer cycles common with PCOS and other irregular cycle patterns.
+
+---
 ## [0.22.5-beta.1] - 2026-06-02
 
 ### Fixed
