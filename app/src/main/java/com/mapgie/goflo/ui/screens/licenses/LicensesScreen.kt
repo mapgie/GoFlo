@@ -3,8 +3,10 @@ package com.mapgie.goflo.ui.screens.licenses
 // MAINTAINER NOTE: keep this list in sync with gradle/libs.versions.toml.
 // Add an entry here whenever a new RUNTIME dependency is added to the project.
 //
-// Excluded — not shipped in the APK:
-//   junit (testImplementation only)
+// Excluded — not shipped in the release APK:
+//   junit                    (testImplementation only)
+//   androidx-room-compiler   (ksp — annotation processor, compile-time only)
+//   androidx-ui-tooling      (debugImplementation only)
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

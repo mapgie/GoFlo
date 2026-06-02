@@ -19,6 +19,11 @@ Rules:
 
 ---
 
+## [0.21.2-beta.1] - 2026-06-02
+
+### Changed
+- Licences screen maintainer note expanded to document all excluded dependencies (`junit`, `room-compiler`, `ui-tooling`).
+
 ## [0.21.1-beta.1] - 2026-06-02
 
 ### Changed
