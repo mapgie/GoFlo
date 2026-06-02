@@ -68,3 +68,22 @@ Promote to release     → 1.4.2-beta.1 → 1.4.2           (versionCode +1)
 - Minimum tap target: 44×44dp
 - Never use `fallbackToDestructiveMigration` in the Room database config
 - **Never use en dashes (–) or em dashes (—) in user-facing text.** They read as robotic. Use a period, colon, or reword the sentence instead. Hyphens in genuine compound words ("in-app", "4-digit", "built-in", "30-day") are fine.
+
+## Accessibility Rules (enforced by `a11y_check.py` in CI)
+
+Every `.clickable {}` or `.combinedClickable {}` modifier **must** carry a matching `.semantics { role = Role.<Type> }` in the same modifier chain. Use the role that best describes the element:
+
+| Role | Use for |
+|---|---|
+| `Role.Button` | Navigation, generic action, expand/collapse, dialog dismiss |
+| `Role.RadioButton` | Mutually exclusive single-select (theme pickers, icon pickers, format selectors) |
+| `Role.Checkbox` | Toggle with two named states where the element acts as a row wrapping a Checkbox |
+| `Role.Switch` | Toggle with two named states; pair with `stateDescription` to announce current state |
+
+Additional rules:
+- Place `.semantics { role = }` **before** `.clickable {}` in the chain when the clickable lambda is longer than a few lines, so the CI window check can find it.
+- When the parent Row/Box handles the click, set the inner `Checkbox` / `RadioButton` to `onClick = null` to prevent double-focus.
+- `clearAndSetSemantics { }` must also include `role = Role.<Type>` — it replaces all child semantics, so the role must be re-declared there.
+- Status text that appears or changes in response to user action needs `Modifier.semantics { liveRegion = LiveRegionMode.Assertive }` (errors) or `LiveRegionMode.Polite` (non-urgent feedback).
+- Icon-only interactive controls (FABs, icon-only buttons outside of `IconButton`) need `Modifier.semantics { contentDescription = "<action label>" }` on the container itself.
+- Run `python3 a11y_check.py` locally before pushing to confirm no new violations.
