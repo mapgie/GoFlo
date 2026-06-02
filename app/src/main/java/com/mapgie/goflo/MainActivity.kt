@@ -63,6 +63,8 @@ import com.mapgie.goflo.ui.screens.dashboard.DashboardViewModel
 import com.mapgie.goflo.ui.screens.settings.PrivacyPolicyScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
+import com.mapgie.goflo.ui.screens.manage.ManageCycleScreen
+import com.mapgie.goflo.ui.screens.manage.ManageQuickLogScreen
 import com.mapgie.goflo.ui.screens.manage.ManageScreen
 import com.mapgie.goflo.ui.screens.manage.RemindersScreen
 import com.mapgie.goflo.ui.screens.stats.StatsScreen
@@ -179,8 +181,9 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
         add(Screen.Home.route)
         add(Screen.History.route)
         if (dashboardEnabled) add(Screen.Dashboard.route)
-        add(Screen.Manage.route)
         add(Screen.Stats.route)
+        add(Screen.Manage.route)
+        add(Screen.Settings.route)
     }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val showBottomBar = bottomNavRoutes.any { currentRoute?.startsWith(it) == true } && !isLandscape
@@ -219,15 +222,6 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         )
                     }
                     NavigationBarItem(
-                        selected = currentRoute == Screen.Manage.route,
-                        onClick = { navController.navigate(Screen.Manage.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
-                        } },
-                        icon = { Icon(Icons.Outlined.Tune, contentDescription = "Manage") },
-                        label = { Text("Manage") }
-                    )
-                    NavigationBarItem(
                         selected = currentRoute == Screen.Stats.route,
                         onClick = { navController.navigate(Screen.Stats.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -235,6 +229,15 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         } },
                         icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
                         label = { Text("Stats") }
+                    )
+                    NavigationBarItem(
+                        selected = currentRoute == Screen.Manage.route,
+                        onClick = { navController.navigate(Screen.Manage.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        } },
+                        icon = { Icon(Icons.Outlined.Tune, contentDescription = "Manage") },
+                        label = { Text("Manage") }
                     )
                 }
             }
@@ -346,7 +349,9 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             composable(Screen.Manage.route) {
                 ManageScreen(
                     onNavigateToCategories = { navController.navigate(Screen.ManageCategories.route) },
-                    onNavigateToReminders  = { navController.navigate(Screen.Reminders.route) }
+                    onNavigateToReminders  = { navController.navigate(Screen.Reminders.route) },
+                    onNavigateToCycle      = { navController.navigate(Screen.ManageCycle.route) },
+                    onNavigateToQuickLog   = { navController.navigate(Screen.ManageQuickLog.route) }
                 )
             }
 
@@ -361,6 +366,38 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     )
                 )
                 RemindersScreen(
+                    viewModel = vm,
+                    onBack    = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.ManageCycle.route) {
+                val vm: SettingsViewModel = viewModel(
+                    factory = SettingsViewModel.Factory(
+                        store                = app.preferencesStore,
+                        securityPreferences  = app.securityPreferences,
+                        repository           = app.repository,
+                        trackingRepository   = app.trackingRepository,
+                        context              = app.applicationContext
+                    )
+                )
+                ManageCycleScreen(
+                    viewModel = vm,
+                    onBack    = { navController.popBackStack() }
+                )
+            }
+
+            composable(Screen.ManageQuickLog.route) {
+                val vm: SettingsViewModel = viewModel(
+                    factory = SettingsViewModel.Factory(
+                        store                = app.preferencesStore,
+                        securityPreferences  = app.securityPreferences,
+                        repository           = app.repository,
+                        trackingRepository   = app.trackingRepository,
+                        context              = app.applicationContext
+                    )
+                )
+                ManageQuickLogScreen(
                     viewModel = vm,
                     onBack    = { navController.popBackStack() }
                 )

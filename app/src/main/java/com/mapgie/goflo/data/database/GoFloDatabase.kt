@@ -412,7 +412,7 @@ abstract class GoFloDatabase : RoomDatabase() {
 
             listOf("Spotting", "Light", "Medium", "Heavy").forEachIndexed { index, label ->
                 database.execSQL(
-                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                    "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?, ?, ?, 1)",
                     arrayOf(flowId, label, index)
                 )
             }
@@ -434,7 +434,7 @@ abstract class GoFloDatabase : RoomDatabase() {
             listOf("Cramps", "Headache", "Bloating", "Fatigue", "Back Pain", "Mood Swings", "Bleeding (non-period)")
                 .forEachIndexed { index, label ->
                     database.execSQL(
-                        "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                        "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?, ?, ?, 1)",
                         arrayOf(symptomId, label, index)
                     )
                 }
