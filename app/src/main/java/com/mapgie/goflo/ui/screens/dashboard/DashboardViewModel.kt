@@ -92,10 +92,10 @@ class DashboardViewModel(
         }.getOrDefault(StatsChartData.Empty)
     }
 
-    private fun resolveTimeRange(timeRangeType: String): Pair<LocalDate, LocalDate> {
+    private suspend fun resolveTimeRange(timeRangeType: String): Pair<LocalDate, LocalDate> {
         val today = LocalDate.now()
         return when {
-            timeRangeType == "ALL_TIME" -> LocalDate.of(2000, 1, 1) to today
+            timeRangeType == "ALL_TIME" -> (repository.getEarliestLogDate() ?: today) to today
             timeRangeType == "YTD" -> LocalDate.of(today.year, 1, 1) to today
             timeRangeType == "MONTH" -> {
                 val ym = YearMonth.now()

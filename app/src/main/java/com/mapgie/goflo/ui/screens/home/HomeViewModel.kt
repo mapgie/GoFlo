@@ -32,8 +32,10 @@ data class HomeUiState(
     /** True when the user has manually overridden the cycle length. */
     val cycleOverrideActive: Boolean = false,
     val predictedNextPeriod: LocalDate? = null,
+    /** True when today falls within the predicted period window but no period is active. */
+    val isInExpectedPeriod: Boolean = false,
     val ovulationDay: LocalDate? = null,
-    /** ±2-day window around the estimated ovulation day (3–5 dates). */
+    /** ±2-day window around the estimated ovulation day (3-5 dates). */
     val ovulationWindow: Set<LocalDate> = emptySet(),
     val periodDays: Set<LocalDate> = emptySet(),
     val predictedDays: Set<LocalDate> = emptySet(),
@@ -92,8 +94,11 @@ class HomeViewModel(
 
         val today = LocalDate.now()
         val nextStartIsFuture = nextStart != null && !nextStart.isBefore(today)
+        // Show prediction window as long as any day of the window (start..start+4) is still today or future.
+        // This ensures the calendar markers and "expected" status appear even mid-window.
+        val predictionWindowActive = nextStart != null && !nextStart.plusDays(4).isBefore(today)
 
-        val predictedDays = if (prefs.showPeriodPrediction && nextStartIsFuture) buildSet<LocalDate> {
+        val predictedDays = if (prefs.showPeriodPrediction && predictionWindowActive) buildSet<LocalDate> {
             nextStart!!.let { start ->
                 val predictedEnd = start.plusDays(4)
                 var d = start
@@ -104,6 +109,10 @@ class HomeViewModel(
             }
         } else emptySet()
 
+        // True when today is inside the predicted window but the period hasn't started yet (not logged).
+        val isInExpectedPeriod = prefs.showPeriodPrediction &&
+            predictionWindowActive && !nextStartIsFuture && active == null
+
         HomeUiState(
             periods              = periods,
             activePeriod         = active,
@@ -111,6 +120,7 @@ class HomeViewModel(
             avgCycleLength       = avg,
             cycleOverrideActive  = customCycle != null,
             predictedNextPeriod  = if (prefs.showPeriodPrediction && nextStartIsFuture) nextStart else null,
+            isInExpectedPeriod   = isInExpectedPeriod,
             ovulationDay         = if (prefs.showOvulationMarkers) ovulationDay else null,
             ovulationWindow      = if (prefs.showOvulationMarkers) ovulationWindow else emptySet(),
             periodDays           = periodDays,

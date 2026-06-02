@@ -31,7 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 
 private const val PRIVACY_POLICY_URL =
-    "https://raw.githubusercontent.com/mapgie/goflo/main/app/src/main/assets/PRIVACY_POLICY.md"
+    "https://github.com/mapgie/GoFlo/blob/main/app%2Fsrc%2Fmain%2Fassets%2FPRIVACY_POLICY.md"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

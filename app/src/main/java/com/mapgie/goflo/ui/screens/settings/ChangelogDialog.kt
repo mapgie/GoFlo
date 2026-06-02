@@ -1,5 +1,7 @@
 package com.mapgie.goflo.ui.screens.settings
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -180,6 +182,14 @@ fun ChangelogDialog(onDismiss: () -> Unit, maxEntries: Int = 5) {
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        dismissButton = {
+            val context = LocalContext.current
+            TextButton(onClick = {
+                context.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mapgie/GoFlo/blob/main/CHANGELOG.md"))
+                )
+            }) { Text("View full changelog") }
         }
     )
 }

@@ -442,7 +442,9 @@ private fun CycleInfoCard(state: HomeUiState) {
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (state.activePeriod != null) {
-                InfoRow("Status", "Period active — day ${state.cycleDay ?: "?"}")
+                InfoRow("Status", "Period active, day ${state.cycleDay ?: "?"}")
+            } else if (state.isInExpectedPeriod) {
+                InfoRow("Status", "Period expected")
             } else {
                 state.cycleDay?.let { InfoRow("Cycle day", "Day $it of ~${state.avgCycleLength}") }
             }
@@ -455,7 +457,7 @@ private fun CycleInfoCard(state: HomeUiState) {
                 val windowStart = state.ovulationWindow.min()
                 val windowEnd   = state.ovulationWindow.max()
                 val shortFmt    = java.time.format.DateTimeFormatter.ofPattern("MMM d")
-                InfoRow("Ovulation window", "${windowStart.format(shortFmt)} – ${windowEnd.format(shortFmt)}")
+                InfoRow("Ovulation window", "${windowStart.format(shortFmt)} to ${windowEnd.format(shortFmt)}")
             } else {
                 state.ovulationDay?.let {
                     InfoRow("Ovulation day", it.format(displayFormat))

@@ -70,9 +70,11 @@ When a form has section labels ("Flow", "Symptoms") and entered values ("Medium"
 
 ### Data / State
 
+**Gate prediction display on window end, not window start**
+A prediction window (e.g. a 5-day expected period) should remain visible as long as any part of the window is current — gate on `windowEnd >= today`, not `windowStart >= today`. Gating on the start collapses the display to zero the moment the window begins, which is precisely when it matters most. Apply the same principle to any "active range" feature: fertility windows, ovulation windows, reminders that span multiple days.
+
 **Don't double-count with offset when SQLite immediately reflects inserts in aggregate queries**
 In a Room migration loop that inserts rows one-by-one, calling `MAX(displayOrder)+1` in a subquery correctly reflects all previously-inserted rows in the same transaction — SQLite is not a snapshot. Adding a separate `offset` counter on top of that result double-counts and produces gaps (e.g., displayOrder 7, 9, 11 instead of 7, 8, 9). Remove the offset variable and let the `MAX+1` subquery self-increment across the loop.
-
 
 
 **Insert/upsert flags need a separate edit-by-ID path**
