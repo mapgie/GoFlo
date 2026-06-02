@@ -5,7 +5,6 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.mapgie.goflo.data.database.GoFloDatabase
-import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.preferences.SecurityPreferences
 import com.mapgie.goflo.data.repository.PeriodRepository
@@ -21,8 +20,10 @@ import java.time.LocalDate
 class GoFloApplication : Application() {
 
     val database by lazy { GoFloDatabase.getInstance(this) }
-    val repository by lazy { PeriodRepository(database.periodDao(), database.symptomDao(), database.customSymptomDao()) }
-    val trackingRepository by lazy { TrackingRepository(database.trackingCategoryDao(), database.trackingLogDao()) }
+    val repository by lazy { PeriodRepository(database.periodDao(), database.symptomDao()) }
+    val trackingRepository by lazy {
+        TrackingRepository(database.trackingCategoryDao(), database.trackingLogDao(), database.symptomDao())
+    }
     val preferencesStore by lazy { AppPreferencesStore(this) }
     val securityPreferences by lazy { SecurityPreferences(this) }
 
@@ -67,8 +68,9 @@ class GoFloApplication : Application() {
 
         val periods = repository.getAllPeriodsOnce()
         for (period in periods) {
-            val flowLabel = runCatching { FlowLevel.valueOf(period.flowLevel) }
-                .getOrNull()?.displayName ?: continue // skip if unrecognised value
+            // Support both old enum names ("MEDIUM") and current display labels ("Medium").
+            val flowLabel = PeriodRepository.FLOW_ENUM_TO_LABEL[period.flowLevel] ?: period.flowLevel
+            if (flowLabel.isBlank()) continue
 
             val start = runCatching { LocalDate.parse(period.startDate) }.getOrNull() ?: continue
             val end = period.endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: start

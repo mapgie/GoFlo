@@ -1,5 +1,6 @@
 package com.mapgie.goflo.data.repository
 
+import com.mapgie.goflo.data.database.dao.SymptomDao
 import com.mapgie.goflo.data.database.dao.TrackingCategoryDao
 import com.mapgie.goflo.data.database.dao.TrackingLogDao
 import com.mapgie.goflo.data.database.dao.ValueCount
@@ -22,7 +23,8 @@ data class TrackingLogWithValues(
 
 class TrackingRepository(
     private val categoryDao: TrackingCategoryDao,
-    private val logDao: TrackingLogDao
+    private val logDao: TrackingLogDao,
+    private val symptomDao: SymptomDao? = null,
 ) {
 
     // ── Categories ────────────────────────────────────────────────────────────
@@ -251,6 +253,11 @@ class TrackingRepository(
         categoryDao.updateValue(value.copy(label = trimmed))
         if (fixHistorical) {
             categoryDao.bulkRenameLogValues(value.categoryId, oldLabel, trimmed)
+            // Cascade to the symptoms table when renaming a symptom catalog entry.
+            val cat = categoryDao.getCategoryByIdOnce(value.categoryId)
+            if (cat?.systemKey == "symptoms") {
+                symptomDao?.bulkRenameSymptoms(oldLabel, trimmed)
+            }
         }
     }
 

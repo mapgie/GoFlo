@@ -6,17 +6,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.database.entities.TrackingValue
 import com.mapgie.goflo.widget.GoFloWidget
-import com.mapgie.goflo.data.model.FlowLevel
-import com.mapgie.goflo.data.model.SymptomType
 import com.mapgie.goflo.data.repository.PeriodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -27,10 +23,10 @@ data class LogPeriodUiState(
     val existingId: Long? = null,
     val startDate: LocalDate = LocalDate.now(),
     val endDate: LocalDate? = null,
-    val flowLevel: FlowLevel = FlowLevel.MEDIUM,
-    val symptoms: Set<SymptomType> = emptySet(),
-    /** Custom symptom names (lowercase) selected for this period entry. */
-    val customSymptoms: Set<String> = emptySet(),
+    /** Currently selected flow level label (e.g. "Medium", or a user-defined label). */
+    val selectedFlowLabel: String = "Medium",
+    /** All symptom labels selected for this period. */
+    val symptoms: Set<String> = emptySet(),
     val notes: String = "",
     val saved: Boolean = false,
     val deleted: Boolean = false,
@@ -53,6 +49,10 @@ data class LogPeriodUiState(
     val flowCategory: TrackingCategory? = null,
     /** Current slider position when the Flow category is in slider mode (1-4). */
     val flowSliderValue: Float? = null,
+    /** Ordered list of selectable flow level options (from TrackingValues). */
+    val flowOptions: List<TrackingValue> = emptyList(),
+    /** Ordered list of all symptom options (from TrackingValues). */
+    val symptomOptions: List<TrackingValue> = emptyList(),
     /** True once the user has made at least one edit — enables the save-on-back prompt. */
     val hasChanges: Boolean = false,
 )
@@ -68,16 +68,11 @@ class LogPeriodViewModel(
     private val _uiState = MutableStateFlow(LogPeriodUiState(startDate = prefilledDate ?: LocalDate.now()))
     val uiState: StateFlow<LogPeriodUiState> = _uiState.asStateFlow()
 
-    /** All custom symptoms saved to the user's library (alphabetical). */
-    val librarySymptoms: StateFlow<List<String>> = repository.getAllCustomSymptoms()
-        .map { entries -> entries.map { it.name } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     init {
         if (periodId > 0) {
             viewModelScope.launch {
                 val period = repository.getPeriodById(periodId).first()
-                val (builtIn, custom) = repository.getSymptomsParsed(periodId)
+                val symptoms = repository.getSymptomsParsed(periodId)
                 if (period != null) {
                     _uiState.update {
                         it.copy(
@@ -86,9 +81,8 @@ class LogPeriodViewModel(
                             existingId = period.id,
                             startDate = LocalDate.parse(period.startDate),
                             endDate = period.endDate?.let { d -> LocalDate.parse(d) },
-                            flowLevel = runCatching { FlowLevel.valueOf(period.flowLevel) }.getOrDefault(FlowLevel.MEDIUM),
-                            symptoms = builtIn,
-                            customSymptoms = custom,
+                            selectedFlowLabel = period.flowLevel.ifBlank { "Medium" },
+                            symptoms = symptoms,
                             notes = period.notes
                         )
                     }
@@ -111,9 +105,10 @@ class LogPeriodViewModel(
         val tr = trackingRepository ?: return
         val flowCat = tr.getSystemCategoryByKey("flow")
         val symptomsCat = tr.getSystemCategoryByKey("symptoms")
+
         _uiState.update { state ->
             val sliderValue = if (flowCat?.categoryType == "numeric_slider" && state.flowSliderValue == null) {
-                state.flowLevel.toSliderValue()
+                flowLabelToSliderValue(state.selectedFlowLabel)
             } else {
                 state.flowSliderValue
             }
@@ -123,6 +118,22 @@ class LogPeriodViewModel(
                 flowCategory         = flowCat,
                 flowSliderValue      = sliderValue,
             )
+        }
+
+        // Subscribe to value lists in separate coroutines so chips update live after edits.
+        if (flowCat != null) {
+            viewModelScope.launch {
+                tr.getValuesForCategory(flowCat.id).collect { values ->
+                    _uiState.update { it.copy(flowOptions = values) }
+                }
+            }
+        }
+        if (symptomsCat != null) {
+            viewModelScope.launch {
+                tr.getValuesForCategory(symptomsCat.id).collect { values ->
+                    _uiState.update { it.copy(symptomOptions = values) }
+                }
+            }
         }
     }
 
@@ -168,45 +179,38 @@ class LogPeriodViewModel(
         it.copy(endDate = date, hasChanges = true)
     }
 
-    fun setFlowLevel(flow: FlowLevel) = _uiState.update { it.copy(flowLevel = flow, hasChanges = true) }
+    fun setFlowLevel(label: String) = _uiState.update { it.copy(selectedFlowLabel = label, hasChanges = true) }
 
     fun setFlowSliderValue(value: Float) = _uiState.update { state ->
-        val level = when (value.toInt()) {
-            1    -> FlowLevel.SPOTTING
-            2    -> FlowLevel.LIGHT
-            4    -> FlowLevel.HEAVY
-            else -> FlowLevel.MEDIUM
+        // Map slider position to the nearest built-in label for storage.
+        val label = when (value.toInt()) {
+            1    -> "Spotting"
+            2    -> "Light"
+            4    -> "Heavy"
+            else -> "Medium"
         }
-        state.copy(flowSliderValue = value, flowLevel = level, hasChanges = true)
+        state.copy(flowSliderValue = value, selectedFlowLabel = label, hasChanges = true)
     }
 
-    private fun FlowLevel.toSliderValue(): Float = when (this) {
-        FlowLevel.SPOTTING -> 1f
-        FlowLevel.LIGHT    -> 2f
-        FlowLevel.MEDIUM   -> 3f
-        FlowLevel.HEAVY    -> 4f
-    }
-
-    fun toggleSymptom(symptom: SymptomType) = _uiState.update { state ->
-        val updated = if (symptom in state.symptoms) state.symptoms - symptom else state.symptoms + symptom
+    /** Toggles [label] in/out of the selected symptoms set. */
+    fun toggleSymptom(label: String) = _uiState.update { state ->
+        val updated = if (label in state.symptoms) state.symptoms - label else state.symptoms + label
         state.copy(symptoms = updated, hasChanges = true)
     }
 
-    /** Toggle a custom symptom in/out of the current period selection. */
-    fun toggleCustomSymptom(name: String) = _uiState.update { state ->
-        val lower = name.lowercase()
-        val updated = if (lower in state.customSymptoms) state.customSymptoms - lower else state.customSymptoms + lower
-        state.copy(customSymptoms = updated, hasChanges = true)
-    }
-
     /**
-     * Saves [name] to the user's permanent library and selects it for the current period.
-     * The library insert is fire-and-forget; the selection is immediate.
+     * Adds [name] as a new option in the symptoms catalog and selects it for this period.
+     * The catalog insert is fire-and-forget; the selection is immediate.
      */
-    fun addAndSelectCustomSymptom(name: String) {
-        val lower = name.lowercase()
-        viewModelScope.launch { repository.addCustomSymptom(lower) }
-        _uiState.update { state -> state.copy(customSymptoms = state.customSymptoms + lower, hasChanges = true) }
+    fun addNewSymptomToLibrary(name: String) {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return
+        viewModelScope.launch {
+            val tr = trackingRepository ?: return@launch
+            val sympCat = tr.getSystemCategoryByKey("symptoms") ?: return@launch
+            tr.addValueToCategory(sympCat.id, trimmed)
+        }
+        _uiState.update { state -> state.copy(symptoms = state.symptoms + trimmed, hasChanges = true) }
     }
 
     fun setNotes(notes: String) = _uiState.update { it.copy(notes = notes, hasChanges = true) }
@@ -233,13 +237,13 @@ class LogPeriodViewModel(
                     id = state.existingId ?: 0,
                     startDate = state.startDate.toString(),
                     endDate = state.endDate?.toString(),
-                    flowLevel = state.flowLevel.name,
+                    flowLevel = state.selectedFlowLabel,
                     notes = state.notes
                 )
                 if (state.isEditing && state.existingId != null) {
-                    repository.updatePeriod(entry, state.symptoms.toList(), state.customSymptoms.toList())
+                    repository.updatePeriod(entry, state.symptoms.toList())
                 } else {
-                    repository.insertPeriod(entry, state.symptoms.toList(), state.customSymptoms.toList())
+                    repository.insertPeriod(entry, state.symptoms.toList())
                 }
                 // Dual-write: sync flow data to TrackingLog so Stats can query uniformly
                 syncFlowToTrackingLog(state)
@@ -262,10 +266,10 @@ class LogPeriodViewModel(
         val tr = trackingRepository ?: return
         val flowCategory = tr.getSystemCategoryByKey("flow") ?: return
         val flowLabel = if (flowCategory.categoryType == "numeric_slider") {
-            val v = state.flowSliderValue ?: state.flowLevel.toSliderValue()
+            val v = state.flowSliderValue ?: flowLabelToSliderValue(state.selectedFlowLabel)
             v.toInt().toString()
         } else {
-            state.flowLevel.displayName
+            state.selectedFlowLabel
         }
         val end = state.endDate ?: state.startDate
         val dates = generateSequence(state.startDate) { d -> if (d < end) d.plusDays(1) else null }.toList()
@@ -333,6 +337,15 @@ class LogPeriodViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
             return LogPeriodViewModel(repository, periodId, prefilledDate, trackingRepository, application) as T
+        }
+    }
+
+    companion object {
+        private fun flowLabelToSliderValue(label: String): Float = when (label) {
+            "Spotting" -> 1f
+            "Light"    -> 2f
+            "Heavy"    -> 4f
+            else       -> 3f  // "Medium" and any custom label default to the middle
         }
     }
 }

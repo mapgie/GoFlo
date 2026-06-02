@@ -52,7 +52,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.PeriodEntry
-import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.ui.components.BetaFeedbackBanner
 import com.mapgie.goflo.ui.navigation.Screen
 import kotlinx.coroutines.launch
@@ -271,8 +270,6 @@ private fun PeriodCard(period: PeriodEntry, onClick: () -> Unit) {
     val start = LocalDate.parse(period.startDate)
     val end = period.endDate?.let { LocalDate.parse(it) }
     val duration = if (end != null) "${ChronoUnit.DAYS.between(start, end) + 1} days" else "Ongoing"
-    val flow = runCatching { FlowLevel.valueOf(period.flowLevel) }.getOrDefault(FlowLevel.MEDIUM)
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -288,7 +285,7 @@ private fun PeriodCard(period: PeriodEntry, onClick: () -> Unit) {
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text  = flow.displayName,
+                    text  = period.flowLevel,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
                 )

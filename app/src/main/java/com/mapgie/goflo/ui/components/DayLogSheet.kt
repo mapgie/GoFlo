@@ -47,7 +47,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
-import com.mapgie.goflo.data.model.FlowLevel
 import com.mapgie.goflo.data.repository.TrackingLogWithValues
 import com.mapgie.goflo.ui.util.decodeScaleLabels
 import com.mapgie.goflo.ui.util.toCategoryColor
@@ -144,9 +143,7 @@ fun DayLogSheet(
             if (period != null) {
                 val periodColor = MaterialTheme.colorScheme.primary
 
-                val flow = runCatching { FlowLevel.valueOf(period.flowLevel) }
-                    .getOrNull()?.name?.lowercase()?.replaceFirstChar { it.uppercase() }
-                    ?: period.flowLevel
+                val flow = period.flowLevel
 
                 LogEntryRow(
                     icon        = Icons.Outlined.WaterDrop,
