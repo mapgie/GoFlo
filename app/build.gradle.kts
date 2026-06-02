@@ -7,14 +7,14 @@ plugins {
 
 android {
     namespace = "com.mapgie.goflo"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.mapgie.goflo"
         minSdk = 26
         targetSdk = 34
-        versionCode = 57
-        versionName = "0.22.0-beta.1"
+        versionCode = 58
+        versionName = "0.22.1-beta.1"
     }
 
     signingConfigs {
