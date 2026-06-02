@@ -18,6 +18,14 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.23.0-beta.1] - 2026-06-02
+
+### Added
+- Symptoms and Flow are now fully user-extensible: rename, add, and delete options via Settings → Tracking Categories → Symptoms / Flow.
+- The "Add" chip on the Log Period screen creates new symptom options inline and selects them immediately.
+- Database migration (v15) converts stored enum names to display labels and migrates all custom symptoms into the unified `tracking_values` table, so every symptom option is managed in one place.
+- Export/import remains backward-compatible: old enum-name exports ("CRAMPS", "MEDIUM") are recognised and mapped to display labels on import.
+
 ## [0.22.4-beta.1] - 2026-06-02
 
 ### Fixed

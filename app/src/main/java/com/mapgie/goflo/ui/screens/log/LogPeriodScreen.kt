@@ -56,8 +56,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.util.decodeScaleLabels
-import com.mapgie.goflo.data.model.FlowLevel
-import com.mapgie.goflo.data.model.SymptomType
 import com.mapgie.goflo.ui.components.SelectableChip
 import java.time.Instant
 import java.time.LocalDate
@@ -73,7 +71,6 @@ fun LogPeriodScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
-    val librarySymptoms by viewModel.librarySymptoms.collectAsState()
 
     LaunchedEffect(state.saved, state.deleted) {
         if (state.saved || state.deleted) onBack()
@@ -169,14 +166,10 @@ fun LogPeriodScreen(
 
     if (showAddSymptomDialog) {
         AddSymptomDialog(
-            librarySymptoms = librarySymptoms,
-            selectedCustomSymptoms = state.customSymptoms,
-            onSelectExisting = { name ->
-                viewModel.toggleCustomSymptom(name)
-                showAddSymptomDialog = false
-            },
-            onAddNew = { name ->
-                viewModel.addAndSelectCustomSymptom(name)
+            existingLabels = state.symptomOptions.map { it.label },
+            selectedLabels = state.symptoms,
+            onAdd = { name ->
+                viewModel.addNewSymptomToLibrary(name)
                 showAddSymptomDialog = false
             },
             onDismiss = { showAddSymptomDialog = false }
@@ -276,14 +269,22 @@ fun LogPeriodScreen(
                         }
                     }
                 } else {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FlowLevel.entries.forEach { level ->
-                            SelectableChip(
-                                label = level.displayName,
-                                selected = state.flowLevel == level,
-                                onClick = { viewModel.setFlowLevel(level) }
-                            )
+                    if (state.flowOptions.isNotEmpty()) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            state.flowOptions.forEach { option ->
+                                SelectableChip(
+                                    label = option.label,
+                                    selected = state.selectedFlowLabel == option.label,
+                                    onClick = { viewModel.setFlowLevel(option.label) }
+                                )
+                            }
                         }
+                    } else {
+                        Text(
+                            "No flow levels configured. Add levels in Settings.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
@@ -293,32 +294,22 @@ fun LogPeriodScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Built-in symptoms — displayed in lowercase for visual consistency
-                    SymptomType.entries.forEach { symptom ->
+                    state.symptomOptions.forEach { option ->
                         SelectableChip(
-                            label = symptom.displayName.lowercase(),
-                            selected = symptom in state.symptoms,
-                            onClick = { viewModel.toggleSymptom(symptom) }
+                            label = option.label,
+                            selected = option.label in state.symptoms,
+                            onClick = { viewModel.toggleSymptom(option.label) }
                         )
                     }
 
-                    // Custom symptoms selected for this period (shown so the user can deselect)
-                    state.customSymptoms.sorted().forEach { name ->
-                        SelectableChip(
-                            label = name,
-                            selected = true,
-                            onClick = { viewModel.toggleCustomSymptom(name) }
-                        )
-                    }
-
-                    // "+" chip — opens the Add Symptom dialog
+                    // "+" chip — opens the Add Symptom dialog to create a new option
                     AssistChip(
                         onClick = { showAddSymptomDialog = true },
                         label = { Text("Add") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = "Add custom symptom",
+                                contentDescription = "Add symptom",
                                 modifier = Modifier.size(AssistChipDefaults.IconSize)
                             )
                         },

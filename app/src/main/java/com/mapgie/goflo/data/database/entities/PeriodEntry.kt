@@ -8,6 +8,6 @@ data class PeriodEntry(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val startDate: String,
     val endDate: String? = null,
-    val flowLevel: String = "MEDIUM",
+    val flowLevel: String = "Medium",
     val notes: String = ""
 )

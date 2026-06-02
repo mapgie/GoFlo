@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
-import com.mapgie.goflo.data.model.SymptomType
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingLogWithValues
@@ -163,15 +162,7 @@ class HomeViewModel(
                     ?: flowOf(emptyList())
 
                 symptomsFlow.map { symptomEntries ->
-                    val labels = symptomEntries.map { entry ->
-                        runCatching { SymptomType.valueOf(entry.symptomType) }
-                            .getOrNull()
-                            ?.name
-                            ?.lowercase()
-                            ?.split('_')
-                            ?.joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } }
-                            ?: entry.symptomType
-                    }
+                    val labels = symptomEntries.map { it.symptomType }
                     DayLogData(
                         date = date,
                         period = period,

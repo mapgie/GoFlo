@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.widget.GoFloWidget
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
-import com.mapgie.goflo.data.model.SymptomType
 import com.mapgie.goflo.data.repository.PeriodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -37,8 +36,7 @@ class HistoryViewModel(
 
     private data class UndoData(
         val period: PeriodEntry,
-        val builtIn: Set<SymptomType>,
-        val custom: Set<String>,
+        val symptoms: Set<String>,
     )
     private val pendingUndo = mutableMapOf<Long, UndoData>()
 
@@ -62,8 +60,8 @@ class HistoryViewModel(
         viewModelScope.launch {
             // Read symptoms before hiding or deleting so the undo cache is always
             // populated before the snackbar can be tapped.
-            val (builtIn, custom) = repository.getSymptomsParsed(period.id)
-            pendingUndo[period.id] = UndoData(period, builtIn, custom)
+            val symptoms = repository.getSymptomsParsed(period.id)
+            pendingUndo[period.id] = UndoData(period, symptoms)
             _pendingDeleteIds.update { it + period.id }
             repository.deletePeriod(period)
             application?.let { GoFloWidget.updateAllWidgets(it) }
@@ -77,7 +75,7 @@ class HistoryViewModel(
         viewModelScope.launch {
             val undo = pendingUndo.remove(period.id)
             if (undo != null) {
-                repository.insertPeriod(undo.period, undo.builtIn.toList(), undo.custom.toList())
+                repository.insertPeriod(undo.period, undo.symptoms.toList())
                 application?.let { GoFloWidget.updateAllWidgets(it) }
             }
             _pendingDeleteIds.update { it - period.id }

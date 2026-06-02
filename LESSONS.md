@@ -70,6 +70,11 @@ When a form has section labels ("Flow", "Symptoms") and entered values ("Medium"
 
 ### Data / State
 
+**Don't double-count with offset when SQLite immediately reflects inserts in aggregate queries**
+In a Room migration loop that inserts rows one-by-one, calling `MAX(displayOrder)+1` in a subquery correctly reflects all previously-inserted rows in the same transaction — SQLite is not a snapshot. Adding a separate `offset` counter on top of that result double-counts and produces gaps (e.g., displayOrder 7, 9, 11 instead of 7, 8, 9). Remove the offset variable and let the `MAX+1` subquery self-increment across the loop.
+
+
+
 **Insert/upsert flags need a separate edit-by-ID path**
 A flag like `allowMultiple` controls whether saving a log upserts an existing row (keyed by date + category) or always inserts a new one. Neither branch handles "update this specific existing row by ID." Routing an edit through `allowMultiple = false` works only when the existing row is uniquely keyed by the natural key; using `allowMultiple = true` creates a duplicate instead. The correct pattern is a dedicated `updateInPlace(existingLog, …)` method. Callers check `existingLog != null` and take this path directly, bypassing the insert/upsert decision entirely.
 

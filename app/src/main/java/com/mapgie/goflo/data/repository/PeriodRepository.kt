@@ -1,12 +1,9 @@
 package com.mapgie.goflo.data.repository
 
-import com.mapgie.goflo.data.database.dao.CustomSymptomDao
 import com.mapgie.goflo.data.database.dao.PeriodDao
 import com.mapgie.goflo.data.database.dao.SymptomDao
-import com.mapgie.goflo.data.database.entities.CustomSymptomEntry
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
-import com.mapgie.goflo.data.model.SymptomType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
@@ -23,7 +20,6 @@ sealed class ImportResult {
 class PeriodRepository(
     private val periodDao: PeriodDao,
     private val symptomDao: SymptomDao,
-    private val customSymptomDao: CustomSymptomDao
 ) {
     fun getAllPeriods(): Flow<List<PeriodEntry>> = periodDao.getAllPeriods()
 
@@ -45,27 +41,23 @@ class PeriodRepository(
 
     suspend fun insertPeriod(
         entry: PeriodEntry,
-        symptoms: List<SymptomType>,
-        customSymptoms: List<String> = emptyList()
+        symptoms: List<String>,
     ): Long {
         val id = periodDao.insertPeriod(entry)
-        symptoms.forEach { symptomDao.insertSymptom(SymptomEntry(periodId = id, symptomType = it.name)) }
-        customSymptoms.forEach { name ->
-            symptomDao.insertSymptom(SymptomEntry(periodId = id, symptomType = name.lowercase()))
+        symptoms.filter { it.isNotBlank() }.forEach { label ->
+            symptomDao.insertSymptom(SymptomEntry(periodId = id, symptomType = label))
         }
         return id
     }
 
     suspend fun updatePeriod(
         entry: PeriodEntry,
-        symptoms: List<SymptomType>,
-        customSymptoms: List<String> = emptyList()
+        symptoms: List<String>,
     ) {
         periodDao.updatePeriod(entry)
         symptomDao.deleteSymptomsByPeriodId(entry.id)
-        symptoms.forEach { symptomDao.insertSymptom(SymptomEntry(periodId = entry.id, symptomType = it.name)) }
-        customSymptoms.forEach { name ->
-            symptomDao.insertSymptom(SymptomEntry(periodId = entry.id, symptomType = name.lowercase()))
+        symptoms.filter { it.isNotBlank() }.forEach { label ->
+            symptomDao.insertSymptom(SymptomEntry(periodId = entry.id, symptomType = label))
         }
     }
 
@@ -75,32 +67,12 @@ class PeriodRepository(
 
     // ── Symptom read operations ───────────────────────────────────────────────
 
-    /**
-     * Returns symptoms for a period split into built-in ([SymptomType]) and custom (lowercase
-     * [String]) sets.  Built-in symptoms are identified by a successful [SymptomType.valueOf]
-     * lookup; anything else is treated as a custom symptom.
-     */
-    suspend fun getSymptomsParsed(periodId: Long): Pair<Set<SymptomType>, Set<String>> {
-        val entries = symptomDao.getSymptomsForPeriodOnce(periodId)
-        val builtIn = mutableSetOf<SymptomType>()
-        val custom = mutableSetOf<String>()
-        for (entry in entries) {
-            val type = runCatching { SymptomType.valueOf(entry.symptomType) }.getOrNull()
-            if (type != null) builtIn.add(type)
-            else if (entry.symptomType.isNotBlank()) custom.add(entry.symptomType)
-        }
-        return builtIn to custom
-    }
-
-    // ── Custom symptom library operations ────────────────────────────────────
-
-    /** Observe the full user-defined symptom library, ordered alphabetically. */
-    fun getAllCustomSymptoms(): Flow<List<CustomSymptomEntry>> =
-        customSymptomDao.getAllCustomSymptoms()
-
-    /** Persist a new custom symptom (name is normalised to lowercase). */
-    suspend fun addCustomSymptom(name: String) {
-        customSymptomDao.insertCustomSymptom(CustomSymptomEntry(name = name.lowercase()))
+    /** Returns all symptom labels for a period as a flat set of strings. */
+    suspend fun getSymptomsParsed(periodId: Long): Set<String> {
+        return symptomDao.getSymptomsForPeriodOnce(periodId)
+            .map { it.symptomType }
+            .filter { it.isNotBlank() }
+            .toSet()
     }
 
     // ── Cycle math ───────────────────────────────────────────────────────────
@@ -124,9 +96,9 @@ class PeriodRepository(
      *     "id": 1,
      *     "startDate": "2024-01-15",
      *     "endDate": "2024-01-19",        // null if ongoing
-     *     "flowLevel": "MEDIUM",
+     *     "flowLevel": "Medium",
      *     "notes": "...",
-     *     "symptoms": ["CRAMPS", "FATIGUE"]
+     *     "symptoms": ["Cramps", "Fatigue"]
      *   },
      *   ...
      * ]
@@ -209,8 +181,8 @@ class PeriodRepository(
      *                If false, periods whose [PeriodEntry.startDate] already exists
      *                in the database are skipped (safe to run on a non-empty device).
      *
-     * Unknown symptom type strings are silently dropped so that old exports are
-     * forward-compatible even if the symptom list grows or shrinks.
+     * All non-blank symptom strings are imported as-is, supporting both old enum-name
+     * exports ("CRAMPS") and current label exports ("Cramps").
      */
     suspend fun importData(json: String, replace: Boolean): ImportResult {
         return try {
@@ -240,11 +212,15 @@ class PeriodRepository(
                     continue
                 }
 
+                val rawFlow = obj.optString("flowLevel", "Medium")
+                // Support old enum-name exports: map "MEDIUM" → "Medium" etc.
+                val flowLevel = FLOW_ENUM_TO_LABEL[rawFlow] ?: rawFlow
+
                 val entry = PeriodEntry(
                     // id intentionally omitted — let Room auto-generate a fresh one
                     startDate = startDate,
                     endDate = if (obj.isNull("endDate")) null else obj.optString("endDate"),
-                    flowLevel = obj.optString("flowLevel", "MEDIUM"),
+                    flowLevel = flowLevel,
                     notes = obj.optString("notes", "")
                 )
                 val newId = periodDao.insertPeriod(entry)
@@ -252,11 +228,11 @@ class PeriodRepository(
                 val symptomsArray = obj.optJSONArray("symptoms")
                 if (symptomsArray != null) {
                     for (j in 0 until symptomsArray.length()) {
-                        val typeName = symptomsArray.getString(j)
-                        // Ignore unrecognised symptom strings — keeps old exports importable
-                        runCatching { SymptomType.valueOf(typeName) }.onSuccess {
-                            symptomDao.insertSymptom(SymptomEntry(periodId = newId, symptomType = typeName))
-                        }
+                        val label = symptomsArray.getString(j).trim()
+                        if (label.isBlank()) continue
+                        // Support old enum-name exports: map "CRAMPS" → "Cramps" etc.
+                        val normalized = SYMPTOM_ENUM_TO_LABEL[label] ?: label
+                        symptomDao.insertSymptom(SymptomEntry(periodId = newId, symptomType = normalized))
                     }
                 }
 
@@ -270,6 +246,24 @@ class PeriodRepository(
     }
 
     companion object {
+        /** Maps legacy enum-name flow levels (pre-v0.23) to their display labels. */
+        internal val FLOW_ENUM_TO_LABEL = mapOf(
+            "SPOTTING" to "Spotting",
+            "LIGHT"    to "Light",
+            "MEDIUM"   to "Medium",
+            "HEAVY"    to "Heavy",
+        )
+
+        /** Maps legacy enum-name symptom types (pre-v0.23) to their display labels. */
+        private val SYMPTOM_ENUM_TO_LABEL = mapOf(
+            "CRAMPS"      to "Cramps",
+            "HEADACHE"    to "Headache",
+            "BLOATING"    to "Bloating",
+            "FATIGUE"     to "Fatigue",
+            "BACK_PAIN"   to "Back Pain",
+            "MOOD_SWINGS" to "Mood Swings",
+        )
+
         fun calculateAvgCycleLength(periods: List<PeriodEntry>): Int {
             if (periods.size < 2) return 28
             val sorted = periods.sortedBy { it.startDate }
