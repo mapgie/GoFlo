@@ -207,8 +207,8 @@ class AppPreferencesStore(private val context: Context) {
     }
 
     suspend fun setPreferredCycleLength(days: Int) {
-        require(days == 0 || days in 21..45) {
-            "preferredCycleLength must be 0 (auto) or in 21..45, got $days"
+        require(days == 0 || days in 21..90) {
+            "preferredCycleLength must be 0 (auto) or in 21..90, got $days"
         }
         context.dataStore.edit { it[Keys.PREFERRED_CYCLE_LENGTH] = days }
     }

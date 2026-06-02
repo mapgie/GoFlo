@@ -863,7 +863,7 @@ private fun CycleSubScreen(
                     .clickable {
                         viewModel.setPreferredCycleLength(
                             if (customEnabled) 0
-                            else prefs.preferredCycleLength.coerceIn(21, 45).let { if (it == 0) 28 else it }
+                            else prefs.preferredCycleLength.coerceIn(21, 90).let { if (it == 0) 28 else it }
                         )
                     }
                     .semantics { role = Role.Switch }
@@ -882,13 +882,13 @@ private fun CycleSubScreen(
                         value                 = sliderDays,
                         onValueChange         = { sliderDays = it },
                         onValueChangeFinished = { viewModel.setPreferredCycleLength(sliderDays.toInt()) },
-                        valueRange            = 21f..45f,
-                        steps                 = 23
+                        valueRange            = 21f..90f,
+                        steps                 = 68
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("21 days", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("45 days", style = MaterialTheme.typography.labelSmall,
+                        Text("90 days", style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
