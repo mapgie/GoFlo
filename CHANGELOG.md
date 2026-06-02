@@ -18,6 +18,10 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.22.2-beta.1] - 2026-06-02
+
+### Changed
+- Upgraded Android Gradle Plugin from 8.4.0 to 8.13.2 and Gradle wrapper from 8.6 to 8.11.1.
 
 ## [0.22.1-beta.1] - 2026-06-02
 

@@ -3,6 +3,7 @@ package com.mapgie.goflo.ui.screens.licenses
 // MAINTAINER NOTE: keep this list in sync with gradle/libs.versions.toml.
 // Add an entry here whenever a new RUNTIME dependency is added to the project.
 // Compose library versions are pinned via the Compose BOM (currently 2025.05.01).
+// Last verified against libs.versions.toml: AGP 8.13.2 upgrade (no library additions or removals).
 //
 // Excluded — not shipped in the release APK:
 //   junit                    (testImplementation only)
