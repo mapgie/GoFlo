@@ -29,4 +29,7 @@ interface SymptomDao {
 
     @Query("SELECT * FROM symptoms")
     fun getAllSymptomsFlow(): Flow<List<SymptomEntry>>
+
+    @Query("UPDATE symptoms SET symptomType = :newLabel WHERE symptomType = :oldLabel")
+    suspend fun bulkRenameSymptoms(oldLabel: String, newLabel: String)
 }

@@ -6,12 +6,10 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.mapgie.goflo.data.database.dao.CustomSymptomDao
 import com.mapgie.goflo.data.database.dao.PeriodDao
 import com.mapgie.goflo.data.database.dao.SymptomDao
 import com.mapgie.goflo.data.database.dao.TrackingCategoryDao
 import com.mapgie.goflo.data.database.dao.TrackingLogDao
-import com.mapgie.goflo.data.database.entities.CustomSymptomEntry
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -23,19 +21,17 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
     entities = [
         PeriodEntry::class,
         SymptomEntry::class,
-        CustomSymptomEntry::class,
         TrackingCategory::class,
         TrackingValue::class,
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
     abstract fun periodDao(): PeriodDao
     abstract fun symptomDao(): SymptomDao
-    abstract fun customSymptomDao(): CustomSymptomDao
     abstract fun trackingCategoryDao(): TrackingCategoryDao
     abstract fun trackingLogDao(): TrackingLogDao
 
@@ -316,6 +312,85 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Migrates symptoms and flow to be fully user-extensible (v15).
+         *
+         * 1. Converts symptom enum names in the symptoms table to display labels
+         *    ("CRAMPS" → "Cramps", etc.) so they match TrackingValue.label.
+         * 2. Converts period flow level enum names ("MEDIUM" → "Medium", etc.).
+         * 3. Removes the isSeeded protection from flow and symptom TrackingValues
+         *    so users can rename, add, and delete them via ManageCategoryValuesScreen.
+         * 4. Migrates any rows from custom_symptoms into tracking_values under the
+         *    symptoms system category, then drops the custom_symptoms table.
+         */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 1. Convert built-in symptom enum names → display labels
+                database.execSQL("UPDATE symptoms SET symptomType='Cramps'      WHERE symptomType='CRAMPS'")
+                database.execSQL("UPDATE symptoms SET symptomType='Headache'    WHERE symptomType='HEADACHE'")
+                database.execSQL("UPDATE symptoms SET symptomType='Bloating'    WHERE symptomType='BLOATING'")
+                database.execSQL("UPDATE symptoms SET symptomType='Fatigue'     WHERE symptomType='FATIGUE'")
+                database.execSQL("UPDATE symptoms SET symptomType='Back Pain'   WHERE symptomType='BACK_PAIN'")
+                database.execSQL("UPDATE symptoms SET symptomType='Mood Swings' WHERE symptomType='MOOD_SWINGS'")
+
+                // 2. Convert period flow level enum names → display labels
+                database.execSQL("UPDATE periods SET flowLevel='Spotting' WHERE flowLevel='SPOTTING'")
+                database.execSQL("UPDATE periods SET flowLevel='Light'    WHERE flowLevel='LIGHT'")
+                database.execSQL("UPDATE periods SET flowLevel='Medium'   WHERE flowLevel='MEDIUM'")
+                database.execSQL("UPDATE periods SET flowLevel='Heavy'    WHERE flowLevel='HEAVY'")
+
+                // 3. Remove isSeeded protection from flow and symptom catalog values
+                database.execSQL(
+                    "UPDATE tracking_values SET isSeeded=0 " +
+                    "WHERE categoryId IN (" +
+                    "  SELECT id FROM tracking_categories WHERE systemKey IN ('flow','symptoms')" +
+                    ")"
+                )
+
+                // 4a. Migrate custom_symptoms → tracking_values (skip duplicates)
+                val sympIdCursor = database.query(
+                    "SELECT id FROM tracking_categories WHERE systemKey='symptoms' LIMIT 1"
+                )
+                if (sympIdCursor.moveToFirst()) {
+                    val sympCatId = sympIdCursor.getLong(0)
+                    sympIdCursor.close()
+
+                    val csCursor = database.query(
+                        "SELECT name FROM custom_symptoms ORDER BY name ASC"
+                    )
+                    while (csCursor.moveToNext()) {
+                        val name = csCursor.getString(0)
+                        val dupCursor = database.query(
+                            "SELECT COUNT(*) FROM tracking_values WHERE categoryId=? AND LOWER(label)=LOWER(?)",
+                            arrayOf(sympCatId, name)
+                        )
+                        val isDup = dupCursor.moveToFirst() && dupCursor.getInt(0) > 0
+                        dupCursor.close()
+                        if (!isDup) {
+                            // MAX(displayOrder)+1 picks up previously-inserted rows in the
+                            // same loop, so each custom symptom gets a unique display order.
+                            val orderCursor = database.query(
+                                "SELECT COALESCE(MAX(displayOrder),-1)+1 FROM tracking_values WHERE categoryId=?",
+                                arrayOf(sympCatId)
+                            )
+                            val order = if (orderCursor.moveToFirst()) orderCursor.getInt(0) else 100
+                            orderCursor.close()
+                            database.execSQL(
+                                "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?,?,?,0)",
+                                arrayOf(sympCatId, name, order)
+                            )
+                        }
+                    }
+                    csCursor.close()
+                } else {
+                    sympIdCursor.close()
+                }
+
+                // 4b. Drop the now-redundant custom_symptoms table
+                database.execSQL("DROP TABLE IF EXISTS custom_symptoms")
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -412,7 +487,7 @@ abstract class GoFloDatabase : RoomDatabase() {
 
             listOf("Spotting", "Light", "Medium", "Heavy").forEachIndexed { index, label ->
                 database.execSQL(
-                    "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                    "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?, ?, ?, 1)",
                     arrayOf(flowId, label, index)
                 )
             }
@@ -434,7 +509,7 @@ abstract class GoFloDatabase : RoomDatabase() {
             listOf("Cramps", "Headache", "Bloating", "Fatigue", "Back Pain", "Mood Swings", "Bleeding (non-period)")
                 .forEachIndexed { index, label ->
                     database.execSQL(
-                        "INSERT INTO tracking_values (categoryId, label, displayOrder) VALUES (?, ?, ?)",
+                        "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?, ?, ?, 1)",
                         arrayOf(symptomId, label, index)
                     )
                 }
@@ -447,7 +522,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

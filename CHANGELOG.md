@@ -18,12 +18,35 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
-## [0.22.6-beta.1] - 2026-06-02
+## [0.24.1-beta.1] - 2026-06-02
 
 ### Changed
 - Custom cycle length slider now goes up to 90 days (was 45), supporting longer cycles common with PCOS and other irregular cycle patterns.
 
 ---
+## [0.24.0-beta.1] - 2026-06-02
+
+### Added
+- Symptoms and Flow are now fully user-extensible: rename, add, and delete options via Settings → Tracking Categories → Symptoms / Flow.
+- The "Add" chip on the Log Period screen creates new symptom options inline and selects them immediately.
+- Database migration (v15) converts stored enum names to display labels and migrates all custom symptoms into the unified `tracking_values` table, so every symptom option is managed in one place.
+- Export/import remains backward-compatible: old enum-name exports ("CRAMPS", "MEDIUM") are recognised and mapped to display labels on import.
+
+## [0.23.0-beta.1] - 2026-06-02
+
+### Added
+- Manage tab is now the rightmost item in the bottom navigation bar (after Stats).
+- Bottom navigation bar now remains visible when navigating into the Settings screen.
+- Manage screen now includes a beta feedback banner and three new items matching the Settings page: Cycle, One-Tap Quick Log, and What You Track (with the Tune icon).
+- New standalone Manage. Cycle screen and Manage. One-Tap Quick Log screen accessible from the Manage tab.
+
+### Fixed
+- Dashboard Distribution chart (pie chart) legend was clipped by a fixed 200dp height container. The container now wraps its content so the full legend is visible.
+- Dashboard ALL TIME charts were showing only one data point because the range started at year 2000, producing hundreds of empty monthly buckets. The start date now uses the earliest actual log date, matching the Stats screen behaviour.
+- Fresh installs incorrectly allowed deletion of system tracking-category values (Flow and Symptoms options). The seed INSERT statements now mark those values as system-seeded so they cannot be deleted by the user.
+- Privacy policy link now points to the correct GitHub page URL instead of the raw file URL.
+- Changelog dialog now includes a "View full changelog" button that opens the full CHANGELOG.md on GitHub.
+
 ## [0.22.5-beta.1] - 2026-06-02
 
 ### Fixed
@@ -31,7 +54,6 @@ Rules:
 - Changed the status from "Cycle day X" to "Period expected" when the user is inside the predicted period window without an active logged period.
 - Fixed em-dash style violations in the cycle info card ("Period active, day X" and "X to Y" for ovulation window).
 
----
 ## [0.22.4-beta.1] - 2026-06-02
 
 ### Fixed

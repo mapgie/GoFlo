@@ -27,6 +27,10 @@ sealed class Screen(val route: String) {
 
     data object ManageCategories : Screen("manage_categories")
 
+    data object ManageCycle : Screen("manage_cycle")
+
+    data object ManageQuickLog : Screen("manage_quick_log")
+
     data object ManageCategoryValues : Screen("manage_category_values/{categoryId}") {
         fun forCategory(id: Long) = "manage_category_values/$id"
     }

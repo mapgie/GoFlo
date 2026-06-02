@@ -148,11 +148,8 @@ private fun PinnedChartCard(
 
             Spacer(Modifier.height(8.dp))
 
-            // Chart area — 200.dp fixed height
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp),
+                modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 when (val data = item.chartData) {
