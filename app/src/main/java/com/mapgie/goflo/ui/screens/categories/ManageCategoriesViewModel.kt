@@ -87,6 +87,10 @@ class ManageCategoriesViewModel(
         viewModelScope.launch { repository.deleteCategory(category) }
     }
 
+    fun reorderCategories(orderedIds: List<Long>) {
+        viewModelScope.launch { repository.reorderCategories(orderedIds) }
+    }
+
     fun setArchiveWarningDisabled(disabled: Boolean) {
         viewModelScope.launch { store.setArchiveWarningDisabled(disabled) }
     }
