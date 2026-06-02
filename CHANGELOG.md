@@ -18,6 +18,14 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.22.5-beta.1] - 2026-06-02
+
+### Fixed
+- Period prediction window now shows calendar markers and "Period expected" status when today falls within the predicted window but the predicted start date has already passed. Previously the prediction was only displayed when the predicted start date was today or in the future, so days 2-5 of a 5-day expected window showed nothing.
+- Changed the status from "Cycle day X" to "Period expected" when the user is inside the predicted period window without an active logged period.
+- Fixed em-dash style violations in the cycle info card ("Period active, day X" and "X to Y" for ovulation window).
+
+---
 ## [0.22.4-beta.1] - 2026-06-02
 
 ### Fixed
