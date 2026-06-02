@@ -19,10 +19,15 @@ Rules:
 
 ---
 
-## [0.21.3-beta.1] - 2026-06-02
+## [0.22.1-beta.1] - 2026-06-02
 
 ### Changed
 - Compose BOM upgraded from `2024.12.01` to `2025.05.01` (Compose UI 1.8.x, Material3 1.4.x). No user-visible changes; enables use of stable Compose 1.8 APIs internally.
+
+## [0.22.0-beta.1] - 2026-06-02
+
+### Added
+- **Drag to reorder categories** — long-press the drag handle on any active tracking category to reorder it. The new order is persisted immediately. Works alongside existing swipe-to-archive and swipe-to-delete gestures.
 
 ## [0.21.2-beta.1] - 2026-06-02
 

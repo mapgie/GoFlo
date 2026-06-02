@@ -499,4 +499,13 @@ class TrackingRepository(
             }
         }
     }
+
+    suspend fun reorderCategories(orderedIds: List<Long>) {
+        orderedIds.forEachIndexed { newOrder, id ->
+            val cat = categoryDao.getCategoryByIdOnce(id) ?: return@forEachIndexed
+            if (cat.displayOrder != newOrder) {
+                categoryDao.updateCategory(cat.copy(displayOrder = newOrder))
+            }
+        }
+    }
 }
