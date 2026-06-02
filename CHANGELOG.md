@@ -19,6 +19,11 @@ Rules:
 
 ---
 
+## [0.21.1-beta.1] - 2026-06-02
+
+### Changed
+- Compose BOM upgraded from `2024.06.00` to `2024.12.01` (Compose UI 1.7.6, Material3 1.3.1). No user-visible changes; enables use of stable Compose 1.7 APIs internally.
+
 ## [0.21.0-beta.1] - 2026-06-01
 
 ### Added
