@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.mapgie.goflo"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.mapgie.goflo"

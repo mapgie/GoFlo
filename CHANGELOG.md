@@ -18,11 +18,15 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.22.2-beta.1] - 2026-06-02
+
+### Changed
+- Upgraded Android Gradle Plugin from 8.4.0 to 8.13.2 and Gradle wrapper from 8.6 to 8.11.1.
 
 ## [0.22.1-beta.1] - 2026-06-02
 
 ### Changed
-- Upgraded Android Gradle Plugin from 8.4.0 to 8.13.2 and Gradle wrapper from 8.6 to 8.11.1.
+- Compose BOM upgraded from `2024.12.01` to `2025.05.01` (Compose UI 1.8.x, Material3 1.4.x). No user-visible changes; enables use of stable Compose 1.8 APIs internally.
 
 ## [0.22.0-beta.1] - 2026-06-02
 
