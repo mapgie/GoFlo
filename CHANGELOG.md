@@ -18,6 +18,17 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.22.3-beta.1] - 2026-06-02
+
+### Fixed
+- Content descriptions added to speed-dial FABs (category and period log buttons) so TalkBack announces the button's action rather than reading nothing.
+- Keyboard and switch-access role semantics (`Role.Button`, `Role.RadioButton`) applied to all custom-clickable elements: Manage screen list items, history period cards, stats chart-type selector, year picker, archive section header, category icon picker, colour swatches, export format rows, alarm permission banner, and settings navigation items.
+- Archive and stats-warning expand/collapse controls now report their current state (`stateDescription = "Expanded"/"Collapsed"`) so TalkBack announces the post-tap state.
+- PIN entry screens (lock and setup) now announce digit count changes via a polite live region on the dot indicator, and announce PIN errors immediately via an assertive live region.
+- Delete key (⌫) on PIN keypads now has `contentDescription = "Delete"` so TalkBack reads the action rather than the raw Unicode symbol.
+- Export format radio rows set `RadioButton(onClick = null)` so the wrapping row is the single focusable unit, preventing duplicate TalkBack announcements.
+- Accessibility section in `template_requirements.md` expanded with five explicit principles covering content descriptions, keyboard/switch roles, dynamic text scaling, focus order, and live-region announcements.
+
 ## [0.22.2-beta.1] - 2026-06-02
 
 ### Changed

@@ -129,14 +129,16 @@ fun RemindersScreen(
                         headlineColor  = MaterialTheme.colorScheme.onErrorContainer,
                         supportingColor = MaterialTheme.colorScheme.onErrorContainer,
                     ),
-                    modifier = Modifier.clickable {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            context.startActivity(
-                                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            )
+                    modifier = Modifier
+                        .clickable {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }
                         }
-                    }
+                        .semantics { role = Role.Button }
                 )
                 HorizontalDivider()
             }
