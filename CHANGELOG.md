@@ -19,6 +19,11 @@ Rules:
 
 ---
 
+## [0.22.0-beta.1] - 2026-06-02
+
+### Added
+- **Drag to reorder categories** — long-press the drag handle on any active tracking category to reorder it. The new order is persisted immediately. Works alongside existing swipe-to-archive and swipe-to-delete gestures.
+
 ## [0.21.0-beta.1] - 2026-06-01
 
 ### Added

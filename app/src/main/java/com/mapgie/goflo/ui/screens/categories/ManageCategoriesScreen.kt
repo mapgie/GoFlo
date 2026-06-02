@@ -9,9 +9,11 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +30,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +43,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Unarchive
@@ -67,9 +71,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -97,7 +104,7 @@ import com.mapgie.goflo.ui.util.toCategoryIcon
 import com.mapgie.goflo.ui.util.toCategoryOnColor
 import com.mapgie.goflo.ui.util.toHexColorKey
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ManageCategoriesScreen(
     viewModel: ManageCategoriesViewModel,
@@ -302,20 +309,77 @@ fun ManageCategoriesScreen(
             val archived = state.categories.filter { it.isArchived }
             var archivedExpanded by rememberSaveable { mutableStateOf(false) }
 
+            val lazyListState = rememberLazyListState()
+            val localActive = remember { mutableStateListOf<TrackingCategory>() }
+            var draggedIndex by remember { mutableStateOf<Int?>(null) }
+            var dragOffsetY by remember { mutableFloatStateOf(0f) }
+
+            LaunchedEffect(active) {
+                if (draggedIndex == null) {
+                    localActive.clear()
+                    localActive.addAll(active)
+                }
+            }
+
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(active, key = { it.id }) { category ->
+                items(localActive, key = { it.id }) { category ->
+                    val dragModifier = Modifier.pointerInput(category.id) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                draggedIndex = localActive.indexOfFirst { it.id == category.id }
+                                    .takeIf { it >= 0 }
+                                dragOffsetY = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                val idx = draggedIndex ?: return@detectDragGesturesAfterLongPress
+                                dragOffsetY += dragAmount.y
+                                val itemH = lazyListState.layoutInfo.visibleItemsInfo
+                                    .firstOrNull { it.key == localActive.getOrNull(idx)?.id }
+                                    ?.size?.toFloat() ?: 0f
+                                if (itemH > 0f) {
+                                    when {
+                                        dragOffsetY > itemH / 2 && idx < localActive.size - 1 -> {
+                                            localActive.add(idx + 1, localActive.removeAt(idx))
+                                            draggedIndex = idx + 1
+                                            dragOffsetY -= itemH
+                                        }
+                                        dragOffsetY < -(itemH / 2) && idx > 0 -> {
+                                            localActive.add(idx - 1, localActive.removeAt(idx))
+                                            draggedIndex = idx - 1
+                                            dragOffsetY += itemH
+                                        }
+                                    }
+                                }
+                            },
+                            onDragEnd = {
+                                draggedIndex = null
+                                dragOffsetY = 0f
+                                viewModel.reorderCategories(localActive.map { it.id })
+                            },
+                            onDragCancel = {
+                                draggedIndex = null
+                                dragOffsetY = 0f
+                                localActive.clear()
+                                localActive.addAll(active)
+                            }
+                        )
+                    }
                     SwipeableCategoryRow(
                         category         = category,
                         onClick          = { onNavigateToCategory(category.id) },
                         onEditAppearance = { pendingEditAppearance = category.id },
                         onArchiveToggle  = { requestArchive(category) },
-                        onDelete         = { pendingDelete = category.id }
+                        onDelete         = { pendingDelete = category.id },
+                        modifier         = Modifier.animateItem(),
+                        dragModifier     = dragModifier,
                     )
                 }
 
@@ -369,10 +433,18 @@ private fun SwipeableCategoryRow(
     onClick: () -> Unit,
     onEditAppearance: () -> Unit,
     onArchiveToggle: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    dragModifier: Modifier? = null,
 ) {
     if (category.isSystem) {
-        CategoryRow(category = category, onClick = onClick, onEditAppearance = onEditAppearance)
+        CategoryRow(
+            category = category,
+            onClick = onClick,
+            onEditAppearance = onEditAppearance,
+            modifier = modifier,
+            dragModifier = dragModifier,
+        )
         return
     }
 
@@ -388,6 +460,7 @@ private fun SwipeableCategoryRow(
 
     SwipeToDismissBox(
         state = dismissState,
+        modifier = modifier,
         enableDismissFromStartToEnd = true,
         enableDismissFromEndToStart = true,
         backgroundContent = {
@@ -451,7 +524,12 @@ private fun SwipeableCategoryRow(
             }
         }
     ) {
-        CategoryRow(category = category, onClick = onClick, onEditAppearance = onEditAppearance)
+        CategoryRow(
+            category = category,
+            onClick = onClick,
+            onEditAppearance = onEditAppearance,
+            dragModifier = dragModifier,
+        )
     }
 }
 
@@ -460,13 +538,15 @@ private fun CategoryRow(
     category: TrackingCategory,
     onClick: () -> Unit,
     onEditAppearance: () -> Unit,
+    modifier: Modifier = Modifier,
+    dragModifier: Modifier? = null,
 ) {
     val bubbleColor = category.colorToken.toCategoryColor()
     val iconTint    = category.colorToken.toCategoryOnColor()
 
     Card(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .alpha(if (category.isArchived) 0.55f else 1f),
         colors = CardDefaults.cardColors(
@@ -524,6 +604,17 @@ private fun CategoryRow(
                 contentDescription = null,
                 tint               = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (dragModifier != null) {
+                Icon(
+                    imageVector        = Icons.Default.DragHandle,
+                    contentDescription = "Drag to reorder",
+                    tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier           = dragModifier
+                        .size(44.dp)
+                        .padding(10.dp)
+                )
+            }
         }
     }
 }
