@@ -378,7 +378,7 @@ fun ManageCategoriesScreen(
                         onEditAppearance = { pendingEditAppearance = category.id },
                         onArchiveToggle  = { requestArchive(category) },
                         onDelete         = { pendingDelete = category.id },
-                        modifier         = Modifier.animateItem(),
+                        modifier         = Modifier.animateItemPlacement(),
                         dragModifier     = dragModifier,
                     )
                 }
