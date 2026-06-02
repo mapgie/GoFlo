@@ -39,6 +39,8 @@ private val apache2Libraries = listOf(
     Library("AndroidX Activity Compose", "The Android Open Source Project"),
     Library("AndroidX Compose BOM", "The Android Open Source Project"),
     Library("AndroidX Compose UI", "The Android Open Source Project"),
+    Library("AndroidX Compose UI Graphics", "The Android Open Source Project"),
+    Library("AndroidX Compose UI Tooling Preview", "The Android Open Source Project"),
     Library("AndroidX Compose Material3", "The Android Open Source Project"),
     Library("AndroidX Compose Material Icons Extended", "The Android Open Source Project"),
     Library("AndroidX Compose UI Text Google Fonts", "The Android Open Source Project"),
