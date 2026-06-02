@@ -35,6 +35,12 @@ import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.theme.ComfortaaFamily
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
 
 @Composable
 fun LockScreen(
@@ -172,10 +178,42 @@ private fun PadKey(label: String, onClick: () -> Unit) {
     }
 }
 
+private const val LOCK_SCREEN_KEY_ALIAS = "goflo_lock_screen_biometric_key"
+
+private fun getOrCreateSecretKey(): SecretKey {
+    val keyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+    (keyStore.getKey(LOCK_SCREEN_KEY_ALIAS, null) as? SecretKey)?.let { return it }
+
+    val keyGenerator = KeyGenerator.getInstance(
+        KeyProperties.KEY_ALGORITHM_AES,
+        "AndroidKeyStore"
+    )
+    val keySpec = KeyGenParameterSpec.Builder(
+        LOCK_SCREEN_KEY_ALIAS,
+        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+    )
+        .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+        .setUserAuthenticationRequired(true)
+        .setInvalidatedByBiometricEnrollment(true)
+        .build()
+    keyGenerator.init(keySpec)
+    return keyGenerator.generateKey()
+}
+
+private fun getCipher(): Cipher {
+    return Cipher.getInstance(
+        "${KeyProperties.KEY_ALGORITHM_AES}/${KeyProperties.BLOCK_MODE_CBC}/${KeyProperties.ENCRYPTION_PADDING_PKCS7}"
+    )
+}
+
 private fun showBiometricPrompt(activity: FragmentActivity, onSuccess: () -> Unit) {
     val canAuthenticate = BiometricManager.from(activity)
         .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
     if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) return
+
+    val secretKey = getOrCreateSecretKey()
+    val cipher = getCipher().apply { init(Cipher.ENCRYPT_MODE, secretKey) }
 
     val executor = ContextCompat.getMainExecutor(activity)
     val prompt = BiometricPrompt(
@@ -183,7 +221,9 @@ private fun showBiometricPrompt(activity: FragmentActivity, onSuccess: () -> Uni
         executor,
         object : BiometricPrompt.AuthenticationCallback() {
             override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                onSuccess()
+                if (result.cryptoObject?.cipher != null) {
+                    onSuccess()
+                }
             }
         }
     )
@@ -192,5 +232,5 @@ private fun showBiometricPrompt(activity: FragmentActivity, onSuccess: () -> Uni
         .setSubtitle("Use your biometric credential")
         .setNegativeButtonText("Use PIN")
         .build()
-    prompt.authenticate(info)
+    prompt.authenticate(info, BiometricPrompt.CryptoObject(cipher))
 }
