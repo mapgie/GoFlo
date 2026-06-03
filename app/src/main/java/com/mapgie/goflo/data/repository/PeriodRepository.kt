@@ -296,5 +296,15 @@ class PeriodRepository(
             val day = ChronoUnit.DAYS.between(start, today).toInt() + 1
             return if (day >= 1) day else null
         }
+
+        fun cyclePhaseLabel(cycleDay: Int, avgCycleLength: Int): String {
+            val ovulationDay = avgCycleLength / 2
+            return when {
+                cycleDay <= 5               -> "Menstrual"
+                cycleDay < ovulationDay - 2 -> "Follicular"
+                cycleDay <= ovulationDay + 2 -> "Ovulatory"
+                else                        -> "Luteal"
+            }
+        }
     }
 }

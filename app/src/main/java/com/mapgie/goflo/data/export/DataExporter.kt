@@ -37,6 +37,30 @@ object DataExporter {
     }
 
     /**
+     * Writes [text] to a temporary cache file and returns an ACTION_SEND intent
+     * for sharing a plain-text doctor visit summary.
+     */
+    fun buildTextShareIntent(context: Context, text: String): Intent {
+        val dir  = File(context.cacheDir, "exports").also { it.mkdirs() }
+        val file = File(dir, "goflo_cycle_summary_${LocalDate.now()}.txt")
+        file.writeText(text, Charsets.UTF_8)
+
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "Cycle summary for healthcare provider")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        return Intent.createChooser(send, "Share cycle summary")
+    }
+
+    /**
      * Writes [csv] to a temporary cache file and returns an ACTION_SEND intent
      * pointing at it via FileProvider, ready for Context.startActivity().
      */

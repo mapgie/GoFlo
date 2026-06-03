@@ -26,7 +26,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingLog::class,
         TrackingLogValue::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -391,6 +391,38 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /** Seeds the "Ovulation Test" system category with Positive/Negative/Faint values (v16). */
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                val cursor = database.query(
+                    "SELECT COUNT(*) FROM tracking_categories WHERE systemKey='ovulation_test'"
+                )
+                val exists = cursor.moveToFirst() && cursor.getInt(0) > 0
+                cursor.close()
+                if (exists) return
+
+                database.execSQL(
+                    "INSERT INTO tracking_categories " +
+                    "(name, isSystem, systemKey, displayOrder, iconName, colorToken, categoryType, " +
+                    "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
+                    "isArchived, allowMultiple, showInLogPeriod, trackAgainstTime) " +
+                    "VALUES ('Ovulation Test', 1, 'ovulation_test', 2, 'temperature', 'secondary', 'default', " +
+                    "0.0, 10.0, 0, '', '', 0, 0, 0, 0)"
+                )
+                val idCursor = database.query("SELECT last_insert_rowid()")
+                idCursor.moveToFirst()
+                val catId = idCursor.getLong(0)
+                idCursor.close()
+
+                listOf("Positive", "Negative", "Faint").forEachIndexed { index, label ->
+                    database.execSQL(
+                        "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?, ?, ?, 1)",
+                        arrayOf(catId, label, index)
+                    )
+                }
+            }
+        }
+
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // 1. Create the new table with colorToken instead of colorArgb
@@ -513,6 +545,27 @@ abstract class GoFloDatabase : RoomDatabase() {
                         arrayOf(symptomId, label, index)
                     )
                 }
+
+            // Ovulation Test — temperature icon, secondary colour token
+            database.execSQL(
+                "INSERT INTO tracking_categories " +
+                "(name, isSystem, systemKey, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
+                "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
+                "isArchived, allowMultiple, showInLogPeriod, trackAgainstTime) " +
+                "VALUES ('Ovulation Test', 1, 'ovulation_test', 2, 'temperature', 'secondary', 'default', " +
+                "0.0, 10.0, 0, '', '', 0, 0, 0, 0)"
+            )
+            val ovTestIdCursor = database.query("SELECT last_insert_rowid()")
+            ovTestIdCursor.moveToFirst()
+            val ovTestId = ovTestIdCursor.getLong(0)
+            ovTestIdCursor.close()
+
+            listOf("Positive", "Negative", "Faint").forEachIndexed { index, label ->
+                database.execSQL(
+                    "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?, ?, ?, 1)",
+                    arrayOf(ovTestId, label, index)
+                )
+            }
         }
 
         fun getInstance(context: Context): GoFloDatabase =
@@ -522,7 +575,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

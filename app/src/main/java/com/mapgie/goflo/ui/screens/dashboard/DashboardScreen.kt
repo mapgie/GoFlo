@@ -242,6 +242,10 @@ private fun PinnedChartCard(
                     is StatsChartData.TrendsData -> {
                         TrendsChart(data = data)
                     }
+
+                    is StatsChartData.PhaseSummaryData -> {
+                        // Phase summary is only shown in the Stats screen, not pinned to the dashboard
+                    }
                 }
             }
         }

@@ -26,7 +26,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -436,6 +438,28 @@ private fun OnboardingBanner(onDismiss: () -> Unit) {
 
 @Composable
 private fun CycleInfoCard(state: HomeUiState) {
+    var showPhaseInfo by rememberSaveable { mutableStateOf(false) }
+
+    if (showPhaseInfo) {
+        AlertDialog(
+            onDismissRequest = { showPhaseInfo = false },
+            title = { Text("Cycle Phases") },
+            text = {
+                Text(
+                    "Menstrual (days 1-5): Your period. The uterine lining sheds.\n\n" +
+                    "Follicular (days 6-13): Estrogen rises. Your body prepares for ovulation.\n\n" +
+                    "Ovulatory (days 12-16): The egg is released. Fertility is highest now.\n\n" +
+                    "Luteal (days 17-28): Progesterone rises. Your body prepares for the next cycle.\n\n" +
+                    "Day numbers are typical for a 28-day cycle. Your cycle may vary.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showPhaseInfo = false }) { Text("Got it") }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -447,6 +471,38 @@ private fun CycleInfoCard(state: HomeUiState) {
                 InfoRow("Status", "Period expected")
             } else {
                 state.cycleDay?.let { InfoRow("Cycle day", "Day $it of ~${state.avgCycleLength}") }
+            }
+
+            state.cyclePhaseLabel?.let { phaseLabel ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics { role = Role.Button }
+                        .clickable { showPhaseInfo = true },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Cycle phase",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            "$phaseLabel (day ${state.cycleDay})",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Icon(
+                            imageVector = Icons.Outlined.HelpOutline,
+                            contentDescription = "Phase info",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
 
             state.predictedNextPeriod?.let {

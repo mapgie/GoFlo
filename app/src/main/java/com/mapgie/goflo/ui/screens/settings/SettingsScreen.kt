@@ -600,6 +600,7 @@ fun SettingsScreen(
             onNavigateToExport = { currentSubScreen = SettingsSubScreen.EXPORT_DATA },
             onShowImportPicker = { importFilePicker.launch("application/json") },
             onShowDeleteDialog = { showDeleteAllDialog = true },
+            onDoctorExport     = { viewModel.exportDoctorVisit { intent -> context.startActivity(intent) } },
             onBack             = { currentSubScreen = SettingsSubScreen.NONE }
         )
         SettingsSubScreen.EXPORT_DATA -> ExportDataSubScreen(
@@ -1166,6 +1167,7 @@ private fun DataSubScreen(
     onNavigateToExport: () -> Unit,
     onShowImportPicker: () -> Unit,
     onShowDeleteDialog: () -> Unit,
+    onDoctorExport:     () -> Unit,
     onBack:             () -> Unit
 ) {
     SettingsSubScreenScaffold(title = "Data & Backup", onBack = onBack) { padding ->
@@ -1193,6 +1195,13 @@ private fun DataSubScreen(
                 onClick  = onShowImportPicker,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Import Data") }
+
+            HorizontalDivider()
+
+            OutlinedButton(
+                onClick  = onDoctorExport,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Export for Doctor Visit") }
 
             HorizontalDivider()
 

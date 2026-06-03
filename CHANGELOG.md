@@ -18,6 +18,16 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.26.0-beta.1] - 2026-06-03
+
+### Added
+- Cycle phase label on the home screen: the Cycle info card now shows which phase you are in (Menstrual, Follicular, Ovulatory, or Luteal) with the current day number. Tapping the row opens an info sheet explaining each phase.
+- Cycle length per entry in the History screen: each past period card now shows how many days that cycle lasted (days from that period start to the next).
+- Ovulation Test system category (database migration v16): seeded with Positive, Negative, and Faint options. Appears in the Log menu alongside Flow and Symptoms and shows up on the calendar dot indicator.
+- Cycle Phase Summary chart type in Stats: select any non-numeric category and choose "By Phase" to see your logged values broken down by Menstrual, Follicular, Ovulatory, and Luteal phases with the top recorded values per phase.
+- Export for Doctor Visit: Settings > Data and Backup now includes a plain-text report covering the last 12 months of periods, symptom frequencies, and custom category data, formatted for sharing with a healthcare provider.
+
+---
 ## [0.25.0-beta.1] - 2026-06-03
 
 ### Added

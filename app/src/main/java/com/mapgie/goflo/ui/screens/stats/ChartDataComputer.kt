@@ -187,6 +187,8 @@ internal suspend fun computeChartData(
                 StatsChartData.TrendsData(bars, category1.name)
             }
         }
+
+        ChartType.PHASE_SUMMARY -> StatsChartData.Empty
     }
 }
 
