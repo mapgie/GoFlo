@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -119,6 +120,7 @@ fun ManageCategoriesScreen(
     val state by viewModel.uiState.collectAsState()
 
     var showAddDialog         by rememberSaveable { mutableStateOf(false) }
+    var showHelp              by rememberSaveable { mutableStateOf(false) }
     var pendingDelete         by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingArchive        by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingEditAppearance by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -244,6 +246,10 @@ fun ManageCategoriesScreen(
 
     // ── Delete confirmation ───────────────────────────────────────────────────
 
+    if (showHelp) {
+        CategoriesHelpDialog(onDismiss = { showHelp = false })
+    }
+
     if (categoryToDelete != null) {
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
@@ -276,6 +282,15 @@ fun ManageCategoriesScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showHelp = true }) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = "Help",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

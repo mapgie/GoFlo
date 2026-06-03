@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.29.0-beta.1] - 2026-06-03
+
+### Added
+- Manage: help dialog explaining category types, value ordering, drag-to-reorder, archive, and delete. Accessible two ways: the info icon in the Tracking Categories toolbar, and a "Help" item in the three-dot menu on each category's values screen.
+
+---
 ## [0.28.0-beta.1] - 2026-06-03
 
 ### Added
