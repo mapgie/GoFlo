@@ -319,8 +319,9 @@ fun SettingsScreen(
     var showRemovePinDialog     by rememberSaveable { mutableStateOf(false) }
     var customIconError         by remember { mutableStateOf<String?>(null) }
     var showDisclaimer          by rememberSaveable { mutableStateOf(false) }
-    var showDeleteAllDialog     by rememberSaveable { mutableStateOf(false) }
-    var showChangelog           by rememberSaveable { mutableStateOf(false) }
+    var showDeleteAllDialog          by rememberSaveable { mutableStateOf(false) }
+    var showResetCategoriesDialog   by rememberSaveable { mutableStateOf(false) }
+    var showChangelog               by rememberSaveable { mutableStateOf(false) }
     var pendingImportUri        by remember { mutableStateOf<Uri?>(null) }
     var showImportOptionsDialog by rememberSaveable { mutableStateOf(false) }
     var importResult            by remember { mutableStateOf<ImportResult?>(null) }
@@ -555,6 +556,31 @@ fun SettingsScreen(
         )
     }
 
+    if (showResetCategoriesDialog) {
+        AlertDialog(
+            onDismissRequest = { showResetCategoriesDialog = false },
+            title   = { Text("Reset category settings?") },
+            text    = {
+                Text(
+                    "This will delete all your custom categories and restore any hidden built-in " +
+                    "categories. Your period logs and tracking history are kept. This cannot be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showResetCategoriesDialog = false
+                        viewModel.resetCategoryConfiguration {}
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Reset") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showResetCategoriesDialog = false }) { Text("Cancel") }
+            }
+        )
+    }
+
     customIconError?.let { message ->
         AlertDialog(
             onDismissRequest = { customIconError = null },
@@ -609,11 +635,12 @@ fun SettingsScreen(
             onBack                = { currentSubScreen = SettingsSubScreen.NONE }
         )
         SettingsSubScreen.DATA -> DataSubScreen(
-            onNavigateToExport = { currentSubScreen = SettingsSubScreen.EXPORT_DATA },
-            onShowImportPicker = { importFilePicker.launch("application/json") },
-            onShowDeleteDialog = { showDeleteAllDialog = true },
-            onDoctorExport     = { viewModel.exportDoctorVisit { intent -> context.startActivity(intent) } },
-            onBack             = { currentSubScreen = SettingsSubScreen.NONE }
+            onNavigateToExport       = { currentSubScreen = SettingsSubScreen.EXPORT_DATA },
+            onShowImportPicker       = { importFilePicker.launch("application/json") },
+            onShowDeleteDialog       = { showDeleteAllDialog = true },
+            onShowResetCategoriesDialog = { showResetCategoriesDialog = true },
+            onDoctorExport           = { viewModel.exportDoctorVisit { intent -> context.startActivity(intent) } },
+            onBack                   = { currentSubScreen = SettingsSubScreen.NONE }
         )
         SettingsSubScreen.EXPORT_DATA -> ExportDataSubScreen(
             categories = allCategoriesForExport,
@@ -1182,11 +1209,12 @@ private fun SecuritySubScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DataSubScreen(
-    onNavigateToExport: () -> Unit,
-    onShowImportPicker: () -> Unit,
-    onShowDeleteDialog: () -> Unit,
-    onDoctorExport:     () -> Unit,
-    onBack:             () -> Unit
+    onNavigateToExport:          () -> Unit,
+    onShowImportPicker:          () -> Unit,
+    onShowDeleteDialog:          () -> Unit,
+    onShowResetCategoriesDialog: () -> Unit,
+    onDoctorExport:              () -> Unit,
+    onBack:                      () -> Unit
 ) {
     SettingsSubScreenScaffold(title = "Data & Backup", onBack = onBack) { padding ->
         Column(
@@ -1222,6 +1250,14 @@ private fun DataSubScreen(
             ) { Text("Export for Doctor Visit") }
 
             HorizontalDivider()
+
+            OutlinedButton(
+                onClick  = onShowResetCategoriesDialog,
+                modifier = Modifier.fillMaxWidth(),
+                colors   = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) { Text("Reset Category Settings") }
 
             OutlinedButton(
                 onClick  = onShowDeleteDialog,

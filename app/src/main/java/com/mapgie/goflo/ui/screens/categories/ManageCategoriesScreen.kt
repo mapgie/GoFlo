@@ -130,7 +130,8 @@ fun ManageCategoriesScreen(
     val categoryToEditAppearance = state.categories.firstOrNull { it.id == pendingEditAppearance }
 
     fun requestArchive(category: TrackingCategory) {
-        if (!category.isArchived && state.archiveWarningDisabled) {
+        // Always show a confirmation for built-in categories regardless of warning preference
+        if (!category.isArchived && !category.isSystem && state.archiveWarningDisabled) {
             viewModel.archiveCategory(category)
         } else {
             pendingArchive = category.id
@@ -192,13 +193,34 @@ fun ManageCategoriesScreen(
         if (categoryToArchive.isArchived) {
             AlertDialog(
                 onDismissRequest = { pendingArchive = null },
-                title = { Text("Unarchive \"${categoryToArchive.name}\"?") },
+                title = { Text("Restore \"${categoryToArchive.name}\"?") },
                 text = { Text("${categoryToArchive.name} will be restored to your active tracking categories.") },
                 confirmButton = {
                     TextButton(onClick = {
                         viewModel.unarchiveCategory(categoryToArchive)
                         pendingArchive = null
-                    }) { Text("Unarchive") }
+                    }) { Text("Restore") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingArchive = null }) { Text("Cancel") }
+                }
+            )
+        } else if (categoryToArchive.isSystem) {
+            AlertDialog(
+                onDismissRequest = { pendingArchive = null },
+                title = { Text("Hide \"${categoryToArchive.name}\"?") },
+                text = {
+                    Text(
+                        "${categoryToArchive.name} is a built-in category. Hiding it will remove it " +
+                        "from your tracking screen. All your logged data is kept. You can restore it " +
+                        "from the Archived section at any time."
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.archiveCategory(categoryToArchive)
+                        pendingArchive = null
+                    }) { Text("Hide") }
                 },
                 dismissButton = {
                     TextButton(onClick = { pendingArchive = null }) { Text("Cancel") }
@@ -463,22 +485,17 @@ private fun SwipeableCategoryRow(
     modifier: Modifier = Modifier,
     dragModifier: Modifier? = null,
 ) {
-    if (category.isSystem) {
-        CategoryRow(
-            category = category,
-            onClick = onClick,
-            onEditAppearance = onEditAppearance,
-            modifier = modifier,
-            dragModifier = dragModifier,
-        )
-        return
+    val archiveLabel = when {
+        category.isArchived -> if (category.isSystem) "Restore" else "Unarchive"
+        else                -> if (category.isSystem) "Hide"    else "Archive"
     }
+    val archiveIcon = if (category.isArchived) Icons.Default.Unarchive else Icons.Default.Archive
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
                 SwipeToDismissBoxValue.StartToEnd -> { onArchiveToggle(); false }
-                SwipeToDismissBoxValue.EndToStart -> { onDelete(); false }
+                SwipeToDismissBoxValue.EndToStart -> { if (!category.isSystem) onDelete(); false }
                 else -> false
             }
         }
@@ -488,7 +505,7 @@ private fun SwipeableCategoryRow(
         state = dismissState,
         modifier = modifier,
         enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = true,
+        enableDismissFromEndToStart = !category.isSystem,
         backgroundContent = {
             val direction = dismissState.targetValue
             val bgColor by animateColorAsState(
@@ -512,15 +529,14 @@ private fun SwipeableCategoryRow(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (category.isArchived) Icons.Default.Unarchive
-                                          else Icons.Default.Archive,
+                            imageVector = archiveIcon,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = if (category.isArchived) "Unarchive" else "Archive",
+                            text = archiveLabel,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
