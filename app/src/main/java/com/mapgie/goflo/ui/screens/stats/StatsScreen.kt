@@ -203,15 +203,6 @@ fun StatsScreen(
                 }
 
                 item {
-                    TimeRangePicker(
-                        selectedRange = state.timeRange,
-                        onSelect = viewModel::setTimeRange,
-                        zoomLevel = state.zoomLevel,
-                        onZoom = viewModel::setZoomLevel,
-                    )
-                }
-
-                item {
                     CategoryPickerSection(
                         categories = state.categories,
                         selectedCat1 = state.selectedCategory1,
@@ -285,6 +276,15 @@ fun StatsScreen(
                         showZoom = state.timeRange is TimeRange.SpecificMonth,
                     )
                 }
+
+                item {
+                    TimeRangePicker(
+                        selectedRange = state.timeRange,
+                        onSelect = viewModel::setTimeRange,
+                        zoomLevel = state.zoomLevel,
+                        onZoom = viewModel::setZoomLevel,
+                    )
+                }
             }
         }
     }
@@ -311,12 +311,6 @@ private fun TimeRangePicker(
         is TimeRange.CalendarYear -> 1
         is TimeRange.YearToDate -> 2
         is TimeRange.SpecificMonth -> 3
-    }
-
-    // Current month for inline navigation
-    val currentMonth = when (selectedRange) {
-        is TimeRange.SpecificMonth -> selectedRange.yearMonth
-        else -> YearMonth.now()
     }
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
@@ -346,67 +340,6 @@ private fun TimeRangePicker(
                         shape = SegmentedButtonDefaults.itemShape(index, options.size)
                     ) {
                         Text(label, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-            }
-
-            if (selectedRange !is TimeRange.SpecificMonth) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        onSelect(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.NavigateBefore,
-                            contentDescription = "Previous month"
-                        )
-                    }
-                    Text(
-                        text = currentMonth.format(DateTimeFormatter.ofPattern("yyyy")),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    IconButton(
-                        onClick = {
-                            when (selectedRange) {
-                                is TimeRange.CalendarYear -> showYearDialog = true
-                                else -> {}
-                            }
-                        },
-                        enabled = currentMonth < YearMonth.now()
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.NavigateNext,
-                            contentDescription = "Next month"
-                        )
-                    }
-                }
-                // Show range label for YTD and CalendarYear
-                val rangeLabel = when (selectedRange) {
-                    is TimeRange.AllTime -> null
-                    is TimeRange.YearToDate -> "January 1 to today"
-                    is TimeRange.CalendarYear -> "Full year ${selectedRange.year}"
-                    is TimeRange.SpecificMonth -> null // handled above
-                }
-                if (rangeLabel != null) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    TextButton(
-                        onClick = {
-                            when (selectedRange) {
-                                is TimeRange.CalendarYear -> showYearDialog = true
-                                else -> {}
-                            }
-                        },
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
-                    ) {
-                        Text(
-                            text = rangeLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
                     }
                 }
             }
@@ -770,46 +703,92 @@ private fun ChartArea(
     showZoom: Boolean = false,
 ) {
     val currentMonth = (timeRange as? TimeRange.SpecificMonth)?.yearMonth
+    val today = LocalDate.now()
+    val currentYear = when (timeRange) {
+        is TimeRange.CalendarYear -> timeRange.year
+        is TimeRange.YearToDate -> today.year
+        else -> null
+    }
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column {
-            // Month navigation directly above the chart when in Monthly view
-            if (currentMonth != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp, vertical = 2.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = {
-                        onSelectRange(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.NavigateBefore,
-                            contentDescription = "Previous month"
-                        )
-                    }
-                    Text(
-                        text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    IconButton(
-                        onClick = {
-                            if (currentMonth < YearMonth.now()) {
-                                onSelectRange(TimeRange.SpecificMonth(currentMonth.plusMonths(1)))
-                            }
-                        },
-                        enabled = currentMonth < YearMonth.now()
+            // Navigation row: month arrows for SpecificMonth, year arrows for CalendarYear/YTD
+            when {
+                currentMonth != null -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.NavigateNext,
-                            contentDescription = "Next month"
+                        IconButton(onClick = {
+                            onSelectRange(TimeRange.SpecificMonth(currentMonth.minusMonths(1)))
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.NavigateBefore,
+                                contentDescription = "Previous month"
+                            )
+                        }
+                        Text(
+                            text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
                         )
+                        IconButton(
+                            onClick = {
+                                if (currentMonth < YearMonth.now()) {
+                                    onSelectRange(TimeRange.SpecificMonth(currentMonth.plusMonths(1)))
+                                }
+                            },
+                            enabled = currentMonth < YearMonth.now()
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.NavigateNext,
+                                contentDescription = "Next month"
+                            )
+                        }
                     }
                 }
-                //TODO show the year in a display like the Month view above.
+                currentYear != null -> {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            onSelectRange(TimeRange.CalendarYear(currentYear - 1))
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.NavigateBefore,
+                                contentDescription = "Previous year"
+                            )
+                        }
+                        Text(
+                            text = if (timeRange is TimeRange.YearToDate) "YTD $currentYear" else "$currentYear",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        IconButton(
+                            onClick = {
+                                if (currentYear < today.year) {
+                                    onSelectRange(
+                                        if (currentYear + 1 == today.year) TimeRange.YearToDate
+                                        else TimeRange.CalendarYear(currentYear + 1)
+                                    )
+                                }
+                            },
+                            enabled = currentYear < today.year
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.NavigateNext,
+                                contentDescription = "Next year"
+                            )
+                        }
+                    }
+                }
             }
 
             Box(

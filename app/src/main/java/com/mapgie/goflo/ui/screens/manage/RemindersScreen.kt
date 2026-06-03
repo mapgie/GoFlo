@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,6 +26,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -49,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
 
@@ -150,7 +153,7 @@ fun RemindersScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
                             if (reminder.deliveryMode == "ALARM")
-                                "Plays alarm sound. Requires the Alarms and reminders permission."
+                                "Full-screen alarm. Requires the Alarms and reminders permission."
                             else
                                 "Standard notification. No special permission needed."
                         )
@@ -169,6 +172,32 @@ fun RemindersScreen(
                     }
                 }
             )
+
+            if (reminder.deliveryMode == "ALARM") {
+                HorizontalDivider()
+                var labelText by rememberSaveable(reminder.alarmLabel) { mutableStateOf(reminder.alarmLabel) }
+                ListItem(
+                    headlineContent = { Text("Alarm name") },
+                    supportingContent = {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("This text appears on the alarm screen when it fires.")
+                            OutlinedTextField(
+                                value = labelText,
+                                onValueChange = { labelText = it },
+                                placeholder = { Text("e.g. GoFlo reminder") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            if (labelText != reminder.alarmLabel) {
+                                TextButton(onClick = { viewModel.setAlarmLabel(labelText) }) {
+                                    Text("Apply")
+                                }
+                            }
+                        }
+                    }
+                )
+            }
 
             HorizontalDivider()
 
