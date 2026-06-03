@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
@@ -72,6 +73,7 @@ fun ManageCategoryValuesScreen(
     val state by viewModel.uiState.collectAsState()
 
     var showAddValue              by rememberSaveable { mutableStateOf(false) }
+    var showHelp                  by rememberSaveable { mutableStateOf(false) }
     var showRenameCategory        by rememberSaveable { mutableStateOf(false) }
     var renamingValue             by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingDeleteValue        by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -94,6 +96,10 @@ fun ManageCategoryValuesScreen(
 
     val valueToRename = state.values.firstOrNull { it.id == renamingValue }
     val valueToDelete = state.values.firstOrNull { it.id == pendingDeleteValue }
+
+    if (showHelp) {
+        CategoriesHelpDialog(onDismiss = { showHelp = false })
+    }
 
     if (showAddValue) {
         AddValueDialog(
@@ -274,20 +280,20 @@ fun ManageCategoryValuesScreen(
                     }
                 },
                 actions = {
-                    if (state.category?.isSystem == false) {
-                        var showMenu by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(
-                                    Icons.Default.MoreVert,
-                                    contentDescription = "More options",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
+                    var showMenu by remember { mutableStateOf(false) }
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            if (state.category?.isSystem == false) {
                                 DropdownMenuItem(
                                     text = {
                                         Text(
@@ -326,7 +332,27 @@ fun ManageCategoryValuesScreen(
                                         )
                                     }
                                 )
+                                HorizontalDivider()
                             }
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Help",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showHelp = true
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Outlined.Info,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            )
                         }
                     }
                 },
