@@ -18,6 +18,13 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.28.0-beta.1] - 2026-06-03
+
+### Added
+- Stats: Pie chart slices and Trends progress bars now use ordered shades of the category's own colour for default-type categories. Lower-order values (e.g. Spotting) appear as a lighter tint; higher-order values (e.g. Heavy) appear as the full colour. Colour still varies by hue for numeric and non-default categories.
+
+---
+
 ## [0.27.0-beta.1] - 2026-06-03
 
 ### Added

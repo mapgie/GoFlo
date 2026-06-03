@@ -89,7 +89,13 @@ data class PinnedStat(
 sealed class StatsChartData {
     data object Empty : StatsChartData()
     data object Loading : StatsChartData()
-    data class PieData(val slices: List<PieSlice>) : StatsChartData()
+    data class PieData(
+        val slices: List<PieSlice>,
+        /** Category color token used to shade slices by displayOrder. Empty = cycle colours. */
+        val colorToken: String = "",
+        /** Maps each value label to its displayOrder for ordinal shade computation. */
+        val valueOrders: Map<String, Int> = emptyMap(),
+    ) : StatsChartData()
     data class TimeSeriesData(val buckets: List<TimeBucket>, val categoryName: String) : StatsChartData()
     data class ComboData(val bars: List<ComboBar>) : StatsChartData()
     data class DualTimeSeriesData(
@@ -129,6 +135,10 @@ sealed class StatsChartData {
     data class TrendsData(
         val bars: List<TrendsBar>,
         val categoryName: String,
+        /** Category color token used to shade bars by displayOrder. Empty = use primary. */
+        val colorToken: String = "",
+        /** Maps each value label to its displayOrder for ordinal shade computation. */
+        val valueOrders: Map<String, Int> = emptyMap(),
     ) : StatsChartData()
     data class PhaseSummaryData(
         val rows: List<PhaseSummaryRow>,
@@ -530,8 +540,14 @@ class StatsViewModel(
                         StatsChartData.Empty
                     } else {
                         val total = counts.sumOf { it.count }.coerceAtLeast(1)
+                        val valueOrders = if (cat1.categoryType == "default") {
+                            repository.getValuesForCategoryOnce(cat1.id)
+                                .associate { it.label to it.displayOrder }
+                        } else emptyMap()
                         StatsChartData.PieData(
-                            counts.map { PieSlice(it.valueLabel, it.count, it.count.toFloat() / total) }
+                            slices = counts.map { PieSlice(it.valueLabel, it.count, it.count.toFloat() / total) },
+                            colorToken = if (cat1.categoryType == "default") cat1.colorToken else "",
+                            valueOrders = valueOrders,
                         )
                     }
                 }
@@ -666,6 +682,10 @@ class StatsViewModel(
                     if (counts.isEmpty()) StatsChartData.Empty
                     else {
                         val total = counts.sumOf { it.count }.coerceAtLeast(1)
+                        val valueOrders = if (cat1.categoryType == "default") {
+                            repository.getValuesForCategoryOnce(cat1.id)
+                                .associate { it.label to it.displayOrder }
+                        } else emptyMap()
                         val bars = counts.sortedByDescending { it.count }.take(10).map { vc ->
                             TrendsBar(
                                 label = vc.valueLabel,
@@ -673,7 +693,12 @@ class StatsViewModel(
                                 percentage = (vc.count * 100 / total).coerceAtMost(100)
                             )
                         }
-                        StatsChartData.TrendsData(bars, cat1.name)
+                        StatsChartData.TrendsData(
+                            bars = bars,
+                            categoryName = cat1.name,
+                            colorToken = if (cat1.categoryType == "default") cat1.colorToken else "",
+                            valueOrders = valueOrders,
+                        )
                     }
                 }
 

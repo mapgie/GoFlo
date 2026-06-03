@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.mapgie.goflo.ui.util.ordinalShade
 import com.mapgie.goflo.ui.util.toCategoryColor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -57,7 +58,18 @@ fun PieChart(
     data: StatsChartData.PieData,
     modifier: Modifier = Modifier
 ) {
-    val colors = data.slices.mapIndexed { i, _ -> chartColor(i) }
+    val surface = MaterialTheme.colorScheme.surface
+    val baseOrdinalColor = if (data.colorToken.isNotEmpty() && data.valueOrders.isNotEmpty()) {
+        data.colorToken.toCategoryColor()
+    } else null
+    val orderedLabels = data.valueOrders.entries.sortedBy { it.value }.map { it.key }
+    val colors = data.slices.mapIndexed { i, slice ->
+        if (baseOrdinalColor != null) {
+            val pos = orderedLabels.indexOf(slice.label)
+            if (pos >= 0) ordinalShade(baseOrdinalColor, surface, pos, orderedLabels.size)
+            else chartColor(i)
+        } else chartColor(i)
+    }
     val holeColor = MaterialTheme.colorScheme.surfaceVariant
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -671,6 +683,20 @@ fun TimeScatterChart(data: StatsChartData.TimeScatterData, modifier: Modifier = 
 
 @Composable
 fun TrendsChart(data: StatsChartData.TrendsData) {
+    val surface = MaterialTheme.colorScheme.surface
+    val primary = MaterialTheme.colorScheme.primary
+    val baseOrdinalColor = if (data.colorToken.isNotEmpty() && data.valueOrders.isNotEmpty()) {
+        data.colorToken.toCategoryColor()
+    } else null
+    val orderedLabels = data.valueOrders.entries.sortedBy { it.value }.map { it.key }
+
+    fun barColor(label: String): Color {
+        if (baseOrdinalColor == null) return primary
+        val pos = orderedLabels.indexOf(label)
+        return if (pos >= 0) ordinalShade(baseOrdinalColor, surface, pos, orderedLabels.size)
+               else primary
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -681,6 +707,7 @@ fun TrendsChart(data: StatsChartData.TrendsData) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         data.bars.forEach { bar ->
+            val color = barColor(bar.label)
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -696,8 +723,8 @@ fun TrendsChart(data: StatsChartData.TrendsData) {
                 LinearProgressIndicator(
                     progress   = { bar.percentage / 100f },
                     modifier   = Modifier.fillMaxWidth().height(4.dp),
-                    color      = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    color      = color,
+                    trackColor = color.copy(alpha = 0.15f),
                 )
             }
         }

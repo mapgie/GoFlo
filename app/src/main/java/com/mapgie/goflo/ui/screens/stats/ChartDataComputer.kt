@@ -37,8 +37,14 @@ internal suspend fun computeChartData(
                 StatsChartData.Empty
             } else {
                 val total = counts.sumOf { it.count }.coerceAtLeast(1)
+                val valueOrders = if (category1.categoryType == "default") {
+                    repository.getValuesForCategoryOnce(category1.id)
+                        .associate { it.label to it.displayOrder }
+                } else emptyMap()
                 StatsChartData.PieData(
-                    counts.map { PieSlice(it.valueLabel, it.count, it.count.toFloat() / total) }
+                    slices = counts.map { PieSlice(it.valueLabel, it.count, it.count.toFloat() / total) },
+                    colorToken = if (category1.categoryType == "default") category1.colorToken else "",
+                    valueOrders = valueOrders,
                 )
             }
         }
@@ -177,6 +183,10 @@ internal suspend fun computeChartData(
             if (counts.isEmpty()) StatsChartData.Empty
             else {
                 val total = counts.sumOf { it.count }.coerceAtLeast(1)
+                val valueOrders = if (category1.categoryType == "default") {
+                    repository.getValuesForCategoryOnce(category1.id)
+                        .associate { it.label to it.displayOrder }
+                } else emptyMap()
                 val bars = counts.sortedByDescending { it.count }.take(10).map { vc ->
                     TrendsBar(
                         label = vc.valueLabel,
@@ -184,7 +194,12 @@ internal suspend fun computeChartData(
                         percentage = (vc.count * 100 / total).coerceAtMost(100)
                     )
                 }
-                StatsChartData.TrendsData(bars, category1.name)
+                StatsChartData.TrendsData(
+                    bars = bars,
+                    categoryName = category1.name,
+                    colorToken = if (category1.categoryType == "default") category1.colorToken else "",
+                    valueOrders = valueOrders,
+                )
             }
         }
 

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -192,6 +193,20 @@ fun String.toCategoryColor(): Color {
  * For custom hex colours, luminance is checked: light backgrounds get a
  * near-black tint; dark backgrounds get white.
  */
+/**
+ * Returns a shade of [base] for the [index]-th value in an ordinal sequence of
+ * [total] values, blending toward [surface] for lower-order (lighter) values.
+ *
+ * index 0 → lightest (30% base, 70% surface); index total-1 → full [base].
+ * With a single value, [base] is returned unchanged.
+ */
+fun ordinalShade(base: Color, surface: Color, index: Int, total: Int): Color {
+    if (total <= 1) return base
+    val fraction = index.toFloat() / (total - 1).toFloat()
+    val t = 0.30f + 0.70f * fraction
+    return lerp(surface, base, t)
+}
+
 @Composable
 fun String.toCategoryOnColor(): Color {
     val s = MaterialTheme.colorScheme
