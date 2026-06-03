@@ -18,6 +18,18 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.27.0-beta.1] - 2026-06-03
+
+### Added
+- Custom theme: tap the dotted "Custom" slot at the end of the colour grid in Appearance to reveal hue sliders for primary, secondary, and tertiary colours. The app builds a full Material 3 colour scheme from your choices.
+- Theme palette picker is now a neat 4-column grid. The custom slot sits at the natural end of the last row.
+
+### Fixed
+- History delete loop: swiping a period, cancelling, then tapping into it no longer re-triggers the delete dialog on return.
+- History swipe lock: after cancelling a delete, the card is immediately swipeable again with no delay.
+- History card highlight: the red swipe-to-delete background now clips to the card's rounded corners instead of showing a square behind them.
+
+---
 ## [0.26.0-beta.1] - 2026-06-03
 
 ### Added

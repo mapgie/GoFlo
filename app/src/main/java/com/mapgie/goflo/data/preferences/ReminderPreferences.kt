@@ -89,6 +89,12 @@ data class AppPreferences(
     val statsZoomLevel: Int = 1,
     /** True once the new-user onboarding banner has been dismissed. */
     val onboardingBannerDismissed: Boolean = false,
+    /** Hue (0–360°) for the primary colour in the custom theme. */
+    val customPrimaryHue: Float = 0f,
+    /** Hue (0–360°) for the secondary colour in the custom theme. */
+    val customSecondaryHue: Float = 200f,
+    /** Hue (0–360°) for the tertiary colour in the custom theme. */
+    val customTertiaryHue: Float = 330f,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -122,6 +128,9 @@ class AppPreferencesStore(private val context: Context) {
         val STATS_CHART_TYPE = stringPreferencesKey("stats_chart_type")
         val STATS_ZOOM_LEVEL = intPreferencesKey("stats_zoom_level")
         val ONBOARDING_BANNER_DISMISSED = booleanPreferencesKey("onboarding_banner_dismissed")
+        val CUSTOM_PRIMARY_HUE   = floatPreferencesKey("custom_primary_hue")
+        val CUSTOM_SECONDARY_HUE = floatPreferencesKey("custom_secondary_hue")
+        val CUSTOM_TERTIARY_HUE  = floatPreferencesKey("custom_tertiary_hue")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -146,6 +155,9 @@ class AppPreferencesStore(private val context: Context) {
             statsChartType = prefs[Keys.STATS_CHART_TYPE] ?: "",
             statsZoomLevel = prefs[Keys.STATS_ZOOM_LEVEL] ?: 1,
             onboardingBannerDismissed = prefs[Keys.ONBOARDING_BANNER_DISMISSED] ?: false,
+            customPrimaryHue   = prefs[Keys.CUSTOM_PRIMARY_HUE]   ?: 0f,
+            customSecondaryHue = prefs[Keys.CUSTOM_SECONDARY_HUE] ?: 200f,
+            customTertiaryHue  = prefs[Keys.CUSTOM_TERTIARY_HUE]  ?: 330f,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -283,5 +295,17 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setOnboardingBannerDismissed(dismissed: Boolean) {
         context.dataStore.edit { it[Keys.ONBOARDING_BANNER_DISMISSED] = dismissed }
+    }
+
+    suspend fun setCustomPrimaryHue(hue: Float) {
+        context.dataStore.edit { it[Keys.CUSTOM_PRIMARY_HUE] = hue }
+    }
+
+    suspend fun setCustomSecondaryHue(hue: Float) {
+        context.dataStore.edit { it[Keys.CUSTOM_SECONDARY_HUE] = hue }
+    }
+
+    suspend fun setCustomTertiaryHue(hue: Float) {
+        context.dataStore.edit { it[Keys.CUSTOM_TERTIARY_HUE] = hue }
     }
 }

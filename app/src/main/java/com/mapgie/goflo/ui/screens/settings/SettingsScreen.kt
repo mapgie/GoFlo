@@ -96,14 +96,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.Canvas
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -223,6 +231,7 @@ private val AppTheme.standardPalette: StandardPalette? get() = when (this) {
     AppTheme.HIGH_CONTRAST_LIGHT,
     AppTheme.HIGH_CONTRAST_DARK                                   -> StandardPalette.MAX_CONTRAST
     AppTheme.BLUE_ORANGE                                          -> StandardPalette.BLUE_ORANGE_PAL
+    AppTheme.CUSTOM                                               -> null
 }
 
 private val AppTheme.summaryLabel: String get() = when (this) {
@@ -265,6 +274,7 @@ private val AppTheme.summaryLabel: String get() = when (this) {
     AppTheme.HIGH_CONTRAST_LIGHT   -> "Max Contrast · Light"
     AppTheme.HIGH_CONTRAST_DARK    -> "Max Contrast · Dark"
     AppTheme.BLUE_ORANGE           -> "Blue & Orange"
+    AppTheme.CUSTOM                -> "Custom"
 }
 
 // ── Export date display format ─────────────────────────────────────────────────
@@ -1079,10 +1089,16 @@ private fun AppearanceSubScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             CompactThemePicker(
-                current      = currentTheme,
-                wcagChecked  = prefs.wcagMode,
-                onSelect     = { viewModel.setTheme(it.name) },
-                onWcagToggle = { viewModel.setWcagMode(it) }
+                current              = currentTheme,
+                wcagChecked          = prefs.wcagMode,
+                customPrimaryHue     = prefs.customPrimaryHue,
+                customSecondaryHue   = prefs.customSecondaryHue,
+                customTertiaryHue    = prefs.customTertiaryHue,
+                onSelect             = { viewModel.setTheme(it.name) },
+                onWcagToggle         = { viewModel.setWcagMode(it) },
+                onCustomPrimaryHue   = { viewModel.setCustomPrimaryHue(it) },
+                onCustomSecondaryHue = { viewModel.setCustomSecondaryHue(it) },
+                onCustomTertiaryHue  = { viewModel.setCustomTertiaryHue(it) },
             )
 
             HorizontalDivider()
@@ -1754,19 +1770,26 @@ private fun SupportCard(
 
 // ── Compact theme picker ──────────────────────────────────────────────────────
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CompactThemePicker(
-    current:      AppTheme,
-    wcagChecked:  Boolean,
-    onSelect:     (AppTheme) -> Unit,
-    onWcagToggle: (Boolean) -> Unit,
+    current:              AppTheme,
+    wcagChecked:          Boolean,
+    customPrimaryHue:     Float,
+    customSecondaryHue:   Float,
+    customTertiaryHue:    Float,
+    onSelect:             (AppTheme) -> Unit,
+    onWcagToggle:         (Boolean) -> Unit,
+    onCustomPrimaryHue:   (Float) -> Unit,
+    onCustomSecondaryHue: (Float) -> Unit,
+    onCustomTertiaryHue:  (Float) -> Unit,
 ) {
     val currentMode    = current.themeMode
     val currentPalette = current.standardPalette
+    val isCustom       = current == AppTheme.CUSTOM
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
+        // ── Mode selector ─────────────────────────────────────────────────────
         Text(
             "Mode",
             style = MaterialTheme.typography.labelMedium,
@@ -1778,10 +1801,11 @@ private fun CompactThemePicker(
                 .height(IntrinsicSize.Min)
                 .clip(RoundedCornerShape(8.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                .alpha(if (isCustom) 0.38f else 1f)
         ) {
             val modes = listOf(ThemeMode.LIGHT, ThemeMode.DARK, ThemeMode.SYSTEM)
             modes.forEachIndexed { index, mode ->
-                val selected  = mode == currentMode
+                val selected  = !isCustom && mode == currentMode
                 val modeIcon  = when (mode) {
                     ThemeMode.LIGHT  -> Icons.Outlined.WbSunny
                     ThemeMode.DARK   -> Icons.Outlined.DarkMode
@@ -1796,7 +1820,7 @@ private fun CompactThemePicker(
                             else Color.Transparent
                         )
                         .semantics { role = Role.RadioButton }
-                        .clickable {
+                        .clickable(enabled = !isCustom) {
                             when (mode) {
                                 ThemeMode.SYSTEM -> {
                                     val palette = currentPalette ?: StandardPalette.TEAL
@@ -1845,51 +1869,98 @@ private fun CompactThemePicker(
             }
         }
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .semantics { role = Role.Checkbox }
-                .clickable { onWcagToggle(!wcagChecked) }
-        ) {
-            Checkbox(
-                checked         = wcagChecked,
-                onCheckedChange = onWcagToggle,
-            )
-            Text(
-                text  = "WCAG accessible",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+        // ── WCAG toggle (hidden when custom theme is active) ──────────────────
+        if (!isCustom) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .semantics { role = Role.Checkbox }
+                    .clickable { onWcagToggle(!wcagChecked) }
+            ) {
+                Checkbox(
+                    checked         = wcagChecked,
+                    onCheckedChange = onWcagToggle,
+                )
+                Text(
+                    text  = "WCAG accessible",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
 
+        // ── Colour grid ───────────────────────────────────────────────────────
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 "Colour",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            FlowRow(
-                modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterHorizontally),
-                maxItemsInEachRow     = 5,
-            ) {
-                StandardPalette.entries.forEach { palette ->
-                    val selected = palette == currentPalette
-                    PaletteOption(
-                        palette  = palette,
-                        selected = selected,
-                        onClick  = {
-                            val mode = currentMode ?: ThemeMode.LIGHT
-                            onSelect(
-                                when (mode) {
-                                    ThemeMode.DARK   -> palette.darkTheme
-                                    ThemeMode.SYSTEM -> palette.systemTheme
-                                    else             -> palette.lightTheme
-                                }
-                            )
+
+            // 4-column grid: 14 standard palettes + custom slot (null) = 15 items.
+            // Last row gets an invisible Spacer in col 4 to keep column alignment.
+            val allItems: List<StandardPalette?> = buildList {
+                addAll(StandardPalette.entries)
+                add(null)
+            }
+            Column {
+                allItems.chunked(4).forEach { row ->
+                    Row(Modifier.fillMaxWidth()) {
+                        row.forEach { palette ->
+                            if (palette != null) {
+                                PaletteOption(
+                                    palette  = palette,
+                                    selected = !isCustom && palette == currentPalette,
+                                    onClick  = {
+                                        val mode = if (isCustom) ThemeMode.LIGHT
+                                                   else currentMode ?: ThemeMode.LIGHT
+                                        onSelect(
+                                            when (mode) {
+                                                ThemeMode.DARK   -> palette.darkTheme
+                                                ThemeMode.SYSTEM -> palette.systemTheme
+                                                else             -> palette.lightTheme
+                                            }
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            } else {
+                                CustomPaletteSlot(
+                                    isSelected = isCustom,
+                                    onClick    = { onSelect(AppTheme.CUSTOM) },
+                                    modifier   = Modifier.weight(1f),
+                                )
+                            }
                         }
-                    )
+                        repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
                 }
+            }
+        }
+
+        // ── Custom colour pickers ─────────────────────────────────────────────
+        if (isCustom) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Custom colours",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                ColorHuePicker(
+                    label       = "Primary",
+                    hue         = customPrimaryHue,
+                    onHueChange = onCustomPrimaryHue,
+                )
+                ColorHuePicker(
+                    label       = "Secondary",
+                    hue         = customSecondaryHue,
+                    onHueChange = onCustomSecondaryHue,
+                )
+                ColorHuePicker(
+                    label       = "Tertiary",
+                    hue         = customTertiaryHue,
+                    onHueChange = onCustomTertiaryHue,
+                )
             }
         }
     }
@@ -1898,12 +1969,17 @@ private fun CompactThemePicker(
 // ── Palette circle option ─────────────────────────────────────────────────────
 
 @Composable
-private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: () -> Unit) {
+private fun PaletteOption(
+    palette:  StandardPalette,
+    selected: Boolean,
+    onClick:  () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier            = Modifier
-            .clickable(onClick = onClick)
+        modifier            = modifier
             .semantics { role = Role.RadioButton }
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -1955,6 +2031,110 @@ private fun PaletteOption(palette: StandardPalette, selected: Boolean, onClick: 
             color = if (selected) MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+// ── Custom palette slot ───────────────────────────────────────────────────────
+
+@Composable
+private fun CustomPaletteSlot(isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val selColor     = MaterialTheme.colorScheme.primary
+    val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        modifier            = modifier
+            .semantics { role = Role.RadioButton }
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+            Canvas(modifier = Modifier.size(40.dp)) {
+                val r        = size.width / 2f
+                val strokePx = if (isSelected) 3.dp.toPx() else 1.5.dp.toPx()
+                drawCircle(
+                    color  = if (isSelected) selColor else outlineColor,
+                    radius = r - strokePx / 2f,
+                    style  = Stroke(
+                        width      = strokePx,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f),
+                    ),
+                )
+            }
+            Icon(
+                imageVector        = Icons.Default.Add,
+                contentDescription = null,
+                tint               = if (isSelected) selColor else outlineColor,
+                modifier           = Modifier.size(20.dp)
+            )
+        }
+        Text(
+            text  = "Custom",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+// ── Hue picker for custom theme ───────────────────────────────────────────────
+
+@Composable
+private fun ColorHuePicker(label: String, hue: Float, onHueChange: (Float) -> Unit) {
+    Row(
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier              = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(Color.hsl(hue, 1f, 0.45f))
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text  = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            HuePicker(hue = hue, onHueChange = onHueChange)
+        }
+    }
+}
+
+@Composable
+private fun HuePicker(hue: Float, onHueChange: (Float) -> Unit, modifier: Modifier = Modifier) {
+    val rainbow = remember { (0..12).map { i -> Color.hsl(i * 30f, 1f, 0.5f) } }
+    Box(modifier = modifier
+        .height(28.dp)
+        .fillMaxWidth()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(14.dp))
+                .semantics { contentDescription = "Hue selector, ${hue.toInt()} degrees" }
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val w = size.width.toFloat().coerceAtLeast(1f)
+                        onHueChange((down.position.x / w * 360f).coerceIn(0f, 360f))
+                        drag(down.id) { change ->
+                            onHueChange((change.position.x / w * 360f).coerceIn(0f, 360f))
+                            change.consume()
+                        }
+                    }
+                }
+        ) {
+            drawRect(brush = Brush.horizontalGradient(rainbow))
+            val tx = (hue / 360f) * size.width
+            val ty = size.height / 2f
+            drawCircle(color = Color.Black.copy(alpha = 0.25f), radius = 13.dp.toPx(), center = Offset(tx, ty))
+            drawCircle(color = Color.White,               radius = 12.dp.toPx(), center = Offset(tx, ty))
+            drawCircle(color = Color.hsl(hue, 1f, 0.5f), radius =  9.dp.toPx(), center = Offset(tx, ty))
+        }
     }
 }
 

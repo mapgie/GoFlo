@@ -92,6 +92,8 @@ enum class AppTheme(
     HIGH_CONTRAST_DARK("Max Contrast",   ThemeGroup.HIGH_CONTRAST, 0xFFFFFFFFFL, isDark = true),
     // Color-blind friendly (safe for deuteranopia & protanopia, ~9% of users)
     BLUE_ORANGE("Blue & Orange",  ThemeGroup.COLOR_BLIND,   0xFF005FADL),
+    // User-defined custom palette
+    CUSTOM("Custom", ThemeGroup.LIGHT, 0xFF808080L),
 }
 
 // ── Classic light color schemes ───────────────────────────────────────────────
@@ -1365,4 +1367,77 @@ private fun standardColorSchemeFor(theme: AppTheme, systemIsDark: Boolean): Colo
     AppTheme.HIGH_CONTRAST_LIGHT -> HighContrastLight
     AppTheme.HIGH_CONTRAST_DARK  -> HighContrastDark
     AppTheme.BLUE_ORANGE         -> BlueOrange
+    AppTheme.CUSTOM              -> CoralLight  // Fallback; GoFloTheme builds the real scheme dynamically
+}
+
+/** Builds a full Material 3 colour scheme from three HSL hue values (0–360°). */
+fun buildCustomColorScheme(
+    primaryHue:   Float,
+    secondaryHue: Float,
+    tertiaryHue:  Float,
+    isDark:       Boolean,
+): ColorScheme = if (isDark) {
+    darkColorScheme(
+        primary             = Color.hsl(primaryHue,   0.75f, 0.75f),
+        onPrimary           = Color.hsl(primaryHue,   0.75f, 0.10f),
+        primaryContainer    = Color.hsl(primaryHue,   0.55f, 0.25f),
+        onPrimaryContainer  = Color.hsl(primaryHue,   0.55f, 0.90f),
+        secondary           = Color.hsl(secondaryHue, 0.55f, 0.70f),
+        onSecondary         = Color.hsl(secondaryHue, 0.55f, 0.10f),
+        secondaryContainer  = Color.hsl(secondaryHue, 0.40f, 0.25f),
+        onSecondaryContainer= Color.hsl(secondaryHue, 0.40f, 0.90f),
+        tertiary            = Color.hsl(tertiaryHue,  0.55f, 0.70f),
+        onTertiary          = Color.hsl(tertiaryHue,  0.55f, 0.10f),
+        tertiaryContainer   = Color.hsl(tertiaryHue,  0.40f, 0.25f),
+        onTertiaryContainer = Color.hsl(tertiaryHue,  0.40f, 0.90f),
+        background          = Color.hsl(primaryHue, 0.05f, 0.10f),
+        onBackground        = Color.hsl(primaryHue, 0.10f, 0.90f),
+        surface             = Color.hsl(primaryHue, 0.05f, 0.12f),
+        onSurface           = Color.hsl(primaryHue, 0.10f, 0.90f),
+        surfaceVariant      = Color.hsl(primaryHue, 0.15f, 0.20f),
+        onSurfaceVariant    = Color.hsl(primaryHue, 0.10f, 0.75f),
+        outline             = Color.hsl(primaryHue, 0.10f, 0.55f),
+        outlineVariant      = Color.hsl(primaryHue, 0.08f, 0.30f),
+        error               = Color(0xFFFFB4AB),
+        onError             = Color(0xFF690005),
+        errorContainer      = Color(0xFF93000A),
+        onErrorContainer    = Color(0xFFFFDAD6),
+        inverseSurface      = Color.hsl(primaryHue, 0.10f, 0.90f),
+        inverseOnSurface    = Color.hsl(primaryHue, 0.05f, 0.15f),
+        inversePrimary      = Color.hsl(primaryHue, 0.60f, 0.35f),
+        scrim               = Color.Black,
+        surfaceTint         = Color.hsl(primaryHue, 0.75f, 0.75f),
+    )
+} else {
+    lightColorScheme(
+        primary             = Color.hsl(primaryHue,   0.60f, 0.35f),
+        onPrimary           = Color.White,
+        primaryContainer    = Color.hsl(primaryHue,   0.55f, 0.90f),
+        onPrimaryContainer  = Color.hsl(primaryHue,   0.55f, 0.10f),
+        secondary           = Color.hsl(secondaryHue, 0.45f, 0.35f),
+        onSecondary         = Color.White,
+        secondaryContainer  = Color.hsl(secondaryHue, 0.40f, 0.88f),
+        onSecondaryContainer= Color.hsl(secondaryHue, 0.40f, 0.10f),
+        tertiary            = Color.hsl(tertiaryHue,  0.45f, 0.35f),
+        onTertiary          = Color.White,
+        tertiaryContainer   = Color.hsl(tertiaryHue,  0.40f, 0.88f),
+        onTertiaryContainer = Color.hsl(tertiaryHue,  0.40f, 0.10f),
+        background          = Color.hsl(primaryHue, 0.08f, 0.98f),
+        onBackground        = Color.hsl(primaryHue, 0.25f, 0.10f),
+        surface             = Color.hsl(primaryHue, 0.05f, 0.98f),
+        onSurface           = Color.hsl(primaryHue, 0.25f, 0.10f),
+        surfaceVariant      = Color.hsl(primaryHue, 0.20f, 0.90f),
+        onSurfaceVariant    = Color.hsl(primaryHue, 0.15f, 0.30f),
+        outline             = Color.hsl(primaryHue, 0.10f, 0.55f),
+        outlineVariant      = Color.hsl(primaryHue, 0.08f, 0.80f),
+        error               = Color(0xFFBA1A1A),
+        onError             = Color.White,
+        errorContainer      = Color(0xFFFFDAD6),
+        onErrorContainer    = Color(0xFF410002),
+        inverseSurface      = Color.hsl(primaryHue, 0.20f, 0.20f),
+        inverseOnSurface    = Color.hsl(primaryHue, 0.08f, 0.95f),
+        inversePrimary      = Color.hsl(primaryHue, 0.60f, 0.75f),
+        scrim               = Color.Black,
+        surfaceTint         = Color.hsl(primaryHue, 0.60f, 0.35f),
+    )
 }

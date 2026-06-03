@@ -8,7 +8,13 @@ Entries within each section are ordered by risk to a new project if forgotten: b
 
 ### Android / Compose
 
-**`.clickable {}` without a `semantics { role = … }` is invisible to keyboard and switch access**
+**`SwipeToDismissBox`: use `confirmValueChange` returning `false` to intercept — not `LaunchedEffect` + `reset()`**
+When a swipe should show a confirmation dialog before committing, the natural-looking approach is `confirmValueChange = { true }` (allow the state change) then call `state.reset()` in the dialog's Cancel handler. This causes two bugs: (1) if the composition survives navigation, the `LaunchedEffect` key hasn't changed on return so the dialog silently re-appears; (2) `reset()` takes one animation frame, leaving a brief window where swiping is disabled. The correct pattern is `confirmValueChange = { newValue -> if (newValue == EndToStart) { showConfirm = true; false } else true }`. Returning `false` rejects the transition entirely — the box springs back immediately, no `reset()` call is needed, and the dialog fully controls the outcome. Remove the `LaunchedEffect` and the coroutine scope from the composable.
+
+**`SwipeToDismissBox` `backgroundContent` clips to a rectangle — clip it to match the foreground card's shape**
+`backgroundContent` in `SwipeToDismissBox` fills the full layout bounds, which is a rectangle. If the dismissible card uses rounded corners (e.g. Material 3 `Card` with `MaterialTheme.shapes.medium`), the coloured background bleeds outside those corners and appears as a square halo. Fix: add `.clip(MaterialTheme.shapes.medium)` as the first modifier on the `Box` inside `backgroundContent` to confine it to the same shape.
+
+
 Compose's high-level interactive components (Button, IconButton, Card with onClick, etc.) declare their role automatically. Any element that uses a raw `.clickable {}` modifier instead — typically a Row, Box, or ListItem acting as a button — has no role by default and is therefore unreachable by keyboard navigation, switch access, and TalkBack's explore-by-touch linear mode. Always append `.semantics { role = Role.Button }` (or `RadioButton`, `Switch`, `Checkbox`) after `.clickable {}`. For toggle controls, also set `stateDescription` to the current state string (e.g. "Expanded") so TalkBack announces the result of the tap, not just the label. Pattern: `Modifier.clickable { … }.semantics { role = Role.Button; stateDescription = "…" }`.
 
 **Status changes need `liveRegion` — visibility changes alone are silent to screen readers**
