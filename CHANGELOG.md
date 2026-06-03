@@ -18,6 +18,24 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.25.0-beta.1] - 2026-06-03
+
+### Added
+- Full-screen disruptive alarm mode: when delivery mode is set to Alarm, the notification now launches a lock-screen alarm activity with a large icon and the user's custom alarm name.
+- User-nameable alarms: set a custom label in Manage > Reminders that appears on the alarm screen when it fires.
+- Year navigation in Stats chart area: CalendarYear and YTD modes now show prev/next year arrows directly above the chart, consistent with Month view navigation.
+- Alarm and notification permission shortcuts in Manage screen for quick system-settings access.
+
+### Changed
+- Stats: Time range picker moved below the chart so the chart is immediately visible when a category is selected.
+- Stats: Plus One (increment) categories now correctly sum the logged count per day in Time Series charts instead of showing 1 for every day logged.
+- Stats: Removing a pin from the Dashboard now immediately clears the Unpin button in Stats.
+- Settings: Tracking and Notifications sections removed; these are now exclusively in Manage.
+- Manage: Items now show trailing chevron arrows, matching the Settings screen style.
+- Manage > Reminders: Delivery mode description updated to say "Full-screen alarm" instead of "Plays alarm sound".
+- Category management: Removed redundant Save button from the values list screen; changes save automatically.
+
+---
 ## [0.24.1-beta.1] - 2026-06-02
 
 ### Changed

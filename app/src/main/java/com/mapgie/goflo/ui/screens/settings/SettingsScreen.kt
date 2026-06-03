@@ -556,17 +556,13 @@ fun SettingsScreen(
 
     when (currentSubScreen) {
         SettingsSubScreen.NONE -> SettingsMainList(
-            prefs                        = prefs,
-            security                     = security,
-            categories                   = categories,
-            currentTheme                 = currentTheme,
-            reminder                     = reminder,
-            scrollState                  = mainListScrollState,
-            onBack                       = onBack,
-            onNavigateTo                 = { currentSubScreen = it },
-            onNavigateToManageCategories = onNavigateToManageCategories,
-            onOpenDiscord                = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
-            onOpenSupport                = { openUrl(context, "https://github.com/sponsors/mapgie") }
+            security      = security,
+            currentTheme  = currentTheme,
+            scrollState   = mainListScrollState,
+            onBack        = onBack,
+            onNavigateTo  = { currentSubScreen = it },
+            onOpenDiscord = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
+            onOpenSupport = { openUrl(context, "https://github.com/sponsors/mapgie") }
         )
         SettingsSubScreen.CYCLE -> CycleSubScreen(
             prefs     = prefs,
@@ -636,35 +632,15 @@ fun SettingsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsMainList(
-    prefs:                        AppPreferences,
-    security:                     SecuritySettings,
-    categories:                   List<TrackingCategory>,
-    currentTheme:                 AppTheme,
-    reminder:                     ReminderSettings,
-    scrollState:                  ScrollState,
-    onBack:                       () -> Unit,
-    onNavigateTo:                 (SettingsSubScreen) -> Unit,
-    onNavigateToManageCategories: () -> Unit,
-    onOpenDiscord:                () -> Unit,
-    onOpenSupport:                () -> Unit,
+    security:     SecuritySettings,
+    currentTheme: AppTheme,
+    scrollState:  ScrollState,
+    onBack:       () -> Unit,
+    onNavigateTo: (SettingsSubScreen) -> Unit,
+    onOpenDiscord: () -> Unit,
+    onOpenSupport: () -> Unit,
 ) {
-    val cycleSummary = if (prefs.preferredCycleLength > 0)
-        "Custom: ${prefs.preferredCycleLength} days"
-    else "Auto — calculated from history"
-
-    val activeReminderCount = listOf(
-        reminder.preperiodEnabled,
-        reminder.ovulationEnabled,
-        reminder.dailyDuringPeriodEnabled
-    ).count { it }
-    val reminderSummary = if (activeReminderCount == 0) "No reminders enabled"
-    else "$activeReminderCount active · %02d:%02d".format(reminder.reminderHour, reminder.reminderMinute)
-
     val securitySummary = if (security.hasPinSet) "PIN lock enabled" else "No PIN set"
-
-    val quickLogSummary = if (prefs.quickLogCategoryId == -1L) "Tap → Period"
-    else categories.firstOrNull { it.id == prefs.quickLogCategoryId }?.name
-        ?.let { "Tap → $it" } ?: "Tap → Period"
 
     Scaffold(
         topBar = {
@@ -724,40 +700,6 @@ private fun SettingsMainList(
                         )
                     }
                 }
-
-                // ── TRACKING ─────────────────────────────────────────────────
-                SettingsSectionHeader("Tracking")
-                SettingsNavItem(
-                    title    = "What You Track",
-                    subtitle = "Customise the symptoms & metrics you log",
-                    icon     = Icons.Outlined.Tune,
-                    onClick  = onNavigateToManageCategories
-                )
-                SettingsNavItem(
-                    title    = "Cycle",
-                    subtitle = cycleSummary,
-                    icon     = Icons.Outlined.Autorenew,
-                    onClick  = { onNavigateTo(SettingsSubScreen.CYCLE) }
-                )
-                SettingsNavItem(
-                    title    = "One-Tap Quick Log",
-                    subtitle = quickLogSummary,
-                    icon     = Icons.Outlined.TouchApp,
-                    onClick  = { onNavigateTo(SettingsSubScreen.QUICK_LOG) }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
-                // ── NOTIFICATIONS ─────────────────────────────────────────────
-                SettingsSectionHeader("Notifications")
-                SettingsNavItem(
-                    title    = "Reminders",
-                    subtitle = reminderSummary,
-                    icon     = Icons.Outlined.NotificationsNone,
-                    onClick  = { onNavigateTo(SettingsSubScreen.REMINDERS) }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
                 // ── PERSONALISATION ───────────────────────────────────────────
                 SettingsSectionHeader("Personalisation")

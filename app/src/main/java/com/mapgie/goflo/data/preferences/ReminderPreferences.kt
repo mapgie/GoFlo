@@ -21,6 +21,8 @@ data class ReminderSettings(
     val reminderMinute: Int = 0,
     /** "NOTIFICATION" (inexact, no special permission) or "ALARM" (exact, requires SCHEDULE_EXACT_ALARM). */
     val deliveryMode: String = "NOTIFICATION",
+    /** Custom label shown on the alarm screen when delivery mode is ALARM. */
+    val alarmLabel: String = "",
 )
 
 data class AppPreferences(
@@ -101,6 +103,7 @@ class AppPreferencesStore(private val context: Context) {
         val REMINDER_HOUR = intPreferencesKey("reminder_hour")
         val REMINDER_MINUTE = intPreferencesKey("reminder_minute")
         val REMINDER_DELIVERY_MODE = stringPreferencesKey("reminder_delivery_mode")
+        val ALARM_LABEL = stringPreferencesKey("alarm_label")
         val PREFERRED_CYCLE_LENGTH = intPreferencesKey("preferred_cycle_length")
         val QUICK_LOG_CATEGORY_ID = longPreferencesKey("quick_log_category_id")
         val SHOW_PERIOD_PREDICTION = booleanPreferencesKey("show_period_prediction")
@@ -151,6 +154,7 @@ class AppPreferencesStore(private val context: Context) {
                 reminderHour = prefs[Keys.REMINDER_HOUR] ?: 8,
                 reminderMinute = prefs[Keys.REMINDER_MINUTE] ?: 0,
                 deliveryMode = prefs[Keys.REMINDER_DELIVERY_MODE] ?: "NOTIFICATION",
+                alarmLabel = prefs[Keys.ALARM_LABEL] ?: "",
             )
         )
     }
@@ -188,6 +192,10 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setReminderDeliveryMode(mode: String) {
         context.dataStore.edit { it[Keys.REMINDER_DELIVERY_MODE] = mode }
+    }
+
+    suspend fun setAlarmLabel(label: String) {
+        context.dataStore.edit { it[Keys.ALARM_LABEL] = label }
     }
 
     /**

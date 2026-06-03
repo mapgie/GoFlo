@@ -22,6 +22,7 @@ const val ACTION_DAILY = "com.mapgie.goflo.ACTION_DAILY_PERIOD_REMINDER"
 const val CHANNEL_ID = "goflo_reminders_v1"
 const val CHANNEL_NOTIF_ID = "goflo_notifications_v1"
 const val EXTRA_USE_ALARM_CHANNEL = "use_alarm_channel"
+const val EXTRA_ALARM_LABEL = "alarm_label"
 
 object ReminderScheduler {
 
@@ -63,26 +64,27 @@ object ReminderScheduler {
         val reminderHour = settings.reminderHour
         val reminderMinute = settings.reminderMinute
         val useAlarm = settings.deliveryMode == "ALARM"
+        val alarmLabel = settings.alarmLabel
 
         if (settings.preperiodEnabled) {
             val nextStart = PeriodRepository.predictNextStart(periods, avg)
             if (nextStart != null) {
                 val triggerDate = nextStart.minusDays(settings.preperiodDaysBefore.toLong())
-                scheduleAt(context, ACTION_PREPERIOD, triggerDate, reminderHour, reminderMinute, useAlarm)
+                scheduleAt(context, ACTION_PREPERIOD, triggerDate, reminderHour, reminderMinute, useAlarm, alarmLabel)
             }
         }
 
         if (settings.ovulationEnabled) {
             val ovulation = PeriodRepository.ovulationDate(periods, avg)
             if (ovulation != null && !ovulation.isBefore(LocalDate.now())) {
-                scheduleAt(context, ACTION_OVULATION, ovulation, reminderHour, reminderMinute, useAlarm)
+                scheduleAt(context, ACTION_OVULATION, ovulation, reminderHour, reminderMinute, useAlarm, alarmLabel)
             }
         }
 
         if (settings.dailyDuringPeriodEnabled) {
             val active = PeriodRepository.activePeriod(periods)
             if (active != null) {
-                scheduleDailyRepeating(context, reminderHour, reminderMinute, useAlarm)
+                scheduleDailyRepeating(context, reminderHour, reminderMinute, useAlarm, alarmLabel)
             }
         }
     }
@@ -100,6 +102,7 @@ object ReminderScheduler {
         hour: Int,
         minute: Int,
         useAlarm: Boolean,
+        alarmLabel: String = "",
     ) {
         val triggerAt = LocalDateTime.of(date.year, date.month, date.dayOfMonth, hour, minute)
             .atZone(ZoneId.systemDefault())
@@ -109,7 +112,7 @@ object ReminderScheduler {
         if (triggerAt <= System.currentTimeMillis()) return
 
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pi = pendingIntent(context, action, useAlarm)
+        val pi = pendingIntent(context, action, useAlarm, alarmLabel)
 
         if (useAlarm && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarm.canScheduleExactAlarms()) {
             alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
@@ -118,7 +121,7 @@ object ReminderScheduler {
         }
     }
 
-    private fun scheduleDailyRepeating(context: Context, hour: Int, minute: Int, useAlarm: Boolean) {
+    private fun scheduleDailyRepeating(context: Context, hour: Int, minute: Int, useAlarm: Boolean, alarmLabel: String = "") {
         val now = System.currentTimeMillis()
         val today = LocalDate.now()
         var triggerAt = LocalDateTime.of(today.year, today.month, today.dayOfMonth, hour, minute)
@@ -132,7 +135,7 @@ object ReminderScheduler {
             AlarmManager.RTC_WAKEUP,
             triggerAt,
             AlarmManager.INTERVAL_DAY,
-            pendingIntent(context, ACTION_DAILY, useAlarm)
+            pendingIntent(context, ACTION_DAILY, useAlarm, alarmLabel)
         )
     }
 
@@ -143,10 +146,11 @@ object ReminderScheduler {
         alarm.cancel(pendingIntent(context, action, useAlarm = false))
     }
 
-    private fun pendingIntent(context: Context, action: String, useAlarm: Boolean): PendingIntent {
+    private fun pendingIntent(context: Context, action: String, useAlarm: Boolean, alarmLabel: String = ""): PendingIntent {
         val intent = Intent(context, ReminderReceiver::class.java)
             .setAction(action)
             .putExtra(EXTRA_USE_ALARM_CHANNEL, useAlarm)
+            .putExtra(EXTRA_ALARM_LABEL, alarmLabel)
         return PendingIntent.getBroadcast(
             context,
             action.hashCode(),

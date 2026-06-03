@@ -95,6 +95,17 @@
         </activity-alias>
 
         <!--
+            AlarmActivity is launched via a full-screen intent when delivery mode is ALARM.
+            It shows a disruptive lock-screen-visible alarm UI with the user's custom label.
+        -->
+        <activity
+            android:name=".notifications.AlarmActivity"
+            android:exported="false"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:excludeFromRecents="true" />
+
+        <!--
             ReminderReceiver handles alarm-fired notifications only. It does NOT need
             to be exported — AlarmManager delivers via explicit component PendingIntents
             without requiring the receiver to be exported. Keeping it unexported prevents

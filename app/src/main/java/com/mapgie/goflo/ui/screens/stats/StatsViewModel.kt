@@ -197,6 +197,7 @@ class StatsViewModel(
             viewModelScope.launch {
                 store.preferences.collect { prefs ->
                     _uiState.update { it.copy(dashboardEnabled = prefs.dashboardEnabled) }
+                    refreshPinnedState()
                 }
             }
         }
@@ -523,7 +524,12 @@ class StatsViewModel(
 
                 ChartType.TIME_SERIES -> {
                     val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
-                    val buckets = groupByTimeBucket(logs, start, end, state.timeRange)
+                    val countMap: Map<Long, Int> = if (cat1.categoryType == "increment") {
+                        logs.associate { log ->
+                            log.id to (repository.getValuesForLog(log.id).firstOrNull()?.toIntOrNull() ?: 1)
+                        }
+                    } else emptyMap()
+                    val buckets = groupByTimeBucket(logs, start, end, state.timeRange, countMap)
                     if (buckets.isEmpty()) StatsChartData.Empty
                     else StatsChartData.TimeSeriesData(buckets, cat1.name)
                 }
@@ -689,20 +695,22 @@ class StatsViewModel(
         logs: List<TrackingLog>,
         start: LocalDate,
         end: LocalDate,
-        timeRange: TimeRange = TimeRange.AllTime
+        timeRange: TimeRange = TimeRange.AllTime,
+        incrementCountMap: Map<Long, Int> = emptyMap(),
     ): List<TimeBucket> {
         if (logs.isEmpty()) return emptyList()
         return when {
-            timeRange is TimeRange.SpecificMonth -> groupByDay(logs, start, end)
-            ChronoUnit.DAYS.between(start, end) <= 90 -> groupByWeek(logs, start, end)
-            else -> groupByMonth(logs, start, end)
+            timeRange is TimeRange.SpecificMonth -> groupByDay(logs, start, end, incrementCountMap)
+            ChronoUnit.DAYS.between(start, end) <= 90 -> groupByWeek(logs, start, end, incrementCountMap)
+            else -> groupByMonth(logs, start, end, incrementCountMap)
         }
     }
 
     private fun groupByDay(
         logs: List<TrackingLog>,
         start: LocalDate,
-        end: LocalDate
+        end: LocalDate,
+        incrementCountMap: Map<Long, Int> = emptyMap(),
     ): List<TimeBucket> {
         val days = mutableListOf<LocalDate>()
         var d = start
@@ -710,16 +718,20 @@ class StatsViewModel(
         val logsByDay = logs.groupBy { LocalDate.parse(it.date) }
         val shortFmt = DateTimeFormatter.ofPattern("d MMM")
         return days.map { day ->
-            TimeBucket(label = day.format(shortFmt), count = logsByDay[day]?.size ?: 0)
+            val dayLogs = logsByDay[day] ?: emptyList()
+            val count = if (incrementCountMap.isNotEmpty())
+                dayLogs.sumOf { incrementCountMap[it.id] ?: 1 }
+            else dayLogs.size
+            TimeBucket(label = day.format(shortFmt), count = count)
         }
     }
 
     private fun groupByMonth(
         logs: List<TrackingLog>,
         start: LocalDate,
-        end: LocalDate
+        end: LocalDate,
+        incrementCountMap: Map<Long, Int> = emptyMap(),
     ): List<TimeBucket> {
-        // Build all months in the range
         val months = mutableListOf<YearMonth>()
         var current = YearMonth.from(start)
         val endMonth = YearMonth.from(end)
@@ -734,22 +746,23 @@ class StatsViewModel(
 
         val shortFmt = DateTimeFormatter.ofPattern("MMM yy")
         return months.map { ym ->
-            TimeBucket(
-                label = ym.format(shortFmt),
-                count = logsByMonth[ym]?.size ?: 0
-            )
+            val monthLogs = logsByMonth[ym] ?: emptyList()
+            val count = if (incrementCountMap.isNotEmpty())
+                monthLogs.sumOf { incrementCountMap[it.id] ?: 1 }
+            else monthLogs.size
+            TimeBucket(label = ym.format(shortFmt), count = count)
         }
     }
 
     private fun groupByWeek(
         logs: List<TrackingLog>,
         start: LocalDate,
-        end: LocalDate
+        end: LocalDate,
+        incrementCountMap: Map<Long, Int> = emptyMap(),
     ): List<TimeBucket> {
         val weekFields = WeekFields.of(Locale.getDefault())
 
-        // Enumerate weeks
-        val weeks = mutableListOf<LocalDate>() // Monday of each week
+        val weeks = mutableListOf<LocalDate>()
         var weekStart = start.with(weekFields.dayOfWeek(), 1)
         val lastWeekStart = end.with(weekFields.dayOfWeek(), 1)
         while (!weekStart.isAfter(lastWeekStart)) {
@@ -759,12 +772,16 @@ class StatsViewModel(
 
         val logsByWeek = logs.groupBy { log ->
             val date = LocalDate.parse(log.date)
-            date.with(weekFields.dayOfWeek(), 1) // normalise to Monday
+            date.with(weekFields.dayOfWeek(), 1)
         }
 
         return weeks.map { ws ->
             val label = "W${ws.get(weekFields.weekOfWeekBasedYear())} '${ws.format(DateTimeFormatter.ofPattern("yy"))}"
-            TimeBucket(label = label, count = logsByWeek[ws]?.size ?: 0)
+            val weekLogs = logsByWeek[ws] ?: emptyList()
+            val count = if (incrementCountMap.isNotEmpty())
+                weekLogs.sumOf { incrementCountMap[it.id] ?: 1 }
+            else weekLogs.size
+            TimeBucket(label = label, count = count)
         }
     }
 

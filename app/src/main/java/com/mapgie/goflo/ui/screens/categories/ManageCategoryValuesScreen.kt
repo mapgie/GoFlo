@@ -467,10 +467,6 @@ private fun DefaultCategoryValues(
         }
 
         HorizontalDivider()
-
-        Button(onClick = { onNavigateBack() }, modifier = Modifier.fillMaxWidth()) {
-            Text("Save")
-        }
     }
 }
 

@@ -45,7 +45,12 @@ internal suspend fun computeChartData(
 
         ChartType.TIME_SERIES -> {
             val logs = repository.getLogsForCategoryInRange(category1.id, start, end)
-            val buckets = chartGroupByTimeBucket(logs, start, end, timeRange)
+            val countMap: Map<Long, Int> = if (category1.categoryType == "increment") {
+                logs.associate { log ->
+                    log.id to (repository.getValuesForLog(log.id).firstOrNull()?.toIntOrNull() ?: 1)
+                }
+            } else emptyMap()
+            val buckets = chartGroupByTimeBucket(logs, start, end, timeRange, countMap)
             if (buckets.isEmpty()) StatsChartData.Empty
             else StatsChartData.TimeSeriesData(buckets, category1.name)
         }
@@ -195,20 +200,22 @@ internal fun chartGroupByTimeBucket(
     logs: List<TrackingLog>,
     start: LocalDate,
     end: LocalDate,
-    timeRange: TimeRange = TimeRange.AllTime
+    timeRange: TimeRange = TimeRange.AllTime,
+    incrementCountMap: Map<Long, Int> = emptyMap(),
 ): List<TimeBucket> {
     if (logs.isEmpty()) return emptyList()
     return when {
-        timeRange is TimeRange.SpecificMonth -> chartGroupByDay(logs, start, end)
-        ChronoUnit.DAYS.between(start, end) <= 90 -> chartGroupByWeek(logs, start, end)
-        else -> chartGroupByMonth(logs, start, end)
+        timeRange is TimeRange.SpecificMonth -> chartGroupByDay(logs, start, end, incrementCountMap)
+        ChronoUnit.DAYS.between(start, end) <= 90 -> chartGroupByWeek(logs, start, end, incrementCountMap)
+        else -> chartGroupByMonth(logs, start, end, incrementCountMap)
     }
 }
 
 internal fun chartGroupByDay(
     logs: List<TrackingLog>,
     start: LocalDate,
-    end: LocalDate
+    end: LocalDate,
+    incrementCountMap: Map<Long, Int> = emptyMap(),
 ): List<TimeBucket> {
     val days = mutableListOf<LocalDate>()
     var d = start
@@ -216,14 +223,19 @@ internal fun chartGroupByDay(
     val logsByDay = logs.groupBy { LocalDate.parse(it.date) }
     val shortFmt = DateTimeFormatter.ofPattern("d MMM")
     return days.map { day ->
-        TimeBucket(label = day.format(shortFmt), count = logsByDay[day]?.size ?: 0)
+        val dayLogs = logsByDay[day] ?: emptyList()
+        val count = if (incrementCountMap.isNotEmpty())
+            dayLogs.sumOf { incrementCountMap[it.id] ?: 1 }
+        else dayLogs.size
+        TimeBucket(label = day.format(shortFmt), count = count)
     }
 }
 
 internal fun chartGroupByMonth(
     logs: List<TrackingLog>,
     start: LocalDate,
-    end: LocalDate
+    end: LocalDate,
+    incrementCountMap: Map<Long, Int> = emptyMap(),
 ): List<TimeBucket> {
     val months = mutableListOf<YearMonth>()
     var current = YearMonth.from(start)
@@ -237,17 +249,19 @@ internal fun chartGroupByMonth(
     }
     val shortFmt = DateTimeFormatter.ofPattern("MMM yy")
     return months.map { ym ->
-        TimeBucket(
-            label = ym.format(shortFmt),
-            count = logsByMonth[ym]?.size ?: 0
-        )
+        val monthLogs = logsByMonth[ym] ?: emptyList()
+        val count = if (incrementCountMap.isNotEmpty())
+            monthLogs.sumOf { incrementCountMap[it.id] ?: 1 }
+        else monthLogs.size
+        TimeBucket(label = ym.format(shortFmt), count = count)
     }
 }
 
 internal fun chartGroupByWeek(
     logs: List<TrackingLog>,
     start: LocalDate,
-    end: LocalDate
+    end: LocalDate,
+    incrementCountMap: Map<Long, Int> = emptyMap(),
 ): List<TimeBucket> {
     val weekFields = WeekFields.of(Locale.getDefault())
     val weeks = mutableListOf<LocalDate>()
@@ -263,7 +277,11 @@ internal fun chartGroupByWeek(
     }
     return weeks.map { ws ->
         val label = "W${ws.get(weekFields.weekOfWeekBasedYear())} '${ws.format(DateTimeFormatter.ofPattern("yy"))}"
-        TimeBucket(label = label, count = logsByWeek[ws]?.size ?: 0)
+        val weekLogs = logsByWeek[ws] ?: emptyList()
+        val count = if (incrementCountMap.isNotEmpty())
+            weekLogs.sumOf { incrementCountMap[it.id] ?: 1 }
+        else weekLogs.size
+        TimeBucket(label = label, count = count)
     }
 }
 

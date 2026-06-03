@@ -186,6 +186,10 @@ class SettingsViewModel(
         store.setReminderDeliveryMode(mode); reschedule()
     }
 
+    fun setAlarmLabel(label: String) = viewModelScope.launch {
+        store.setAlarmLabel(label); reschedule()
+    }
+
     // ── Cycle ─────────────────────────────────────────────────────────────────
 
     /** 0 clears the override (reverts to auto-calculated average from history). */
