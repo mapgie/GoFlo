@@ -44,6 +44,10 @@ class ManageCategoryValuesViewModel(
         viewModelScope.launch { repository.renameCategory(categoryId, newName) }
     }
 
+    fun updateAppearance(iconName: String, colorToken: String) {
+        viewModelScope.launch { repository.updateCategoryAppearance(categoryId, iconName, colorToken) }
+    }
+
     fun updateNumericSettings(
         min: Float,
         max: Float,

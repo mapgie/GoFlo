@@ -18,6 +18,16 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.30.1-beta.1] - 2026-06-04
+
+### Changed
+- Tracking Categories: explicit "Reorder" mode (toolbar toggle) replaces always-visible drag handles. Handles appear only when reorder mode is active; swipe actions are suspended during reorder.
+- Tracking Categories: category name upgraded to `titleMedium` for stronger visual hierarchy over the subtitle.
+- Tracking Categories: list cards use `surfaceContainerLow` instead of `surfaceVariant` for a lighter, less heavy appearance.
+- Tracking Categories: palette icon removed from list rows. Appearance editing (icon and colour) is now in the three-dot overflow menu on each category's detail screen.
+- Tracking Categories: FAB replaced with an Extended FAB labelled "Add Category" for clearer affordance.
+
+---
 ## [0.30.0-beta.1] - 2026-06-03
 
 ### Added
