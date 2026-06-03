@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.30.2-beta.1] - 2026-06-04
+
+### Fixed
+- Calendar and stats charts now start the week on Monday (ISO 8601 / UK convention). Previously the calendar grid showed Sunday as the first column and week groupings in Stats could vary by device locale.
+
+---
 ## [0.30.1-beta.1] - 2026-06-04
 
 ### Changed

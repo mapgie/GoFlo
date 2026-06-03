@@ -9,7 +9,6 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
-import java.util.Locale
 
 // ── Shared chart-data computation utilities ───────────────────────────────────
 //
@@ -280,7 +279,7 @@ internal fun chartGroupByWeek(
     end: LocalDate,
     incrementCountMap: Map<Long, Int> = emptyMap(),
 ): List<TimeBucket> {
-    val weekFields = WeekFields.of(Locale.getDefault())
+    val weekFields = WeekFields.ISO
     val weeks = mutableListOf<LocalDate>()
     var weekStart = start.with(weekFields.dayOfWeek(), 1)
     val lastWeekStart = end.with(weekFields.dayOfWeek(), 1)
@@ -340,7 +339,7 @@ internal fun chartBuildNumericWeekBuckets(
     start: LocalDate,
     end: LocalDate
 ): List<NumericBucket> {
-    val weekFields = WeekFields.of(Locale.getDefault())
+    val weekFields = WeekFields.ISO
     val weeks = mutableListOf<LocalDate>()
     var ws = start.with(weekFields.dayOfWeek(), 1)
     val lastWs = end.with(weekFields.dayOfWeek(), 1)
@@ -447,7 +446,7 @@ internal fun chartBuildDualWeekBuckets(
     start: LocalDate,
     end: LocalDate
 ): List<DualBucket> {
-    val weekFields = WeekFields.of(Locale.getDefault())
+    val weekFields = WeekFields.ISO
     val weeks = mutableListOf<LocalDate>()
     var ws = start.with(weekFields.dayOfWeek(), 1)
     val lastWs = end.with(weekFields.dayOfWeek(), 1)
