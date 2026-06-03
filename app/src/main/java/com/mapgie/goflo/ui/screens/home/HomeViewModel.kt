@@ -31,6 +31,7 @@ data class HomeUiState(
     val avgCycleLength: Int = 28,
     /** True when the user has manually overridden the cycle length. */
     val cycleOverrideActive: Boolean = false,
+    val cyclePhaseLabel: String? = null,
     val predictedNextPeriod: LocalDate? = null,
     /** True when today falls within the predicted period window but no period is active. */
     val isInExpectedPeriod: Boolean = false,
@@ -83,6 +84,7 @@ class HomeViewModel(
         } ?: emptySet()
         val active = PeriodRepository.activePeriod(periods)
         val cycleDay = PeriodRepository.cycleDay(periods)
+        val cyclePhaseLabel = cycleDay?.let { PeriodRepository.cyclePhaseLabel(it, avg) }
 
         val periodDays = buildSet {
             periods.forEach { entry ->
@@ -119,6 +121,7 @@ class HomeViewModel(
             cycleDay             = cycleDay,
             avgCycleLength       = avg,
             cycleOverrideActive  = customCycle != null,
+            cyclePhaseLabel      = cyclePhaseLabel,
             predictedNextPeriod  = if (prefs.showPeriodPrediction && nextStartIsFuture) nextStart else null,
             isInExpectedPeriod   = isInExpectedPeriod,
             ovulationDay         = if (prefs.showOvulationMarkers) ovulationDay else null,

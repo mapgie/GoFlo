@@ -68,6 +68,7 @@ fun HistoryScreen(
     onNavigate: (String) -> Unit
 ) {
     val periods by viewModel.periods.collectAsState()
+    val avgCycleLength by viewModel.avgCycleLength.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -131,10 +132,21 @@ fun HistoryScreen(
             ) {
                 item { Spacer(Modifier.height(4.dp)) }
 
+                val sortedByStart = periods.sortedBy { it.startDate }
+                val cycleLengthMap = buildMap<Long, Int> {
+                    sortedByStart.zipWithNext { a, b ->
+                        val days = ChronoUnit.DAYS.between(
+                            LocalDate.parse(a.startDate), LocalDate.parse(b.startDate)
+                        ).toInt()
+                        if (days in 15..60) put(a.id, days)
+                    }
+                }
+
                 items(periods, key = { it.id }) { period ->
                     SwipeablePeriodCard(
-                        period  = period,
-                        onDelete = {
+                        period      = period,
+                        cycleLength = cycleLengthMap[period.id],
+                        onDelete    = {
                             // Stage the deletion — card disappears from the list immediately.
                             viewModel.stageDeletion(period)
                             // Show snackbar with Undo action from the screen-level scope
@@ -151,8 +163,8 @@ fun HistoryScreen(
                                 }
                             }
                         },
-                        onClick = { onNavigate(Screen.LogPeriod.withId(period.id)) },
-                        modifier = Modifier,
+                        onClick     = { onNavigate(Screen.LogPeriod.withId(period.id)) },
+                        modifier    = Modifier,
                     )
                 }
                 item { Spacer(Modifier.height(4.dp)) }
@@ -186,6 +198,7 @@ fun HistoryScreen(
 @Composable
 private fun SwipeablePeriodCard(
     period: PeriodEntry,
+    cycleLength: Int?,
     onDelete: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -259,14 +272,14 @@ private fun SwipeablePeriodCard(
             }
         },
     ) {
-        PeriodCard(period = period, onClick = onClick)
+        PeriodCard(period = period, cycleLength = cycleLength, onClick = onClick)
     }
 }
 
 // ── Period card ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun PeriodCard(period: PeriodEntry, onClick: () -> Unit) {
+private fun PeriodCard(period: PeriodEntry, cycleLength: Int? = null, onClick: () -> Unit) {
     val start = LocalDate.parse(period.startDate)
     val end = period.endDate?.let { LocalDate.parse(it) }
     val duration = if (end != null) "${ChronoUnit.DAYS.between(start, end) + 1} days" else "Ongoing"
@@ -295,6 +308,13 @@ private fun PeriodCard(period: PeriodEntry, onClick: () -> Unit) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            cycleLength?.let {
+                Text(
+                    text  = "Cycle length: $it days",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             if (period.notes.isNotBlank()) {
                 Text(
                     text     = period.notes,

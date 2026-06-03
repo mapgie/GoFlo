@@ -259,7 +259,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             }
 
             composable(Screen.Stats.route) {
-                val vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory(app.trackingRepository, app.preferencesStore))
+                val vm: StatsViewModel = viewModel(factory = StatsViewModel.Factory(app.trackingRepository, app.preferencesStore, app.repository))
                 StatsScreen(
                     viewModel = vm,
                     dashboardEnabled = dashboardEnabled,

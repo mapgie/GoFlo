@@ -628,6 +628,7 @@ private fun ChartTypeSelector(
                 add(ChartOption(ChartType.TRENDS, Icons.Default.BarChart, "Trends"))
                 add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Distribution"))
                 add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
+                add(ChartOption(ChartType.PHASE_SUMMARY, Icons.Default.TableChart, "By Phase"))
             }
         }
     }
@@ -923,8 +924,62 @@ private fun ChartArea(
                             TrendsChart(data = chartData)
                         }
                     }
+
+                    is StatsChartData.PhaseSummaryData -> {
+                        PhaseSummaryChart(data = chartData)
+                    }
                 }
             }
         } // Column
+    }
+}
+
+// ── Phase Summary Chart ───────────────────────────────────────────────────────
+
+@Composable
+private fun PhaseSummaryChart(data: StatsChartData.PhaseSummaryData) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = "${data.categoryName} by cycle phase",
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(bottom = 2.dp),
+        )
+        data.rows.forEach { row ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant,
+                        androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+                    )
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(row.phase, style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        "${row.logCount} logs",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (row.topValues.isNotEmpty()) {
+                    Text(
+                        row.topValues.joinToString(" · "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
 }

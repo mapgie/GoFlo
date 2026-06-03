@@ -48,9 +48,17 @@ enum class ChartType {
     TIME_SCATTER,
     /** Trend bars showing most common values for a category. */
     TRENDS,
+    /** Per-phase breakdown of logged values across the cycle. */
+    PHASE_SUMMARY,
 }
 
 // ── Chart data models ─────────────────────────────────────────────────────────
+
+data class PhaseSummaryRow(
+    val phase: String,
+    val logCount: Int,
+    val topValues: List<String>,
+)
 
 data class PieSlice(val label: String, val count: Int, val fraction: Float)
 data class TimeBucket(val label: String, val count: Int)
@@ -122,6 +130,10 @@ sealed class StatsChartData {
         val bars: List<TrendsBar>,
         val categoryName: String,
     ) : StatsChartData()
+    data class PhaseSummaryData(
+        val rows: List<PhaseSummaryRow>,
+        val categoryName: String,
+    ) : StatsChartData()
 }
 
 // ── Pin result ────────────────────────────────────────────────────────────────
@@ -150,6 +162,7 @@ data class StatsUiState(
 class StatsViewModel(
     private val repository: TrackingRepository,
     private val preferencesStore: AppPreferencesStore? = null,
+    private val periodRepository: com.mapgie.goflo.data.repository.PeriodRepository? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatsUiState())
@@ -490,6 +503,7 @@ class StatsViewModel(
             ChartType.COMBO -> cat2 != null && !cat1.isNumeric && cat2.let { !it.isNumeric }
             ChartType.NUMERIC_AVERAGE, ChartType.NUMERIC_DISTRIBUTION, ChartType.TIME_SCATTER -> cat1.isNumeric
             ChartType.TRENDS -> !cat1.isNumeric
+            ChartType.PHASE_SUMMARY -> !cat1.isNumeric && cat2 == null
             ChartType.PIE, ChartType.TIME_SERIES -> true
         }
     }
@@ -660,6 +674,47 @@ class StatsViewModel(
                             )
                         }
                         StatsChartData.TrendsData(bars, cat1.name)
+                    }
+                }
+
+                ChartType.PHASE_SUMMARY -> {
+                    val repo = periodRepository
+                    if (repo == null) {
+                        StatsChartData.Empty
+                    } else {
+                        val periods = repo.getAllPeriods().first()
+                        val avgCycle = com.mapgie.goflo.data.repository.PeriodRepository
+                            .calculateAvgCycleLength(periods)
+                        val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
+
+                        val phaseAccum = mutableMapOf<String, MutableList<String>>()
+                        for (log in logs) {
+                            val logDate = LocalDate.parse(log.date)
+                            val lastStart = periods
+                                .filter { !LocalDate.parse(it.startDate).isAfter(logDate) }
+                                .maxByOrNull { it.startDate }
+                                ?.startDate ?: continue
+                            val cycleDay = (ChronoUnit.DAYS.between(
+                                LocalDate.parse(lastStart), logDate
+                            ).toInt() + 1).takeIf { it >= 1 } ?: continue
+                            val phase = com.mapgie.goflo.data.repository.PeriodRepository
+                                .cyclePhaseLabel(cycleDay, avgCycle)
+                            val values = repository.getValuesForLog(log.id)
+                                .ifEmpty { listOf("(logged)") }
+                            phaseAccum.getOrPut(phase) { mutableListOf() }.addAll(values)
+                        }
+
+                        val phaseOrder = listOf("Menstrual", "Follicular", "Ovulatory", "Luteal")
+                        val rows = phaseOrder.mapNotNull { phase ->
+                            val vals = phaseAccum[phase] ?: return@mapNotNull null
+                            val top = vals.groupingBy { it }.eachCount()
+                                .entries.sortedByDescending { it.value }
+                                .take(3).map { it.key }
+                            PhaseSummaryRow(phase = phase, logCount = vals.size, topValues = top)
+                        }
+
+                        if (rows.isEmpty()) StatsChartData.Empty
+                        else StatsChartData.PhaseSummaryData(rows, cat1.name)
                     }
                 }
             }
@@ -986,10 +1041,11 @@ class StatsViewModel(
     class Factory(
         private val repository: TrackingRepository,
         private val preferencesStore: AppPreferencesStore? = null,
+        private val periodRepository: com.mapgie.goflo.data.repository.PeriodRepository? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return StatsViewModel(repository, preferencesStore) as T
+            return StatsViewModel(repository, preferencesStore, periodRepository) as T
         }
     }
 }

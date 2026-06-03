@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -39,6 +40,10 @@ class HistoryViewModel(
         val symptoms: Set<String>,
     )
     private val pendingUndo = mutableMapOf<Long, UndoData>()
+
+    val avgCycleLength: StateFlow<Int> = repository.getAllPeriods()
+        .map { PeriodRepository.calculateAvgCycleLength(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 28)
 
     /** Visible period list — periods being deleted are hidden during the Undo window. */
     val periods: StateFlow<List<PeriodEntry>> = combine(

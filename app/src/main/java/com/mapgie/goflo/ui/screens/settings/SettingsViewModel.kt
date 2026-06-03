@@ -251,6 +251,93 @@ class SettingsViewModel(
     }
 
     /**
+     * Generates a plain-text cycle summary covering the last 12 months and
+     * delivers a share-sheet Intent suitable for emailing to a healthcare provider.
+     */
+    fun exportDoctorVisit(onReady: (Intent) -> Unit) {
+        viewModelScope.launch {
+            val text   = buildDoctorVisitReport()
+            val intent = DataExporter.buildTextShareIntent(context, text)
+            onReady(intent)
+        }
+    }
+
+    private suspend fun buildDoctorVisitReport(): String {
+        val periods = repository.getAllPeriods().first().sortedBy { it.startDate }
+        val allSymptoms = repository.getAllSymptomsOnce()
+        val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+        val avgCycle = PeriodRepository.calculateAvgCycleLength(periods)
+        val cutoff = LocalDate.now().minusMonths(12)
+        val today = LocalDate.now()
+
+        val sb = StringBuilder()
+        sb.appendLine("GoFlo Cycle Summary")
+        sb.appendLine("Generated: $today")
+        sb.appendLine("=".repeat(40))
+        sb.appendLine()
+        sb.appendLine("Average cycle length: $avgCycle days")
+        sb.appendLine("Total cycles logged: ${maxOf(0, periods.size - 1)}")
+        sb.appendLine()
+
+        sb.appendLine("Recent Periods (last 12 months)")
+        sb.appendLine("-".repeat(40))
+        val recent = periods.filter { LocalDate.parse(it.startDate) >= cutoff }
+        if (recent.isEmpty()) {
+            sb.appendLine("No periods logged in this period.")
+        } else {
+            recent.forEach { period ->
+                val start = LocalDate.parse(period.startDate)
+                val end   = period.endDate?.let { LocalDate.parse(it) }
+                val dur   = if (end != null) "${ChronoUnit.DAYS.between(start, end) + 1} days" else "Ongoing"
+                sb.appendLine("${period.startDate}  Flow: ${period.flowLevel}  Duration: $dur")
+                val syms = symptomsByPeriod[period.id]?.map { it.symptomType } ?: emptyList()
+                if (syms.isNotEmpty()) sb.appendLine("  Symptoms: ${syms.joinToString(", ")}")
+                if (period.notes.isNotBlank()) sb.appendLine("  Notes: ${period.notes}")
+            }
+        }
+
+        sb.appendLine()
+        sb.appendLine("Symptom Frequency (last 12 months)")
+        sb.appendLine("-".repeat(40))
+        val allCategories = trackingRepository.getAllCategoriesOnce()
+        val sympCat = allCategories.firstOrNull { it.systemKey == "symptoms" }
+        if (sympCat != null) {
+            val counts = trackingRepository.getValueCountsForCategory(sympCat.id, cutoff, today)
+            if (counts.isNotEmpty()) {
+                val total = counts.sumOf { it.count }
+                sb.appendLine("${total} total logged:")
+                counts.sortedByDescending { it.count }.forEach { vc ->
+                    sb.appendLine("  ${vc.valueLabel}: ${vc.count} times")
+                }
+            } else {
+                sb.appendLine("No symptoms logged in this period.")
+            }
+        }
+
+        val userCats = allCategories.filter { !it.isArchived && !it.isSystem }
+        if (userCats.isNotEmpty()) {
+            sb.appendLine()
+            sb.appendLine("Other Tracked Categories (last 12 months)")
+            sb.appendLine("-".repeat(40))
+            for (cat in userCats) {
+                val counts = trackingRepository.getValueCountsForCategory(cat.id, cutoff, today)
+                if (counts.isEmpty()) continue
+                val total = counts.sumOf { it.count }
+                sb.appendLine("${cat.name} ($total entries):")
+                counts.sortedByDescending { it.count }.take(5).forEach { vc ->
+                    val pct = vc.count * 100 / total.coerceAtLeast(1)
+                    sb.appendLine("  ${vc.valueLabel}: ${vc.count}x ($pct%)")
+                }
+            }
+        }
+
+        sb.appendLine()
+        sb.appendLine("=".repeat(40))
+        sb.appendLine("Exported from GoFlo")
+        return sb.toString()
+    }
+
+    /**
      * Exports data according to [config] — selected categories, date range, and format —
      * then delivers a share-sheet Intent to [onReady].
      */
