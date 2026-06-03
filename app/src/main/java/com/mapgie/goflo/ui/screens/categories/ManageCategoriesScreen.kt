@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Unarchive
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -119,6 +120,7 @@ fun ManageCategoriesScreen(
     val state by viewModel.uiState.collectAsState()
 
     var showAddDialog         by rememberSaveable { mutableStateOf(false) }
+    var showHelp              by rememberSaveable { mutableStateOf(false) }
     var pendingDelete         by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingArchive        by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingEditAppearance by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -133,6 +135,12 @@ fun ManageCategoriesScreen(
         } else {
             pendingArchive = category.id
         }
+    }
+
+    // ── Help dialog ───────────────────────────────────────────────────────────
+
+    if (showHelp) {
+        CategoriesHelpDialog(onDismiss = { showHelp = false })
     }
 
     // ── Add category dialog ───────────────────────────────────────────────────
@@ -276,6 +284,15 @@ fun ManageCategoriesScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showHelp = true }) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = "Help",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -432,6 +449,70 @@ fun ManageCategoriesScreen(
                 }
             }
         }
+    }
+}
+
+// ── Help dialog ───────────────────────────────────────────────────────────────
+
+@Composable
+private fun CategoriesHelpDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Using Categories") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "Categories are the topics you track alongside your cycle: mood, sleep, medications, symptoms, and more. Flow and Symptoms are built in. Everything else you create yourself.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                HelpSection(
+                    title = "Category types",
+                    body  = "Default: choose from a list of named values you define. Good for things like mood or discharge type.\n\n" +
+                            "Slider scale: pick a number on a fixed scale. Useful for pain, energy, or any rated feeling.\n\n" +
+                            "Numeric: log a specific number each day. Works well for temperature or heart rate.\n\n" +
+                            "Plus One: tap to count one more. Handy for coffees, glasses of water, or medication doses."
+                )
+
+                HelpSection(
+                    title = "Values and order",
+                    body  = "For Default categories, tap the category to add or rename its values. The order of values in that list affects how they appear in Stats: the first value shows as the lightest shade of the category colour, the last as the deepest."
+                )
+
+                HelpSection(
+                    title = "Reorder categories",
+                    body  = "Long-press the drag handle on the right side of a row and drag it to a new position."
+                )
+
+                HelpSection(
+                    title = "Archive",
+                    body  = "Archiving hides a category from the logging screen without removing any of your data. Swipe right on a category to archive it. Scroll to the bottom of this screen and tap Archived to restore it."
+                )
+
+                HelpSection(
+                    title = "Delete",
+                    body  = "Swipe left on a custom category to delete it. Deleting permanently removes the category and all its logged data. This cannot be undone."
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Got it") }
+        }
+    )
+}
+
+@Composable
+private fun HelpSection(title: String, body: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        Text(
+            body,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
