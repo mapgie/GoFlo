@@ -37,7 +37,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -204,24 +204,21 @@ private fun SwipeablePeriodCard(
     modifier: Modifier = Modifier,
 ) {
     var showConfirm by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     val state = rememberSwipeToDismissBoxState(
-        confirmValueChange = { it == SwipeToDismissBoxValue.EndToStart }
-    )
-
-    LaunchedEffect(state.currentValue) {
-        if (state.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            showConfirm = true
+        confirmValueChange = { newValue ->
+            if (newValue == SwipeToDismissBoxValue.EndToStart) {
+                showConfirm = true
+                false  // Reject the transition — box springs back, dialog decides outcome
+            } else {
+                true
+            }
         }
-    }
+    )
 
     if (showConfirm) {
         AlertDialog(
-            onDismissRequest = {
-                showConfirm = false
-                scope.launch { state.reset() }
-            },
+            onDismissRequest = { showConfirm = false },
             title = { Text("Delete period?") },
             text  = { Text("This will permanently remove this period entry. You can undo immediately after.") },
             confirmButton = {
@@ -233,12 +230,7 @@ private fun SwipeablePeriodCard(
                 ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(
-                    onClick = {
-                        showConfirm = false
-                        scope.launch { state.reset() }
-                    }
-                ) { Text("Cancel") }
+                TextButton(onClick = { showConfirm = false }) { Text("Cancel") }
             }
         )
     }
@@ -258,6 +250,7 @@ private fun SwipeablePeriodCard(
             Box(
                 modifier         = Modifier
                     .fillMaxSize()
+                    .clip(MaterialTheme.shapes.medium)
                     .background(bgColor)
                     .padding(end = 24.dp),
                 contentAlignment = Alignment.CenterEnd

@@ -88,6 +88,10 @@ class SettingsViewModel(
 
     fun setWcagMode(enabled: Boolean) = viewModelScope.launch { store.setWcagMode(enabled) }
 
+    fun setCustomPrimaryHue(hue: Float)   = viewModelScope.launch { store.setCustomPrimaryHue(hue) }
+    fun setCustomSecondaryHue(hue: Float) = viewModelScope.launch { store.setCustomSecondaryHue(hue) }
+    fun setCustomTertiaryHue(hue: Float)  = viewModelScope.launch { store.setCustomTertiaryHue(hue) }
+
     // ── App icon ───────────────────────────────────────────────────────────────
 
     /**

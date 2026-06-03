@@ -10,12 +10,17 @@ import androidx.core.view.WindowCompat
 
 @Composable
 fun GoFloTheme(
-    appTheme: AppTheme = AppTheme.CORAL,
-    wcag: Boolean = false,
+    appTheme:    AppTheme = AppTheme.CORAL,
+    wcag:        Boolean  = false,
+    customHues:  Triple<Float, Float, Float>? = null,
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
-    val colorScheme = colorSchemeFor(appTheme, systemDark, wcag)
+    val colorScheme = if (appTheme == AppTheme.CUSTOM && customHues != null) {
+        buildCustomColorScheme(customHues.first, customHues.second, customHues.third, isDark = false)
+    } else {
+        colorSchemeFor(appTheme, systemDark, wcag)
+    }
 
     // Derived "is dark" flag accounts for all system-following themes.
     val effectivelyDark = when (appTheme) {
