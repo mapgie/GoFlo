@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.25.1-beta.1] - 2026-06-03
+
+### Fixed
+- Bottom navigation bar now always navigates to the root of the tapped tab and discards any sub-screen history. Previously, tapping a tab after having navigated deep within it would restore the previous sub-screen stack, causing Back to return to unexpected screens.
+
+---
 ## [0.25.0-beta.1] - 2026-06-03
 
 ### Added

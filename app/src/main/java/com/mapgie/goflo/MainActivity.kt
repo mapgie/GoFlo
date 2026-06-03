@@ -195,8 +195,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     NavigationBarItem(
                         selected = currentRoute == Screen.Home.route,
                         onClick = { navController.navigate(Screen.Home.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
                         } },
                         icon = { Icon(Icons.Default.Home, contentDescription = "Home") },
                         label = { Text("Home") }
@@ -204,8 +204,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     NavigationBarItem(
                         selected = currentRoute == Screen.History.route,
                         onClick = { navController.navigate(Screen.History.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
                         } },
                         icon = { Icon(Icons.Default.DateRange, contentDescription = "History") },
                         label = { Text("History") }
@@ -214,8 +214,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         NavigationBarItem(
                             selected = currentRoute == Screen.Dashboard.route,
                             onClick = { navController.navigate(Screen.Dashboard.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true; restoreState = true
+                                popUpTo(navController.graph.findStartDestination().id)
+                                launchSingleTop = true
                             } },
                             icon = { Icon(Icons.Default.Dashboard, contentDescription = "Dashboard") },
                             label = { Text("Dashboard") }
@@ -224,8 +224,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     NavigationBarItem(
                         selected = currentRoute == Screen.Stats.route,
                         onClick = { navController.navigate(Screen.Stats.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
                         } },
                         icon = { Icon(Icons.Default.BarChart, contentDescription = "Stats") },
                         label = { Text("Stats") }
@@ -233,8 +233,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     NavigationBarItem(
                         selected = currentRoute == Screen.Manage.route,
                         onClick = { navController.navigate(Screen.Manage.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true; restoreState = true
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
                         } },
                         icon = { Icon(Icons.Outlined.Tune, contentDescription = "Manage") },
                         label = { Text("Manage") }
