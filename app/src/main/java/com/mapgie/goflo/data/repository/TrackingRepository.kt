@@ -487,6 +487,16 @@ class TrackingRepository(
     }
 
     /**
+     * Deletes all user-created categories and restores built-in categories to visible.
+     * Tracking logs for deleted categories are cascade-deleted by the FK constraint.
+     * Period data (periods, symptoms) is untouched.
+     */
+    suspend fun resetCategoryConfiguration() {
+        categoryDao.deleteAllCustomCategories()
+        categoryDao.unarchiveAllSystemCategories()
+    }
+
+    /**
      * Ensures a TrackingLog + TrackingLogValue exists for each date in [dates]
      * under [flowCategoryId] with value label [flowLabel].
      * Skips dates that already have a log for this category (preserves manual entries).

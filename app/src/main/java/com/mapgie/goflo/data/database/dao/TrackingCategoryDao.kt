@@ -72,6 +72,14 @@ interface TrackingCategoryDao {
     @Delete
     suspend fun deleteValue(value: TrackingValue)
 
+    /** Deletes all non-system (user-created) categories. Cascades to tracking_values. */
+    @Query("DELETE FROM tracking_categories WHERE isSystem = 0")
+    suspend fun deleteAllCustomCategories()
+
+    /** Restores all system categories to visible (not archived). */
+    @Query("UPDATE tracking_categories SET isArchived = 0 WHERE isSystem = 1")
+    suspend fun unarchiveAllSystemCategories()
+
     /**
      * Bulk-update the label of every tracking_log_values row whose label matches
      * [oldLabel] and whose logId belongs to logs in [categoryId].

@@ -74,7 +74,6 @@ class ManageCategoriesViewModel(
     }
 
     fun archiveCategory(category: TrackingCategory) {
-        if (category.isSystem) return
         viewModelScope.launch { repository.archiveCategory(category.id) }
     }
 

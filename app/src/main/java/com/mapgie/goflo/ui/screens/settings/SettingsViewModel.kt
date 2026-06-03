@@ -708,6 +708,17 @@ class SettingsViewModel(
         }
     }
 
+    /**
+     * Deletes all user-created categories and restores built-in categories to visible.
+     * Period logs and tracking history are not affected.
+     */
+    fun resetCategoryConfiguration(onComplete: () -> Unit) {
+        viewModelScope.launch {
+            trackingRepository.resetCategoryConfiguration()
+            onComplete()
+        }
+    }
+
     // ── Private ───────────────────────────────────────────────────────────────
 
     private suspend fun reschedule() {

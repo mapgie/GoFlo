@@ -18,6 +18,13 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.30.0-beta.1] - 2026-06-03
+
+### Added
+- Categories: built-in categories (Flow, Symptoms, Ovulation Test) can now be hidden. Swipe left on any built-in category in Manage Categories to hide it, or restore it from the Archived section. A confirmation is always shown before hiding.
+- Settings: new "Reset Category Settings" option in Data & Backup. Deletes all custom categories and restores any hidden built-in categories. Period logs and tracking history are not affected.
+
+---
 ## [0.29.0-beta.1] - 2026-06-03
 
 ### Added
