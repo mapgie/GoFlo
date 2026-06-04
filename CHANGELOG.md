@@ -28,6 +28,12 @@ Rules:
 - Aligned section heading typography across all edit screens: SettingsScreen (Mode, Colour, Custom colours, Export scope, Date range, What to include, Format, GoFlo Status, Quick Log, Discreet icons, Your own icon) and ModesScreen activation sheet (This mode enables, Temperature unit, Your pregnancy date, Categories to add) all now use Title Small, matching the category edit screen standard.
 
 ---
+## [0.33.0-beta.1] - 2026-06-04
+
+### Changed
+- Edit category (slider): value labels are now hidden by default. A "Label values" toggle reveals the labelling options, keeping the screen less busy.
+
+---
 ## [0.32.2-beta.1] - 2026-06-04
 
 ### Fixed
