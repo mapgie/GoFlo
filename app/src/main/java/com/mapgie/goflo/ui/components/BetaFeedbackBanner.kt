@@ -4,22 +4,24 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 
 private const val ISSUES_URL = "https://discord.gg/xphnQCZeYq"
-private const val URL_TAG = "url"
 
 /**
  * A slim, full-width banner shown directly beneath the top app bar.
@@ -27,6 +29,9 @@ private const val URL_TAG = "url"
  * Reads: "Thank you for using this Beta version. Feedback is encouraged ♥" —
  * where the middle phrase is a hyperlink to Discord. The heart sits outside the
  * hyperlink so tapping it does not open the browser.
+ *
+ * Uses [LinkAnnotation] so the link is announced with the correct link role to
+ * accessibility services and exposes a proper, full-size touch region.
  */
 @Composable
 fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
@@ -40,16 +45,22 @@ fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
             withStyle(SpanStyle(color = baseColor)) {
                 append("Thank you for using this Beta version. ")
             }
-            pushStringAnnotation(tag = URL_TAG, annotation = ISSUES_URL)
-            withStyle(
-                SpanStyle(
-                    color          = linkColor,
-                    textDecoration = TextDecoration.Underline
-                )
+            withLink(
+                LinkAnnotation.Url(
+                    url    = ISSUES_URL,
+                    styles = TextLinkStyles(
+                        style = SpanStyle(
+                            color          = linkColor,
+                            textDecoration = TextDecoration.Underline
+                        )
+                    )
+                ) {
+                    val url = (it as LinkAnnotation.Url).url
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
             ) {
                 append("Feedback is encouraged")
             }
-            pop()
             withStyle(SpanStyle(color = baseColor)) {
                 append(" ♥")
             }
@@ -60,16 +71,12 @@ fun BetaFeedbackBanner(modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         color    = MaterialTheme.colorScheme.secondaryContainer
     ) {
-        ClickableText(
+        Text(
             text     = annotated,
             style    = textStyle,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) { offset ->
-            annotated.getStringAnnotations(tag = URL_TAG, start = offset, end = offset)
-                .firstOrNull()
-                ?.let { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(it.item))) }
-        }
+        )
     }
 }

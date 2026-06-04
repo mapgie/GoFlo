@@ -19,7 +19,6 @@ import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -72,7 +71,6 @@ fun ManageScreen(
                 icon     = { Icon(Icons.Outlined.ViewList, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 onClick  = onNavigateToModes,
             )
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             ManageNavItem(
                 title = "What You Track",
                 subtitle = "Add and organise tracking categories",
@@ -103,7 +101,7 @@ fun ManageScreen(
                 icon = { Icon(Icons.Outlined.NotificationsNone, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 onClick = onNavigateToReminders
             )
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            ManageSectionHeader("Permissions")
             ManageNavItem(
                 title = "Notification permissions",
                 subtitle = "Grant alarms and/or notifications access in system settings",
@@ -133,6 +131,16 @@ fun ManageScreen(
             }
         }
     }
+}
+
+@Composable
+private fun ManageSectionHeader(title: String) {
+    Text(
+        text     = title,
+        style    = MaterialTheme.typography.titleSmall,
+        color    = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
+    )
 }
 
 @Composable

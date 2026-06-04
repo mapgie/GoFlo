@@ -19,6 +19,13 @@ Rules:
 
 ---
 
+## [0.34.1-beta.1] - 2026-06-04
+
+### Changed
+- Manage screen: the two system permission rows ("Notification permissions" and "Alarm permission") are now grouped under a "Permissions" subheader, separating them from the tracking settings above.
+- Manage screen: removed the inconsistent divider between the tracking rows so the list reads as one continuous group, matching Material 3 list guidance.
+- Beta feedback banner: the "Feedback is encouraged" link now uses the modern annotated-link API, so it is announced with the correct link role to accessibility services and exposes a proper touch region.
+
 ## [0.23.0-beta.1] - 2026-06-02
 
 ### Added
