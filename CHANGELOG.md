@@ -18,6 +18,16 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.34.0-beta.1] - 2026-06-04
+
+### Changed
+- Category edit screen redesigned to align with Material 3 principles: pencil (rename) and palette (edit appearance) icons are now direct action buttons in the top app bar trailing edge, replacing the inline pencil next to the title and the "Edit appearance" overflow menu item.
+- Category values are now displayed as a chip row (like the Period Log view) instead of a scrollable list with a floating action button. Each chip has a trailing edit icon; tapping it opens the rename dialog. Non-system values show a Delete button in the rename dialog.
+- Removed the divider line at the bottom of the values section.
+- Section headings ("Values in this category", "Slider scale settings", etc.) now use Title Small typography for improved visual hierarchy.
+- Aligned section heading typography across all edit screens: SettingsScreen (Mode, Colour, Custom colours, Export scope, Date range, What to include, Format, GoFlo Status, Quick Log, Discreet icons, Your own icon) and ModesScreen activation sheet (This mode enables, Temperature unit, Your pregnancy date, Categories to add) all now use Title Small, matching the category edit screen standard.
+
+---
 ## [0.33.0-beta.1] - 2026-06-04
 
 ### Changed

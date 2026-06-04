@@ -1299,7 +1299,7 @@ private fun WidgetsSubScreen(
 
             // ── GoFlo Status (2×1) ────────────────────────────────────────────
             HorizontalDivider()
-            Text("GoFlo Status (2×1)", style = MaterialTheme.typography.labelMedium)
+            Text("GoFlo Status (2×1)", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 "Shows your cycle status at a glance — current cycle day and days " +
                 "until your next period.",
@@ -1332,7 +1332,7 @@ private fun WidgetsSubScreen(
 
             // ── Quick Log (4×2) ───────────────────────────────────────────────
             HorizontalDivider()
-            Text("Quick Log (4×2)", style = MaterialTheme.typography.labelMedium)
+            Text("Quick Log (4×2)", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 "Shows up to four of your active tracking categories. Tap any button " +
                 "to jump straight to today's log entry for that category.",
@@ -1502,7 +1502,7 @@ private fun ExportDataSubScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // ── Export scope ─────────────────────────────────────────────
-                Text("Export scope", style = MaterialTheme.typography.labelLarge)
+                Text("Export scope", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1550,7 +1550,7 @@ private fun ExportDataSubScreen(
                 HorizontalDivider()
 
                 // ── Date range ───────────────────────────────────────────────
-                Text("Date range", style = MaterialTheme.typography.labelLarge)
+                Text("Date range", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement   = Arrangement.spacedBy(4.dp)
@@ -1583,7 +1583,7 @@ private fun ExportDataSubScreen(
                 HorizontalDivider()
 
                 // ── What to include ──────────────────────────────────────────
-                Text("What to include", style = MaterialTheme.typography.labelLarge)
+                Text("What to include", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement   = Arrangement.spacedBy(4.dp)
@@ -1625,7 +1625,7 @@ private fun ExportDataSubScreen(
                 HorizontalDivider()
 
                 // ── Format ───────────────────────────────────────────────────
-                Text("Format", style = MaterialTheme.typography.labelLarge)
+                Text("Format", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (fullBackup) {
                     Text(
                         "Full backup always uses JSON.",
@@ -1835,7 +1835,7 @@ private fun CompactThemePicker(
         // ── Mode selector ─────────────────────────────────────────────────────
         Text(
             "Mode",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row(
@@ -1936,7 +1936,7 @@ private fun CompactThemePicker(
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 "Colour",
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
@@ -1986,7 +1986,7 @@ private fun CompactThemePicker(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     "Custom colours",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 ColorHuePicker(
@@ -2227,7 +2227,7 @@ private fun AppIconPicker(
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Text(
             "Discreet icons",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
@@ -2251,7 +2251,7 @@ private fun AppIconPicker(
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Text(
             "Your own icon",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
