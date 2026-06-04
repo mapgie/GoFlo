@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
-
 android {
     namespace = "com.mapgie.goflo"
     compileSdk = 35
@@ -13,8 +12,8 @@ android {
         applicationId = "com.mapgie.goflo"
         minSdk = 26
         targetSdk = 34
-        versionCode = 80
-        versionName = "0.34.1-beta.1"
+        versionCode = 84
+        versionName = "0.37.0-beta.3"
     }
 
     signingConfigs {

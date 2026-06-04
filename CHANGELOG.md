@@ -18,12 +18,42 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
-## [0.34.1-beta.1] - 2026-06-04
+## [0.37.0-beta.1] - 2026-06-04
 
 ### Changed
 - Manage screen: the two system permission rows ("Notification permissions" and "Alarm permission") are now grouped under a "Permissions" subheader, separating them from the tracking settings above.
 - Manage screen: removed the inconsistent divider between the tracking rows so the list reads as one continuous group, matching Material 3 list guidance.
 - Beta feedback banner: the "Feedback is encouraged" link now uses the modern annotated-link API, so it is announced with the correct link role to accessibility services and exposes a proper touch region.
+
+---
+## [0.36.0-beta.3] - 2026-06-04
+
+### Changed
+- Weight category (Weight, Pregnancy, and PCOS modes) now uses a slider instead of a free-entry field, with a default range of 0-200 kg. The range is fully adjustable in category settings.
+
+---
+## [0.36.0-beta.2] - 2026-06-04
+
+### Changed
+- Active tracking mode cards now show a filled heart icon instead of an outline heart, replacing the previous check-circle tick. The card background colour change on activation is unchanged.
+
+---
+## [0.36.0-beta.1] - 2026-06-04
+
+### Added
+- Silent delivery mode for period reminders (pre-period, ovulation, daily). Reminders are now delivered to the notification shade with no sound or vibration. Selectable via the three-way Notification / Silent / Alarm picker in Manage > Reminders.
+- "Do Not Disturb access" shortcut in the Manage screen (below Alarm permission). Opens the system settings where users can grant GoFlo DND access, required for the Override Do Not Disturb feature in custom alarms.
+
+### Changed
+- The delivery mode description text in Manage > Reminders now updates for all three modes instead of just showing Notification vs Alarm.
+
+---
+## [0.35.0-beta.1] - 2026-06-04
+
+### Changed
+- New slider categories now default to 5 values (1-5) instead of 11 (0-10), making the most common use case a 5-point scale out of the box.
+- BBT Temperature category (Fertility mode) now uses a slider input instead of a free-entry field. The Celsius/Fahrenheit toggle already present in the activation sheet controls the slider range.
+- Pregnancy mode activation now pre-fills the "Last period" date from the most recent period already logged in the app. A note is shown when this auto-detection is active. Users can still change the date or switch to entering a due date instead.
 
 ---
 ## [0.34.0-beta.1] - 2026-06-04

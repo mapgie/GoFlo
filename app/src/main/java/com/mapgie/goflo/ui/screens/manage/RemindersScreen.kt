@@ -115,7 +115,7 @@ fun RemindersScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Alarm permission warning (only relevant when ALARM mode is selected)
+            // Alarm permission warning (only relevant when ALARM mode is active)
             if (reminder.deliveryMode == "ALARM" && !canScheduleExact) {
                 ListItem(
                     headlineContent = { Text("Exact alarms require a permission") },
@@ -152,21 +152,27 @@ fun RemindersScreen(
                 supportingContent = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            if (reminder.deliveryMode == "ALARM")
-                                "Full-screen alarm. Requires the Alarms and reminders permission."
-                            else
-                                "Standard notification. No special permission needed."
+                            when (reminder.deliveryMode) {
+                                "ALARM"  -> "Full-screen alarm. Requires the Alarms and reminders permission."
+                                "SILENT" -> "Silent notification. No sound or vibration. Appears in the shade only."
+                                else     -> "Standard notification with sound."
+                            }
                         )
                         SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                             SegmentedButton(
                                 selected = reminder.deliveryMode == "NOTIFICATION",
                                 onClick  = { viewModel.setReminderDeliveryMode("NOTIFICATION") },
-                                shape    = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                                shape    = SegmentedButtonDefaults.itemShape(index = 0, count = 3),
                             ) { Text("Notification") }
+                            SegmentedButton(
+                                selected = reminder.deliveryMode == "SILENT",
+                                onClick  = { viewModel.setReminderDeliveryMode("SILENT") },
+                                shape    = SegmentedButtonDefaults.itemShape(index = 1, count = 3),
+                            ) { Text("Silent") }
                             SegmentedButton(
                                 selected = reminder.deliveryMode == "ALARM",
                                 onClick  = { viewModel.setReminderDeliveryMode("ALARM") },
-                                shape    = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                                shape    = SegmentedButtonDefaults.itemShape(index = 2, count = 3),
                             ) { Text("Alarm") }
                         }
                     }

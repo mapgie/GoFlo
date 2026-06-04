@@ -36,6 +36,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 title = context.getString(R.string.notification_preperiod_title),
                 text = context.getString(R.string.notification_preperiod_text),
                 useAlarm = intent.getBooleanExtra(EXTRA_USE_ALARM_CHANNEL, false),
+                useSilent = intent.getBooleanExtra(EXTRA_USE_SILENT_CHANNEL, false),
                 alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "",
             )
             ACTION_OVULATION -> showNotification(
@@ -44,6 +45,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 title = context.getString(R.string.notification_ovulation_title),
                 text = context.getString(R.string.notification_ovulation_text),
                 useAlarm = intent.getBooleanExtra(EXTRA_USE_ALARM_CHANNEL, false),
+                useSilent = intent.getBooleanExtra(EXTRA_USE_SILENT_CHANNEL, false),
                 alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "",
             )
             ACTION_DAILY -> showNotification(
@@ -52,6 +54,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 title = context.getString(R.string.notification_daily_title),
                 text = context.getString(R.string.notification_daily_text),
                 useAlarm = intent.getBooleanExtra(EXTRA_USE_ALARM_CHANNEL, false),
+                useSilent = intent.getBooleanExtra(EXTRA_USE_SILENT_CHANNEL, false),
                 alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "",
             )
             ACTION_CUSTOM_ALARM -> handleCustomAlarm(context, intent)
@@ -235,6 +238,7 @@ class ReminderReceiver : BroadcastReceiver() {
         title: String,
         text: String,
         useAlarm: Boolean = false,
+        useSilent: Boolean = false,
         alarmLabel: String = "",
     ) {
         val tapIntent = Intent(context, MainActivity::class.java).apply {
@@ -245,8 +249,17 @@ class ReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val channelId = if (useAlarm) CHANNEL_ID else CHANNEL_NOTIF_ID
+        val channelId = when {
+            useSilent -> CHANNEL_SILENT_ID
+            useAlarm  -> CHANNEL_ID
+            else      -> CHANNEL_NOTIF_ID
+        }
         val displayTitle = if (useAlarm && alarmLabel.isNotBlank()) alarmLabel else title
+        val priority = when {
+            useSilent -> NotificationCompat.PRIORITY_LOW
+            useAlarm  -> NotificationCompat.PRIORITY_MAX
+            else      -> NotificationCompat.PRIORITY_HIGH
+        }
 
         val builder = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -254,7 +267,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setContentText(text)
             .setContentIntent(tapPending)
             .setAutoCancel(true)
-            .setPriority(if (useAlarm) NotificationCompat.PRIORITY_MAX else NotificationCompat.PRIORITY_HIGH)
+            .setPriority(priority)
             .setCategory(if (useAlarm) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
 
