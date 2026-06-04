@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.util.AppMode
 import com.mapgie.goflo.ui.util.ModeFeature
 import com.mapgie.goflo.ui.util.SuggestedCategory
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,6 +117,7 @@ fun ModesScreen(
             mode                  = modeToActivate,
             existingModeKeys      = state.existingModeKeys,
             defaultTempCelsius    = state.temperatureUnitCelsius,
+            latestPeriodDate      = state.latestPeriodDate,
             onConfirm             = { selected, dateStr, startType, celsius ->
                 viewModel.activateMode(
                     mode                   = modeToActivate,
@@ -250,6 +252,7 @@ private fun ModeActivationSheet(
     mode: AppMode,
     existingModeKeys: Set<String>,
     defaultTempCelsius: Boolean,
+    latestPeriodDate: LocalDate?,
     onConfirm: (selected: List<SuggestedCategory>, dateStr: String, startType: String, celsius: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -264,9 +267,17 @@ private fun ModeActivationSheet(
         }
     }
 
-    // Pregnancy-specific state — stores digits only (up to 8), displayed as DD/MM/YYYY
-    var pregnancyDigits   by rememberSaveable { mutableStateOf("") }
-    var pregnancyStartType by rememberSaveable { mutableStateOf("EDD") }
+    // Pregnancy-specific state — pre-filled from the latest logged period when available.
+    // Stores digits only (up to 8), displayed as DD/MM/YYYY by the visual transformation.
+    val prefillDigits = remember(latestPeriodDate) {
+        latestPeriodDate?.let { d ->
+            "${d.dayOfMonth.toString().padStart(2, '0')}" +
+            "${d.monthValue.toString().padStart(2, '0')}" +
+            d.year.toString()
+        } ?: ""
+    }
+    var pregnancyDigits   by rememberSaveable { mutableStateOf(prefillDigits) }
+    var pregnancyStartType by rememberSaveable { mutableStateOf(if (latestPeriodDate != null) "LMP" else "EDD") }
 
     val dateSlashTransformation = remember {
         VisualTransformation { text ->
@@ -381,6 +392,24 @@ private fun ModeActivationSheet(
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (latestPeriodDate != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint     = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            "Pre-filled from your most recent cycle log.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = pregnancyStartType == "EDD",

@@ -686,8 +686,8 @@ private fun AddCategoryDialog(
     var numericUnit      by rememberSaveable { mutableStateOf("") }
     var selectedIconKey  by rememberSaveable { mutableStateOf(CategoryIcon.CATEGORY.key) }
     var selectedToken    by rememberSaveable { mutableStateOf(CategoryColor.SECONDARY.key) }
-    var minText          by rememberSaveable { mutableStateOf("0") }
-    var maxText          by rememberSaveable { mutableStateOf("10") }
+    var minText          by rememberSaveable { mutableStateOf("1") }
+    var maxText          by rememberSaveable { mutableStateOf("5") }
     var allowDecimals    by rememberSaveable { mutableStateOf(false) }
     var allowMultiple    by rememberSaveable { mutableStateOf(false) }
     var showInLogPeriod  by rememberSaveable { mutableStateOf(false) }

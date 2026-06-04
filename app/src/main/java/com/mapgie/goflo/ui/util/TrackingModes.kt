@@ -49,7 +49,7 @@ enum class AppMode(
                 description  = "Daily basal body temperature reading",
                 iconName     = "thermometer",
                 colorToken   = "tertiary",
-                categoryType = "numeric_free",
+                categoryType = "numeric_slider",
                 numericMin   = 35.0f,
                 numericMax   = 42.0f,
                 allowDecimals = true,

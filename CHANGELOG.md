@@ -18,6 +18,14 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.35.0-beta.1] - 2026-06-04
+
+### Changed
+- New slider categories now default to 5 values (1-5) instead of 11 (0-10), making the most common use case a 5-point scale out of the box.
+- BBT Temperature category (Fertility mode) now uses a slider input instead of a free-entry field. The Celsius/Fahrenheit toggle already present in the activation sheet controls the slider range.
+- Pregnancy mode activation now pre-fills the "Last period" date from the most recent period already logged in the app. A note is shown when this auto-detection is active. Users can still change the date or switch to entering a due date instead.
+
+---
 ## [0.34.0-beta.1] - 2026-06-04
 
 ### Changed

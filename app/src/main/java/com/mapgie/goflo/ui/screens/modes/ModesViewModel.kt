@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
+import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingRepository
 import com.mapgie.goflo.ui.util.AppMode
 import com.mapgie.goflo.ui.util.SuggestedCategory
@@ -15,26 +16,33 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 data class ModesUiState(
     val activeModes: Set<AppMode> = emptySet(),
     val existingModeKeys: Set<String> = emptySet(),
     val temperatureUnitCelsius: Boolean = true,
+    val latestPeriodDate: LocalDate? = null,
 )
 
 class ModesViewModel(
     private val trackingRepository: TrackingRepository,
+    private val periodRepository: PeriodRepository,
     private val store: AppPreferencesStore,
 ) : ViewModel() {
 
     val uiState: StateFlow<ModesUiState> = combine(
         trackingRepository.getAllCategories(),
         store.preferences,
-    ) { cats, prefs ->
+        periodRepository.getAllPeriods(),
+    ) { cats, prefs, periods ->
+        val latestPeriodDate = periods.maxByOrNull { it.startDate }
+            ?.startDate?.let { LocalDate.parse(it) }
         ModesUiState(
             activeModes           = prefs.activeModes.toActiveModeSet(),
             existingModeKeys      = cats.filter { it.modeKey.isNotEmpty() }.map { it.modeKey }.toSet(),
             temperatureUnitCelsius = prefs.temperatureUnitCelsius,
+            latestPeriodDate      = latestPeriodDate,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ModesUiState())
 
@@ -109,11 +117,12 @@ class ModesViewModel(
 
     class Factory(
         private val trackingRepository: TrackingRepository,
+        private val periodRepository: PeriodRepository,
         private val store: AppPreferencesStore,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return ModesViewModel(trackingRepository, store) as T
+            return ModesViewModel(trackingRepository, periodRepository, store) as T
         }
     }
 }
