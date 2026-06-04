@@ -18,6 +18,16 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.36.0-beta.1] - 2026-06-04
+
+### Added
+- Silent delivery mode for period reminders (pre-period, ovulation, daily). Reminders are now delivered to the notification shade with no sound or vibration. Selectable via the three-way Notification / Silent / Alarm picker in Manage > Reminders.
+- "Do Not Disturb access" shortcut in the Manage screen (below Alarm permission). Opens the system settings where users can grant GoFlo DND access, required for the Override Do Not Disturb feature in custom alarms.
+
+### Changed
+- The delivery mode description text in Manage > Reminders now updates for all three modes instead of just showing Notification vs Alarm.
+
+---
 ## [0.35.0-beta.1] - 2026-06-04
 
 ### Changed
