@@ -62,6 +62,7 @@ class TrackingRepository(
         allowMultiple: Boolean = false,
         showInLogPeriod: Boolean = false,
         trackAgainstTime: Boolean = false,
+        modeKey: String = "",
     ): Long {
         val maxOrder = categoryDao.getAllCategories().first()
             .maxOfOrNull { it.displayOrder } ?: -1
@@ -79,9 +80,17 @@ class TrackingRepository(
                 allowMultiple    = allowMultiple,
                 showInLogPeriod  = showInLogPeriod,
                 trackAgainstTime = trackAgainstTime,
+                modeKey          = modeKey,
             )
         )
     }
+
+    /** Returns the modeKeys of all existing non-system categories that have one. */
+    suspend fun getExistingModeKeys(): Set<String> =
+        categoryDao.getAllCategoriesOnce()
+            .filter { it.modeKey.isNotEmpty() }
+            .map { it.modeKey }
+            .toSet()
 
     suspend fun renameCategory(id: Long, newName: String) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
@@ -204,7 +213,6 @@ class TrackingRepository(
 
     suspend fun archiveCategory(id: Long) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
-        if (cat.isSystem) return
         categoryDao.updateCategory(cat.copy(isArchived = true))
     }
 

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,6 +43,7 @@ fun ManageScreen(
     onNavigateToReminders: () -> Unit,
     onNavigateToCycle: () -> Unit,
     onNavigateToQuickLog: () -> Unit,
+    onNavigateToModes: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -62,6 +64,13 @@ fun ManageScreen(
                 .padding(padding)
         ) {
             BetaFeedbackBanner()
+            ManageNavItem(
+                title    = "Tracking Modes",
+                subtitle = "Fertility, pregnancy, PCOS, endo, HRT, and more",
+                icon     = { Icon(Icons.Outlined.ViewList, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                onClick  = onNavigateToModes,
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             ManageNavItem(
                 title = "What You Track",
                 subtitle = "Add and organise tracking categories",

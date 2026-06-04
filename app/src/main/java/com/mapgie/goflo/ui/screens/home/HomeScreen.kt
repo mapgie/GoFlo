@@ -250,6 +250,10 @@ fun HomeScreen(
 
                 CycleInfoCard(state = state)
 
+                state.pregnancyInfo?.let { info ->
+                    PregnancyCounterCard(info = info)
+                }
+
                 TextButton(
                     onClick  = { showChangelog = true },
                     modifier = Modifier.fillMaxWidth()
@@ -530,5 +534,66 @@ private fun InfoRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(value, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+// ── Pregnancy counter card ────────────────────────────────────────────────────
+
+@Composable
+private fun PregnancyCounterCard(info: PregnancyInfo) {
+    val trimesterLabel = when (info.trimester) {
+        1    -> "First trimester"
+        2    -> "Second trimester"
+        else -> "Third trimester"
+    }
+    val dueDateText = info.dueDate.format(DateTimeFormatter.ofPattern("d MMM yyyy"))
+    val remainingText = when {
+        info.daysRemaining > 1  -> "${info.daysRemaining} days to go"
+        info.daysRemaining == 1 -> "1 day to go"
+        info.daysRemaining == 0 -> "Due today"
+        else                    -> "${-info.daysRemaining} days past due date"
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                "Pregnancy",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+            )
+            Text(
+                "Week ${info.weekNumber}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Text(
+                trimesterLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    "Due $dueDateText",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                )
+                Text(
+                    remainingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f),
+                )
+            }
+        }
     }
 }

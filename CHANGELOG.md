@@ -18,6 +18,15 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.31.0-beta.1] - 2026-06-04
+
+### Added
+- Tracking Modes: a new screen in Manage lets you activate preset configurations for Fertility, Pregnancy, Weight, Endometriosis, PCOS, HRT, Perimenopause, and Hormone Tracking. Each mode suggests relevant categories with opt-in/opt-out per item. Multiple modes can be active at the same time, and cross-mode categories (e.g. Weight appearing in PCOS and Pregnancy) are deduplicated automatically.
+- Pregnancy mode: when active with a due date entered, a week counter card appears on the home screen showing the current week, trimester, due date, and days remaining. Both expected due date (EDD) and last menstrual period (LMP) are supported.
+- Fertility mode: seeds BBT Temperature and Cervical Fluid categories. Temperature unit (Celsius or Fahrenheit) is chosen at activation. The BBT chart will follow in a future update.
+- DB migration to v17 adding the modeKey column that links mode-seeded categories to their preset for deduplication.
+
+---
 ## [0.30.2-beta.1] - 2026-06-04
 
 ### Fixed
