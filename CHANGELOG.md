@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.32.1-beta.1] - 2026-06-04
+
+### Fixed
+- Tapping Home in the bottom navigation bar while on the Settings screen now returns to Home. The Home tab also stays highlighted while Settings is open, making it clear which section you are in.
+
+---
 ## [0.32.0-beta.1] - 2026-06-04
 
 ### Added
