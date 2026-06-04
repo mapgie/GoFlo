@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.32.1-beta.1] - 2026-06-04
+
+### Fixed
+- Pregnancy setup: date input now uses DD/MM/YYYY order with a numeric keyboard; slashes are inserted automatically so no separators need to be typed.
+
+---
 ## [0.32.0-beta.1] - 2026-06-04
 
 ### Added
