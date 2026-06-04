@@ -202,7 +202,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             if (showBottomBar) {
                 NavigationBar {
                     NavigationBarItem(
-                        selected = currentRoute == Screen.Home.route,
+                        selected = currentRoute == Screen.Home.route || currentRoute == Screen.Settings.route,
                         onClick = { navController.navigate(Screen.Home.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true; restoreState = true

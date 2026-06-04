@@ -59,7 +59,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.util.AppMode
 import com.mapgie.goflo.ui.util.ModeFeature
@@ -258,9 +264,36 @@ private fun ModeActivationSheet(
         }
     }
 
-    // Pregnancy-specific state
-    var pregnancyDateStr  by rememberSaveable { mutableStateOf("") }
+    // Pregnancy-specific state — stores digits only (up to 8), displayed as DD/MM/YYYY
+    var pregnancyDigits   by rememberSaveable { mutableStateOf("") }
     var pregnancyStartType by rememberSaveable { mutableStateOf("EDD") }
+
+    val dateSlashTransformation = remember {
+        VisualTransformation { text ->
+            val digits = text.text
+            val out = buildString {
+                digits.forEachIndexed { i, c ->
+                    if (i == 2 || i == 4) append('/')
+                    append(c)
+                }
+            }
+            val offsetMapping = object : OffsetMapping {
+                override fun originalToTransformed(offset: Int): Int = when {
+                    offset <= 2 -> offset
+                    offset <= 4 -> offset + 1
+                    else        -> offset + 2
+                }
+                override fun transformedToOriginal(offset: Int): Int = when {
+                    offset <= 2 -> offset
+                    offset == 3 -> 2
+                    offset <= 5 -> offset - 1
+                    offset == 6 -> 4
+                    else        -> offset - 2
+                }
+            }
+            TransformedText(AnnotatedString(out), offsetMapping)
+        }
+    }
 
     // Fertility temperature unit
     var celsius by rememberSaveable { mutableStateOf(defaultTempCelsius) }
@@ -362,14 +395,16 @@ private fun ModeActivationSheet(
                         label    = { Text("Last period") },
                     )
                 }
-                val label = if (pregnancyStartType == "EDD") "Expected due date (YYYY-MM-DD)"
-                            else                              "First day of last period (YYYY-MM-DD)"
+                val label = if (pregnancyStartType == "EDD") "Expected due date (DD/MM/YYYY)"
+                            else                              "First day of last period (DD/MM/YYYY)"
                 OutlinedTextField(
-                    value         = pregnancyDateStr,
-                    onValueChange = { pregnancyDateStr = it },
+                    value         = pregnancyDigits,
+                    onValueChange = { pregnancyDigits = it.filter { c -> c.isDigit() }.take(8) },
                     label         = { Text(label) },
-                    placeholder   = { Text("e.g. 2026-12-01") },
+                    placeholder   = { Text("DD/MM/YYYY") },
                     singleLine    = true,
+                    keyboardOptions      = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    visualTransformation = dateSlashTransformation,
                     modifier      = Modifier.fillMaxWidth(),
                 )
                 Row(
@@ -442,7 +477,11 @@ private fun ModeActivationSheet(
                     val selected = mode.suggestedCategories.filter { cat ->
                         cat.modeKey !in existingModeKeys && (checked[cat.modeKey] ?: cat.defaultChecked)
                     }
-                    onConfirm(selected, pregnancyDateStr, pregnancyStartType, celsius)
+                    val isoDate = pregnancyDigits.let { d ->
+                        if (d.length == 8) "${d.substring(4, 8)}-${d.substring(2, 4)}-${d.substring(0, 2)}"
+                        else d
+                    }
+                    onConfirm(selected, isoDate, pregnancyStartType, celsius)
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
