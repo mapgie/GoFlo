@@ -3,6 +3,8 @@ package com.mapgie.goflo.ui.screens.categories
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,8 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -30,9 +30,9 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -41,6 +41,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.InputChip
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -155,6 +156,10 @@ fun ManageCategoryValuesScreen(
                 viewModel.renameValue(valueToRename, newLabel, fixHistorical)
                 renamingValue = null
             },
+            onDelete = if (valueToRename.isSeeded) null else ({
+                pendingDeleteValue = valueToRename.id
+                renamingValue = null
+            }),
             onDismiss = { renamingValue = null }
         )
     }
@@ -276,28 +281,9 @@ fun ManageCategoryValuesScreen(
     }
 
     Scaffold(
-        floatingActionButton = {
-            val cat = state.category
-            if (cat?.categoryType == "default" || cat?.categoryType == null) {
-                FloatingActionButton(onClick = { showAddValue = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add value")
-                }
-            }
-        },
         topBar = {
             TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(state.category?.name ?: "Category")
-                        IconButton(onClick = { showRenameCategory = true }) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = "Rename category",
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                        }
-                    }
-                },
+                title = { Text(state.category?.name ?: "Category") },
                 navigationIcon = {
                     IconButton(onClick = handleBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -305,6 +291,20 @@ fun ManageCategoryValuesScreen(
                 },
                 actions = {
                     var showMenu by remember { mutableStateOf(false) }
+                    IconButton(onClick = { showRenameCategory = true }) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Rename category",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                    IconButton(onClick = { showEditAppearance = true }) {
+                        Icon(
+                            Icons.Outlined.Palette,
+                            contentDescription = "Edit appearance",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
@@ -317,17 +317,6 @@ fun ManageCategoryValuesScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("Edit appearance") },
-                                onClick = {
-                                    showMenu = false
-                                    showEditAppearance = true
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Outlined.Palette, contentDescription = null)
-                                }
-                            )
-                            HorizontalDivider()
                             if (state.category?.isSystem == false) {
                                 DropdownMenuItem(
                                     text = {
@@ -449,9 +438,8 @@ fun ManageCategoryValuesScreen(
                     else -> DefaultCategoryValues(
                         state                    = state,
                         modifier                 = Modifier,
-                        onNavigateBack           = onNavigateBack,
+                        onAddValue               = { showAddValue = true },
                         onRenameValue            = { renamingValue = it.id },
-                        onDeleteValue            = { pendingDeleteValue = it.id },
                         onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
                         onToggleAllowMultiple    = { viewModel.setAllowMultiple(it) },
                         onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
@@ -544,13 +532,13 @@ private fun alarmScheduleLabel(alarm: CustomAlarm): String {
 
 // ── Default (text values) content ─────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DefaultCategoryValues(
     state: ManageCategoryValuesUiState,
     modifier: Modifier,
-    onNavigateBack: () -> Unit,
+    onAddValue: () -> Unit,
     onRenameValue: (TrackingValue) -> Unit,
-    onDeleteValue: (TrackingValue) -> Unit,
     onToggleLogWithPeriod: (Boolean) -> Unit,
     onToggleAllowMultiple: (Boolean) -> Unit,
     onToggleTrackAgainstTime: (Boolean) -> Unit,
@@ -559,6 +547,7 @@ private fun DefaultCategoryValues(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -583,34 +572,45 @@ private fun DefaultCategoryValues(
         HorizontalDivider()
 
         Text(
-            "Values in this category:",
-            style = MaterialTheme.typography.labelMedium,
+            "Values in this category",
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        if (state.values.isEmpty()) {
-            Text(
-                "No values yet. Add some using the + button.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
-            ) {
-                items(state.values, key = { it.id }) { value ->
-                    ValueRow(
-                        value    = value,
-                        onRename = { onRenameValue(value) },
-                        onDelete = if (value.isSeeded) null else ({ onDeleteValue(value) }),
-                    )
-                }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            state.values.forEach { value ->
+                InputChip(
+                    selected = false,
+                    onClick = { onRenameValue(value) },
+                    label = { Text(value.label) },
+                    trailingIcon = {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit ${value.label}",
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                )
             }
+            AssistChip(
+                onClick = onAddValue,
+                label = { Text("Add") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add value",
+                        modifier = Modifier.size(AssistChipDefaults.IconSize)
+                    )
+                },
+                border = AssistChipDefaults.assistChipBorder(
+                    enabled = true,
+                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                )
+            )
         }
-
-        HorizontalDivider()
     }
 }
 
@@ -643,7 +643,7 @@ private fun IncrementCategoryInfo(
 
         Text(
             "Plus One category",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
@@ -754,7 +754,7 @@ private fun NumericSliderSettings(
 
         Text(
             "Slider scale settings",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -912,7 +912,7 @@ private fun NumericFreeSettings(
 
         Text(
             "Numeric Input settings",
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
@@ -1010,41 +1010,6 @@ private fun TrackAgainstTimeRow(checked: Boolean, onChecked: (Boolean) -> Unit) 
     }
 }
 
-// ── Shared value row ──────────────────────────────────────────────────────────
-
-@Composable
-private fun ValueRow(
-    value: TrackingValue,
-    onRename: () -> Unit,
-    onDelete: (() -> Unit)?,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text     = value.label,
-            style    = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(1f)
-        )
-        Row {
-            IconButton(onClick = onRename) {
-                Icon(Icons.Default.Edit, contentDescription = "Rename ${value.label}",
-                    tint = MaterialTheme.colorScheme.primary)
-            }
-            if (onDelete != null) {
-                IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete ${value.label}",
-                        tint = MaterialTheme.colorScheme.error)
-                }
-            }
-        }
-    }
-}
-
 // ── Dialogs ───────────────────────────────────────────────────────────────────
 
 @Composable
@@ -1119,6 +1084,7 @@ private fun RenameCategoryDialog(
 private fun RenameValueDialog(
     value: TrackingValue,
     onRename: (String, Boolean) -> Unit,
+    onDelete: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     var newLabel by rememberSaveable { mutableStateOf(value.label) }
@@ -1127,7 +1093,7 @@ private fun RenameValueDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename \"${value.label}\"") },
+        title = { Text("Edit \"${value.label}\"") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -1162,7 +1128,13 @@ private fun RenameValueDialog(
             }
         },
         dismissButton = {
-            if (changed) TextButton(onClick = onDismiss) { Text("Cancel") }
+            if (changed) {
+                TextButton(onClick = onDismiss) { Text("Cancel") }
+            } else if (onDelete != null) {
+                TextButton(onClick = onDelete) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            }
         }
     )
 }
