@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 data class HomeUiState(
     val periods: List<PeriodEntry> = emptyList(),
@@ -50,6 +51,15 @@ data class HomeUiState(
     val quickLogCategoryId: Long = -1L,
     /** True once the new-user onboarding banner has been dismissed. */
     val onboardingBannerDismissed: Boolean = false,
+    /** Non-null when pregnancy mode is active and a valid date has been entered. */
+    val pregnancyInfo: PregnancyInfo? = null,
+)
+
+data class PregnancyInfo(
+    val weekNumber: Int,
+    val trimester: Int,
+    val dueDate: LocalDate,
+    val daysRemaining: Int,
 )
 
 /** Data loaded for the Day Log bottom sheet. */
@@ -115,6 +125,12 @@ class HomeViewModel(
         val isInExpectedPeriod = prefs.showPeriodPrediction &&
             predictionWindowActive && !nextStartIsFuture && active == null
 
+        val pregnancyInfo = computePregnancyInfo(
+            dateStr   = prefs.pregnancyDateStr,
+            startType = prefs.pregnancyStartType,
+            active    = prefs.activeModes.contains("PREGNANCY"),
+        )
+
         HomeUiState(
             periods              = periods,
             activePeriod         = active,
@@ -133,6 +149,7 @@ class HomeViewModel(
             trackingCategories          = categories,
             quickLogCategoryId          = prefs.quickLogCategoryId,
             onboardingBannerDismissed   = prefs.onboardingBannerDismissed,
+            pregnancyInfo               = pregnancyInfo,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -265,6 +282,28 @@ class HomeViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
             return HomeViewModel(repository, trackingRepository, preferencesStore) as T
+        }
+    }
+
+    companion object {
+        fun computePregnancyInfo(dateStr: String, startType: String, active: Boolean): PregnancyInfo? {
+            if (!active || dateStr.isEmpty()) return null
+            val today      = LocalDate.now()
+            val storedDate = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: return null
+            val (lmpDate, dueDate) = when (startType) {
+                "LMP" -> storedDate to storedDate.plusDays(280)
+                else  -> storedDate.minusDays(280) to storedDate
+            }
+            val gestationalDays = ChronoUnit.DAYS.between(lmpDate, today).toInt()
+            if (gestationalDays < 0) return null
+            val weekNumber = (gestationalDays / 7) + 1
+            val trimester = when {
+                weekNumber <= 13 -> 1
+                weekNumber <= 27 -> 2
+                else             -> 3
+            }
+            val daysRemaining = ChronoUnit.DAYS.between(today, dueDate).toInt()
+            return PregnancyInfo(weekNumber, trimester, dueDate, daysRemaining)
         }
     }
 }

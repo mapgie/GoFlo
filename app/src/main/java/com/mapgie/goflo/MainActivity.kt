@@ -67,6 +67,8 @@ import com.mapgie.goflo.ui.screens.manage.ManageCycleScreen
 import com.mapgie.goflo.ui.screens.manage.ManageQuickLogScreen
 import com.mapgie.goflo.ui.screens.manage.ManageScreen
 import com.mapgie.goflo.ui.screens.manage.RemindersScreen
+import com.mapgie.goflo.ui.screens.modes.ModesScreen
+import com.mapgie.goflo.ui.screens.modes.ModesViewModel
 import com.mapgie.goflo.ui.screens.stats.StatsScreen
 import com.mapgie.goflo.ui.screens.stats.StatsViewModel
 import android.annotation.SuppressLint
@@ -354,7 +356,18 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     onNavigateToCategories = { navController.navigate(Screen.ManageCategories.route) },
                     onNavigateToReminders  = { navController.navigate(Screen.Reminders.route) },
                     onNavigateToCycle      = { navController.navigate(Screen.ManageCycle.route) },
-                    onNavigateToQuickLog   = { navController.navigate(Screen.ManageQuickLog.route) }
+                    onNavigateToQuickLog   = { navController.navigate(Screen.ManageQuickLog.route) },
+                    onNavigateToModes      = { navController.navigate(Screen.TrackingModes.route) },
+                )
+            }
+
+            composable(Screen.TrackingModes.route) {
+                val vm: ModesViewModel = viewModel(
+                    factory = ModesViewModel.Factory(app.trackingRepository, app.preferencesStore)
+                )
+                ModesScreen(
+                    viewModel      = vm,
+                    onNavigateBack = { navController.popBackStack() },
                 )
             }
 

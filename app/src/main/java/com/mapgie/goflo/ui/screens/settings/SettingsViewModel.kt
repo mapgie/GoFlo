@@ -401,6 +401,7 @@ class SettingsViewModel(
                 catObj.put("allowMultiple", cat.allowMultiple)
                 catObj.put("showInLogPeriod", cat.showInLogPeriod)
                 catObj.put("trackAgainstTime", cat.trackAgainstTime)
+                catObj.put("modeKey", cat.modeKey)
                 val valArr = JSONArray()
                 trackingRepository.getValuesForCategoryOnce(cat.id)
                     .sortedBy { it.displayOrder }
@@ -410,8 +411,42 @@ class SettingsViewModel(
             }
             root.put("categories", catsArray)
 
-            val pinnedStats = store.preferences.first().pinnedStats
-            if (pinnedStats.isNotBlank()) root.put("pinnedStats", pinnedStats)
+            val prefs = store.preferences.first()
+            if (prefs.pinnedStats.isNotBlank()) root.put("pinnedStats", prefs.pinnedStats)
+
+            val settingsObj = JSONObject().apply {
+                put("theme", prefs.theme)
+                put("iconChoice", prefs.iconChoice)
+                put("preferredCycleLength", prefs.preferredCycleLength)
+                put("showPeriodPrediction", prefs.showPeriodPrediction)
+                put("showOvulationMarkers", prefs.showOvulationMarkers)
+                put("wcagMode", prefs.wcagMode)
+                put("archiveWarningDisabled", prefs.archiveWarningDisabled)
+                put("bannerStyle", prefs.bannerStyle)
+                put("widgetDataVisible", prefs.widgetDataVisible)
+                put("dashboardEnabled", prefs.dashboardEnabled)
+                put("statsTimeRange", prefs.statsTimeRange)
+                put("statsChartType", prefs.statsChartType)
+                put("statsZoomLevel", prefs.statsZoomLevel)
+                put("onboardingBannerDismissed", prefs.onboardingBannerDismissed)
+                put("flowBackfillDone", prefs.flowBackfillDone)
+                put("customPrimaryHue", prefs.customPrimaryHue)
+                put("customSecondaryHue", prefs.customSecondaryHue)
+                put("customTertiaryHue", prefs.customTertiaryHue)
+                put("activeModes", prefs.activeModes)
+                put("pregnancyDateStr", prefs.pregnancyDateStr)
+                put("pregnancyStartType", prefs.pregnancyStartType)
+                put("temperatureUnitCelsius", prefs.temperatureUnitCelsius)
+                put("preperiodEnabled", prefs.reminder.preperiodEnabled)
+                put("preperiodDaysBefore", prefs.reminder.preperiodDaysBefore)
+                put("ovulationEnabled", prefs.reminder.ovulationEnabled)
+                put("dailyEnabled", prefs.reminder.dailyDuringPeriodEnabled)
+                put("reminderHour", prefs.reminder.reminderHour)
+                put("reminderMinute", prefs.reminder.reminderMinute)
+                put("reminderDeliveryMode", prefs.reminder.deliveryMode)
+                put("alarmLabel", prefs.reminder.alarmLabel)
+            }
+            root.put("settings", settingsObj)
         }
 
         if (config.includePeriods) {
@@ -579,10 +614,48 @@ class SettingsViewModel(
                         if (trackingArray != null) {
                             importTrackingLogs(trackingArray, replace)
                         }
-                        // Restore pinned stats if present.
+                        // Restore pinned stats if present (legacy root-level key).
                         val pinnedStats = root.optString("pinnedStats", "")
                         if (pinnedStats.isNotBlank()) {
                             store.setPinnedStats(pinnedStats)
+                        }
+                        // Restore all app settings if present.
+                        val settingsObj = root.optJSONObject("settings")
+                        if (settingsObj != null) {
+                            store.setTheme(settingsObj.optString("theme", "CORAL"))
+                            store.setIconChoice(settingsObj.optString("iconChoice", "DEFAULT"))
+                            store.setPreferredCycleLength(settingsObj.optInt("preferredCycleLength", 0))
+                            store.setShowPeriodPrediction(settingsObj.optBoolean("showPeriodPrediction", true))
+                            store.setShowOvulationMarkers(settingsObj.optBoolean("showOvulationMarkers", true))
+                            store.setWcagMode(settingsObj.optBoolean("wcagMode", false))
+                            store.setArchiveWarningDisabled(settingsObj.optBoolean("archiveWarningDisabled", false))
+                            store.setBannerStyle(settingsObj.optString("bannerStyle", "PLAIN"))
+                            store.setWidgetDataVisible(settingsObj.optBoolean("widgetDataVisible", false))
+                            store.setDashboardEnabled(settingsObj.optBoolean("dashboardEnabled", false))
+                            store.setStatsTimeRange(settingsObj.optString("statsTimeRange", "YTD"))
+                            store.setStatsChartType(settingsObj.optString("statsChartType", ""))
+                            store.setStatsZoomLevel(settingsObj.optInt("statsZoomLevel", 1))
+                            store.setOnboardingBannerDismissed(settingsObj.optBoolean("onboardingBannerDismissed", false))
+                            store.setFlowBackfillDone(settingsObj.optBoolean("flowBackfillDone", false))
+                            store.setCustomPrimaryHue(settingsObj.optDouble("customPrimaryHue", 0.0).toFloat())
+                            store.setCustomSecondaryHue(settingsObj.optDouble("customSecondaryHue", 200.0).toFloat())
+                            store.setCustomTertiaryHue(settingsObj.optDouble("customTertiaryHue", 330.0).toFloat())
+                            store.setActiveModes(settingsObj.optString("activeModes", ""))
+                            store.setPregnancyDate(
+                                settingsObj.optString("pregnancyDateStr", ""),
+                                settingsObj.optString("pregnancyStartType", "EDD"),
+                            )
+                            store.setTemperatureUnitCelsius(settingsObj.optBoolean("temperatureUnitCelsius", true))
+                            store.setPreperiodEnabled(settingsObj.optBoolean("preperiodEnabled", false))
+                            store.setPreperiodDaysBefore(settingsObj.optInt("preperiodDaysBefore", 2))
+                            store.setOvulationEnabled(settingsObj.optBoolean("ovulationEnabled", false))
+                            store.setDailyEnabled(settingsObj.optBoolean("dailyEnabled", false))
+                            store.setReminderTime(
+                                settingsObj.optInt("reminderHour", 8),
+                                settingsObj.optInt("reminderMinute", 0),
+                            )
+                            store.setReminderDeliveryMode(settingsObj.optString("reminderDeliveryMode", "NOTIFICATION"))
+                            store.setAlarmLabel(settingsObj.optString("alarmLabel", ""))
                         }
                     }
                 } // import errors are non-fatal; period result still reported
@@ -653,6 +726,7 @@ class SettingsViewModel(
                     allowMultiple    = catObj.optBoolean("allowMultiple", false),
                     showInLogPeriod  = catObj.optBoolean("showInLogPeriod", false),
                     trackAgainstTime = catObj.optBoolean("trackAgainstTime", false),
+                    modeKey          = catObj.optString("modeKey", ""),
                 )
                 if (catObj.optBoolean("isArchived", false)) trackingRepository.archiveCategory(categoryId)
             } else {
@@ -671,6 +745,7 @@ class SettingsViewModel(
                     allowMultiple    = catObj.optBoolean("allowMultiple", category.allowMultiple),
                     showInLogPeriod  = catObj.optBoolean("showInLogPeriod", category.showInLogPeriod),
                     trackAgainstTime = catObj.optBoolean("trackAgainstTime", category.trackAgainstTime),
+                    modeKey          = catObj.optString("modeKey", category.modeKey),
                 )
                 if (catObj.optBoolean("isArchived", false) && !category.isArchived)
                     trackingRepository.archiveCategory(categoryId)

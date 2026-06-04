@@ -96,6 +96,14 @@ data class AppPreferences(
     val customSecondaryHue: Float = 200f,
     /** Hue (0–360°) for the tertiary colour in the custom theme. */
     val customTertiaryHue: Float = 330f,
+    /** Comma-separated list of active tracking mode IDs (e.g. "FERTILITY,PREGNANCY"). */
+    val activeModes: String = "",
+    /** ISO-8601 date string for the pregnancy anchor date. Interpretation depends on [pregnancyStartType]. */
+    val pregnancyDateStr: String = "",
+    /** "EDD" if [pregnancyDateStr] is the expected due date; "LMP" if it is the last menstrual period. */
+    val pregnancyStartType: String = "EDD",
+    /** True when BBT temperature should be displayed in Celsius; false for Fahrenheit. */
+    val temperatureUnitCelsius: Boolean = true,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -132,6 +140,10 @@ class AppPreferencesStore(private val context: Context) {
         val CUSTOM_PRIMARY_HUE   = floatPreferencesKey("custom_primary_hue")
         val CUSTOM_SECONDARY_HUE = floatPreferencesKey("custom_secondary_hue")
         val CUSTOM_TERTIARY_HUE  = floatPreferencesKey("custom_tertiary_hue")
+        val ACTIVE_MODES              = stringPreferencesKey("active_modes")
+        val PREGNANCY_DATE_STR        = stringPreferencesKey("pregnancy_date_str")
+        val PREGNANCY_START_TYPE      = stringPreferencesKey("pregnancy_start_type")
+        val TEMPERATURE_UNIT_CELSIUS  = booleanPreferencesKey("temperature_unit_celsius")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -156,9 +168,13 @@ class AppPreferencesStore(private val context: Context) {
             statsChartType = prefs[Keys.STATS_CHART_TYPE] ?: "",
             statsZoomLevel = prefs[Keys.STATS_ZOOM_LEVEL] ?: 1,
             onboardingBannerDismissed = prefs[Keys.ONBOARDING_BANNER_DISMISSED] ?: false,
-            customPrimaryHue   = prefs[Keys.CUSTOM_PRIMARY_HUE]   ?: 0f,
-            customSecondaryHue = prefs[Keys.CUSTOM_SECONDARY_HUE] ?: 200f,
-            customTertiaryHue  = prefs[Keys.CUSTOM_TERTIARY_HUE]  ?: 330f,
+            customPrimaryHue       = prefs[Keys.CUSTOM_PRIMARY_HUE]          ?: 0f,
+            customSecondaryHue     = prefs[Keys.CUSTOM_SECONDARY_HUE]        ?: 200f,
+            customTertiaryHue      = prefs[Keys.CUSTOM_TERTIARY_HUE]         ?: 330f,
+            activeModes            = prefs[Keys.ACTIVE_MODES]                ?: "",
+            pregnancyDateStr       = prefs[Keys.PREGNANCY_DATE_STR]          ?: "",
+            pregnancyStartType     = prefs[Keys.PREGNANCY_START_TYPE]        ?: "EDD",
+            temperatureUnitCelsius = prefs[Keys.TEMPERATURE_UNIT_CELSIUS]    ?: true,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -308,5 +324,20 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setCustomTertiaryHue(hue: Float) {
         context.dataStore.edit { it[Keys.CUSTOM_TERTIARY_HUE] = hue }
+    }
+
+    suspend fun setActiveModes(modes: String) {
+        context.dataStore.edit { it[Keys.ACTIVE_MODES] = modes }
+    }
+
+    suspend fun setPregnancyDate(dateStr: String, startType: String) {
+        context.dataStore.edit {
+            it[Keys.PREGNANCY_DATE_STR]   = dateStr
+            it[Keys.PREGNANCY_START_TYPE] = startType
+        }
+    }
+
+    suspend fun setTemperatureUnitCelsius(celsius: Boolean) {
+        context.dataStore.edit { it[Keys.TEMPERATURE_UNIT_CELSIUS] = celsius }
     }
 }

@@ -46,6 +46,10 @@ interface TrackingCategoryDao {
     @Query("SELECT * FROM tracking_categories WHERE name = :name LIMIT 1")
     suspend fun getCategoryByName(name: String): TrackingCategory?
 
+    /** Returns the category linked to a tracking-mode preset key, or null if none exists. */
+    @Query("SELECT * FROM tracking_categories WHERE modeKey = :key AND modeKey != '' LIMIT 1")
+    suspend fun getCategoryByModeKey(key: String): TrackingCategory?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertCategory(category: TrackingCategory): Long
 

@@ -1,5 +1,6 @@
 package com.mapgie.goflo.data.database.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -53,6 +54,10 @@ data class TrackingCategory(
     val allowMultiple: Boolean = false,
     val showInLogPeriod: Boolean = false,
     val trackAgainstTime: Boolean = false,
+    /** Stable key linking this category to a tracking mode preset (e.g. "bbt_temperature").
+     *  Empty string for system categories and manually created categories.
+     *  Used to deduplicate mode suggestions across modes. */
+    @ColumnInfo(defaultValue = "") val modeKey: String = "",
 ) {
     val isNumeric: Boolean get() = categoryType != "default"
 }
