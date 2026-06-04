@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.36.0-beta.3] - 2026-06-04
+
+### Changed
+- Weight category (Weight, Pregnancy, and PCOS modes) now uses a slider instead of a free-entry field, with a default range of 0-200 kg. The range is fully adjustable in category settings.
+
+---
 ## [0.36.0-beta.2] - 2026-06-04
 
 ### Changed
