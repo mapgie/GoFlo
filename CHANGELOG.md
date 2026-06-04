@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.33.0-beta.1] - 2026-06-04
+
+### Changed
+- Edit category (slider): value labels are now hidden by default. A "Label values" toggle reveals the labelling options, keeping the screen less busy.
+
+---
 ## [0.32.1-beta.1] - 2026-06-04
 
 ### Fixed

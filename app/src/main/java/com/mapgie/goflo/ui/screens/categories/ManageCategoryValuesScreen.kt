@@ -679,10 +679,11 @@ private fun NumericSliderSettings(
     val originalUnit = remember { category.numericUnit }
     val originalLabels = remember { category.scaleLabels.decodeScaleLabels() }
 
-    var minText       by rememberSaveable { mutableStateOf(originalMin) }
-    var maxText       by rememberSaveable { mutableStateOf(originalMax) }
-    var allowDecimals by rememberSaveable { mutableStateOf(originalAllowDecimals) }
-    var unit          by rememberSaveable { mutableStateOf(originalUnit) }
+    var minText          by rememberSaveable { mutableStateOf(originalMin) }
+    var maxText          by rememberSaveable { mutableStateOf(originalMax) }
+    var allowDecimals    by rememberSaveable { mutableStateOf(originalAllowDecimals) }
+    var unit             by rememberSaveable { mutableStateOf(originalUnit) }
+    var labelValuesExpanded by rememberSaveable { mutableStateOf(originalLabels.isNotEmpty()) }
 
     // Optional per-step labels (e.g. 1→"Good", 5→"Bad"). Editable only for
     // whole-number ranges with a manageable number of steps.
@@ -704,7 +705,8 @@ private fun NumericSliderSettings(
         derivedStateOf {
             minText != originalMin || maxText != originalMax ||
             allowDecimals != originalAllowDecimals || unit != originalUnit ||
-            labels.toMap() != originalLabels
+            (labelValuesExpanded && labels.toMap() != originalLabels) ||
+            (!labelValuesExpanded && originalLabels.isNotEmpty())
         }
     }
 
@@ -718,8 +720,11 @@ private fun NumericSliderSettings(
                         maxText.toFloatOrNull() ?: 10f,
                         allowDecimals,
                         unit.trim(),
-                        if (canLabel) labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
-                        else category.scaleLabels
+                        when {
+                            labelValuesExpanded && canLabel -> labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
+                            !labelValuesExpanded -> ""
+                            else -> category.scaleLabels
+                        }
                     )
                 }
             } else null
@@ -807,41 +812,53 @@ private fun NumericSliderSettings(
 
         // ── Optional per-step labels ─────────────────────────────────────────
         HorizontalDivider()
-        Text("Value labels (optional)", style = MaterialTheme.typography.titleSmall)
-        Text(
-            "Name points on your scale (e.g. 1 = Good, 3 = Neutral, 5 = Bad). " +
-                "Labels appear in the distribution chart in Stats.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (canLabel) {
-            (minInt!!..maxInt!!).forEach { step ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        step.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.width(36.dp)
-                    )
-                    OutlinedTextField(
-                        value         = labels[step] ?: "",
-                        onValueChange = { v -> if (v.isBlank()) labels.remove(step) else labels[step] = v },
-                        label         = { Text("Label") },
-                        singleLine    = true,
-                        modifier      = Modifier.weight(1f)
-                    )
-                }
-            }
-        } else {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Label values", style = MaterialTheme.typography.titleSmall)
+            Switch(
+                checked = labelValuesExpanded,
+                onCheckedChange = { labelValuesExpanded = it }
+            )
+        }
+        if (labelValuesExpanded) {
             Text(
-                "Tip: use whole numbers with a range of 20 steps or fewer (decimals off) to label individual values.",
+                "Name points on your scale (e.g. 1 = Good, 3 = Neutral, 5 = Bad). " +
+                    "Labels appear in the distribution chart in Stats.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (canLabel) {
+                (minInt!!..maxInt!!).forEach { step ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            step.toString(),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.width(36.dp)
+                        )
+                        OutlinedTextField(
+                            value         = labels[step] ?: "",
+                            onValueChange = { v -> if (v.isBlank()) labels.remove(step) else labels[step] = v },
+                            label         = { Text("Label") },
+                            singleLine    = true,
+                            modifier      = Modifier.weight(1f)
+                        )
+                    }
+                }
+            } else {
+                Text(
+                    "Tip: use whole numbers with a range of 20 steps or fewer (decimals off) to label individual values.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
 
         Spacer(Modifier.height(4.dp))
@@ -853,8 +870,11 @@ private fun NumericSliderSettings(
                     maxText.toFloatOrNull() ?: 10f,
                     allowDecimals,
                     unit.trim(),
-                    if (canLabel) labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
-                    else category.scaleLabels
+                    when {
+                        labelValuesExpanded && canLabel -> labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
+                        !labelValuesExpanded -> ""
+                        else -> category.scaleLabels
+                    }
                 )
             },
             enabled  = canSave,
