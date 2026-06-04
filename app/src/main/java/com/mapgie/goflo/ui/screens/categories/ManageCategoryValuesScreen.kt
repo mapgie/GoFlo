@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
@@ -75,6 +76,7 @@ fun ManageCategoryValuesScreen(
     var showAddValue              by rememberSaveable { mutableStateOf(false) }
     var showHelp                  by rememberSaveable { mutableStateOf(false) }
     var showRenameCategory        by rememberSaveable { mutableStateOf(false) }
+    var showEditAppearance        by rememberSaveable { mutableStateOf(false) }
     var renamingValue             by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingDeleteValue        by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingArchiveCategory    by rememberSaveable { mutableStateOf(false) }
@@ -99,6 +101,17 @@ fun ManageCategoryValuesScreen(
 
     if (showHelp) {
         CategoriesHelpDialog(onDismiss = { showHelp = false })
+    }
+
+    if (showEditAppearance && state.category != null) {
+        EditAppearanceDialog(
+            category  = state.category!!,
+            onSave    = { iconName, colorToken ->
+                viewModel.updateAppearance(iconName, colorToken)
+                showEditAppearance = false
+            },
+            onDismiss = { showEditAppearance = false }
+        )
     }
 
     if (showAddValue) {
@@ -293,6 +306,17 @@ fun ManageCategoryValuesScreen(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Edit appearance") },
+                                onClick = {
+                                    showMenu = false
+                                    showEditAppearance = true
+                                },
+                                leadingIcon = {
+                                    Icon(Icons.Outlined.Palette, contentDescription = null)
+                                }
+                            )
+                            HorizontalDivider()
                             if (state.category?.isSystem == false) {
                                 DropdownMenuItem(
                                     text = {

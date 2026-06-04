@@ -188,7 +188,7 @@ private fun MonthPickerDialog(
 
 @Composable
 private fun DayOfWeekRow() {
-    val days = listOf("Su", "Mo", "Tu", "We", "Th", "Fr", "Sa")
+    val days = listOf("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
     Row(Modifier.fillMaxWidth()) {
         days.forEach { day ->
             Text(
@@ -215,7 +215,7 @@ private fun CalendarDays(
     onDayLongClick: (LocalDate) -> Unit,
 ) {
     val firstDayOfMonth = month.atDay(1)
-    val startOffset = firstDayOfMonth.dayOfWeek.value % 7
+    val startOffset = (firstDayOfMonth.dayOfWeek.value - 1) % 7
     val totalDays = month.lengthOfMonth()
     val cells = startOffset + totalDays
     val rows = (cells + 6) / 7

@@ -45,9 +45,9 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Reorder
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -55,6 +55,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -119,15 +120,14 @@ fun ManageCategoriesScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    var showAddDialog         by rememberSaveable { mutableStateOf(false) }
-    var showHelp              by rememberSaveable { mutableStateOf(false) }
-    var pendingDelete         by rememberSaveable { mutableStateOf<Long?>(null) }
-    var pendingArchive        by rememberSaveable { mutableStateOf<Long?>(null) }
-    var pendingEditAppearance by rememberSaveable { mutableStateOf<Long?>(null) }
+    var showAddDialog by rememberSaveable { mutableStateOf(false) }
+    var showHelp      by rememberSaveable { mutableStateOf(false) }
+    var pendingDelete  by rememberSaveable { mutableStateOf<Long?>(null) }
+    var pendingArchive by rememberSaveable { mutableStateOf<Long?>(null) }
+    var reorderMode   by rememberSaveable { mutableStateOf(false) }
 
-    val categoryToDelete         = state.categories.firstOrNull { it.id == pendingDelete }
-    val categoryToArchive        = state.categories.firstOrNull { it.id == pendingArchive }
-    val categoryToEditAppearance = state.categories.firstOrNull { it.id == pendingEditAppearance }
+    val categoryToDelete  = state.categories.firstOrNull { it.id == pendingDelete }
+    val categoryToArchive = state.categories.firstOrNull { it.id == pendingArchive }
 
     fun requestArchive(category: TrackingCategory) {
         // Always show a confirmation for built-in categories regardless of warning preference
@@ -167,23 +167,6 @@ fun ManageCategoriesScreen(
                 )
             },
             onDismiss = { showAddDialog = false }
-        )
-    }
-
-    // ── Edit appearance dialog ────────────────────────────────────────────────
-
-    if (categoryToEditAppearance != null) {
-        EditAppearanceDialog(
-            category = categoryToEditAppearance,
-            onSave = { iconName, colorToken ->
-                viewModel.updateCategoryAppearance(
-                    id         = categoryToEditAppearance.id,
-                    iconName   = iconName,
-                    colorToken = colorToken,
-                )
-                pendingEditAppearance = null
-            },
-            onDismiss = { pendingEditAppearance = null }
         )
     }
 
@@ -307,6 +290,20 @@ fun ManageCategoriesScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { reorderMode = !reorderMode },
+                        modifier = Modifier.semantics {
+                            role = Role.Button
+                            contentDescription = if (reorderMode) "Exit reorder mode" else "Reorder categories"
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Reorder,
+                            contentDescription = null,
+                            tint = if (reorderMode) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
                     IconButton(onClick = { showHelp = true }) {
                         Icon(
                             Icons.Outlined.Info,
@@ -322,9 +319,12 @@ fun ManageCategoriesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add category")
-            }
+            ExtendedFloatingActionButton(
+                onClick = { showAddDialog = true },
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Add Category") },
+                modifier = Modifier.semantics { contentDescription = "Add category" }
+            )
         }
     ) { padding ->
         if (state.categories.isEmpty()) {
@@ -374,7 +374,7 @@ fun ManageCategoriesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(localActive, key = { it.id }) { category ->
-                    val dragModifier = Modifier.pointerInput(category.id) {
+                    val dragModifier = if (reorderMode) Modifier.pointerInput(category.id) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = {
                                 draggedIndex = localActive.indexOfFirst { it.id == category.id }
@@ -415,15 +415,15 @@ fun ManageCategoriesScreen(
                                 localActive.addAll(active)
                             }
                         )
-                    }
+                    } else null
                     SwipeableCategoryRow(
-                        category         = category,
-                        onClick          = { onNavigateToCategory(category.id) },
-                        onEditAppearance = { pendingEditAppearance = category.id },
-                        onArchiveToggle  = { requestArchive(category) },
-                        onDelete         = { pendingDelete = category.id },
-                        modifier         = Modifier.animateItem(),
-                        dragModifier     = dragModifier,
+                        category        = category,
+                        onClick         = { onNavigateToCategory(category.id) },
+                        onArchiveToggle = { requestArchive(category) },
+                        onDelete        = { pendingDelete = category.id },
+                        modifier        = Modifier.animateItem(),
+                        dragModifier    = dragModifier,
+                        reorderMode     = reorderMode,
                     )
                 }
 
@@ -458,11 +458,10 @@ fun ManageCategoriesScreen(
                     if (archivedExpanded) {
                         items(archived, key = { it.id }) { category ->
                             SwipeableCategoryRow(
-                                category         = category,
-                                onClick          = { onNavigateToCategory(category.id) },
-                                onEditAppearance = { pendingEditAppearance = category.id },
-                                onArchiveToggle  = { pendingArchive = category.id },
-                                onDelete         = { pendingDelete = category.id }
+                                category        = category,
+                                onClick         = { onNavigateToCategory(category.id) },
+                                onArchiveToggle = { pendingArchive = category.id },
+                                onDelete        = { pendingDelete = category.id }
                             )
                         }
                     }
@@ -479,11 +478,11 @@ fun ManageCategoriesScreen(
 private fun SwipeableCategoryRow(
     category: TrackingCategory,
     onClick: () -> Unit,
-    onEditAppearance: () -> Unit,
     onArchiveToggle: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
     dragModifier: Modifier? = null,
+    reorderMode: Boolean = false,
 ) {
     val archiveLabel = when {
         category.isArchived -> if (category.isSystem) "Restore" else "Unarchive"
@@ -504,8 +503,8 @@ private fun SwipeableCategoryRow(
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier,
-        enableDismissFromStartToEnd = true,
-        enableDismissFromEndToStart = !category.isSystem,
+        enableDismissFromStartToEnd = !reorderMode,
+        enableDismissFromEndToStart = !reorderMode && !category.isSystem,
         backgroundContent = {
             val direction = dismissState.targetValue
             val bgColor by animateColorAsState(
@@ -569,8 +568,8 @@ private fun SwipeableCategoryRow(
         CategoryRow(
             category = category,
             onClick = onClick,
-            onEditAppearance = onEditAppearance,
             dragModifier = dragModifier,
+            reorderMode = reorderMode,
         )
     }
 }
@@ -579,9 +578,9 @@ private fun SwipeableCategoryRow(
 private fun CategoryRow(
     category: TrackingCategory,
     onClick: () -> Unit,
-    onEditAppearance: () -> Unit,
     modifier: Modifier = Modifier,
     dragModifier: Modifier? = null,
+    reorderMode: Boolean = false,
 ) {
     val bubbleColor = category.colorToken.toCategoryColor()
     val iconTint    = category.colorToken.toCategoryOnColor()
@@ -592,7 +591,7 @@ private fun CategoryRow(
             .fillMaxWidth()
             .alpha(if (category.isArchived) 0.55f else 1f),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Row(
@@ -622,7 +621,7 @@ private fun CategoryRow(
             Column(Modifier.weight(1f)) {
                 Text(
                     text  = category.name,
-                    style = MaterialTheme.typography.titleSmall
+                    style = MaterialTheme.typography.titleMedium
                 )
                 Text(
                     text  = buildCategorySubtitle(category),
@@ -631,23 +630,7 @@ private fun CategoryRow(
                 )
             }
 
-            // Edit appearance (all categories)
-            IconButton(onClick = onEditAppearance) {
-                Icon(
-                    imageVector        = Icons.Outlined.Palette,
-                    contentDescription = "Edit icon & colour",
-                    tint               = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier           = Modifier.size(20.dp)
-                )
-            }
-
-            Icon(
-                imageVector        = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint               = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (dragModifier != null) {
+            if (reorderMode && dragModifier != null) {
                 Icon(
                     imageVector        = Icons.Default.DragHandle,
                     contentDescription = "Drag to reorder",
@@ -655,6 +638,12 @@ private fun CategoryRow(
                     modifier           = dragModifier
                         .size(44.dp)
                         .padding(10.dp)
+                )
+            } else {
+                Icon(
+                    imageVector        = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint               = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -877,7 +866,7 @@ private fun AddCategoryDialog(
 // ── Edit appearance dialog ────────────────────────────────────────────────────
 
 @Composable
-private fun EditAppearanceDialog(
+internal fun EditAppearanceDialog(
     category: TrackingCategory,
     onSave: (iconName: String, colorToken: String) -> Unit,
     onDismiss: () -> Unit
