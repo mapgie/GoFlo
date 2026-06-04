@@ -18,7 +18,7 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
-## [0.33.0-beta.1] - 2026-06-04
+## [0.34.0-beta.1] - 2026-06-04
 
 ### Changed
 - Category edit screen redesigned to align with Material 3 principles: pencil (rename) and palette (edit appearance) icons are now direct action buttons in the top app bar trailing edge, replacing the inline pencil next to the title and the "Edit appearance" overflow menu item.
