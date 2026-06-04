@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.38.0-beta.1] - 2026-06-04
+
+### Added
+- Stats: a new Grid view that stacks several tracking categories as rows and shows each day as a filled square shaded by intensity, so you can compare categories at a glance. Pick any number of categories, choose a 30, 60, or 90 day window (longer windows aggregate by week), switch each cell between Sum and Average of the logged level, and adjust the cell size. Intensity is scaled within each row and every cell is described for screen readers.
+
+---
 ## [0.37.0-beta.1] - 2026-06-04
 
 ### Changed
