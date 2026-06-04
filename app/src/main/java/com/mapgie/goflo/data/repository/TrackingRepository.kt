@@ -120,6 +120,7 @@ class TrackingRepository(
         allowMultiple: Boolean = false,
         showInLogPeriod: Boolean = false,
         trackAgainstTime: Boolean = false,
+        modeKey: String = "",
     ) {
         val cat = categoryDao.getCategoryByIdOnce(id) ?: return
         categoryDao.updateCategory(
@@ -135,6 +136,7 @@ class TrackingRepository(
                 allowMultiple    = allowMultiple,
                 showInLogPeriod  = showInLogPeriod,
                 trackAgainstTime = trackAgainstTime,
+                modeKey          = modeKey,
             )
         )
     }

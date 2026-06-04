@@ -18,6 +18,13 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.31.1-beta.1] - 2026-06-04
+
+### Fixed
+- Full backup now truly includes everything: all app settings (theme, reminders, display preferences, tracking modes, pregnancy date, temperature unit, custom hues, dashboard state) are exported and restored on import. Previously only pinned stats were included.
+- Category `modeKey` is now exported in full backup. Without this, restoring a backup and re-activating a Tracking Mode would duplicate mode-seeded categories instead of recognising them as already present.
+
+---
 ## [0.31.0-beta.1] - 2026-06-04
 
 ### Added
