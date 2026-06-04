@@ -46,6 +46,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
@@ -258,17 +259,30 @@ private fun ModeActivationSheet(
         }
     }
 
-    // Pregnancy-specific state — pre-filled from the latest logged period when available.
-    // Stores digits only (up to 8), displayed as DD/MM/YYYY by the visual transformation.
-    val prefillDigits = remember(latestPeriodDate) {
-        latestPeriodDate?.let { d ->
-            "${d.dayOfMonth.toString().padStart(2, '0')}" +
-            "${d.monthValue.toString().padStart(2, '0')}" +
-            d.year.toString()
-        } ?: ""
-    }
-    var pregnancyDigits   by rememberSaveable { mutableStateOf(prefillDigits) }
+    // Pregnancy-specific state — digits only (up to 8), displayed as DD/MM/YYYY.
+    // Pre-fill changes based on which tab is selected:
+    //   LMP tab  → pre-fill with the most recent period start date
+    //   EDD tab  → pre-fill with LMP + 280 days (the calculated due date)
+    // The user can type their own value over either pre-fill.
     var pregnancyStartType by rememberSaveable { mutableStateOf(if (latestPeriodDate != null) "LMP" else "EDD") }
+    val lmpDigits = latestPeriodDate?.let { d ->
+        "${d.dayOfMonth.toString().padStart(2, '0')}" +
+        "${d.monthValue.toString().padStart(2, '0')}" +
+        d.year.toString()
+    } ?: ""
+    var pregnancyDigits by rememberSaveable { mutableStateOf(lmpDigits) }
+
+    LaunchedEffect(pregnancyStartType) {
+        pregnancyDigits = when (pregnancyStartType) {
+            "LMP" -> lmpDigits
+            "EDD" -> latestPeriodDate?.plusDays(280)?.let { d ->
+                "${d.dayOfMonth.toString().padStart(2, '0')}" +
+                "${d.monthValue.toString().padStart(2, '0')}" +
+                d.year.toString()
+            } ?: ""
+            else -> ""
+        }
+    }
 
     val dateSlashTransformation = remember {
         VisualTransformation { text ->
@@ -384,6 +398,10 @@ private fun ModeActivationSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (latestPeriodDate != null) {
+                    val infoText = if (pregnancyStartType == "LMP")
+                        "Pre-filled from your most recent cycle log."
+                    else
+                        "Calculated from your most recent cycle log."
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -395,7 +413,7 @@ private fun ModeActivationSheet(
                             modifier = Modifier.size(14.dp),
                         )
                         Text(
-                            "Pre-filled from your most recent cycle log.",
+                            infoText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

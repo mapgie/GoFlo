@@ -37,88 +37,6 @@ enum class AppMode(
     val features: List<ModeFeature> = emptyList(),
 ) {
 
-    FERTILITY(
-        id = "FERTILITY",
-        displayName = "Fertility",
-        description = "Track basal body temperature, cervical fluid, and ovulation to understand your cycle in detail.",
-        features = listOf(ModeFeature.BBT_CHART),
-        suggestedCategories = listOf(
-            SuggestedCategory(
-                modeKey      = "bbt_temperature",
-                name         = "BBT Temperature",
-                description  = "Daily basal body temperature reading",
-                iconName     = "thermometer",
-                colorToken   = "tertiary",
-                categoryType = "numeric_slider",
-                numericMin   = 35.0f,
-                numericMax   = 42.0f,
-                allowDecimals = true,
-                numericUnit  = "°C",
-            ),
-            SuggestedCategory(
-                modeKey      = "cervical_fluid",
-                name         = "Cervical Fluid",
-                description  = "Daily cervical mucus observation",
-                iconName     = "water_drop",
-                colorToken   = "secondary",
-                categoryType = "default",
-                values       = listOf("Dry", "Sticky", "Creamy", "Watery", "Egg white"),
-            ),
-        )
-    ),
-
-    PREGNANCY(
-        id = "PREGNANCY",
-        displayName = "Pregnancy",
-        description = "See your pregnancy week and trimester on the home screen, and track how you're feeling.",
-        features = listOf(ModeFeature.PREGNANCY_COUNTER),
-        suggestedCategories = listOf(
-            SuggestedCategory(
-                modeKey      = "nausea",
-                name         = "Nausea",
-                description  = "Morning sickness severity (0 = none, 10 = severe)",
-                iconName     = "sick",
-                colorToken   = "secondary",
-                categoryType = "numeric_slider",
-                numericMin   = 0f,
-                numericMax   = 10f,
-            ),
-            SuggestedCategory(
-                modeKey       = "weight",
-                name          = "Weight",
-                description   = "Body weight",
-                iconName      = "monitor_weight",
-                colorToken    = "tertiary",
-                categoryType  = "numeric_slider",
-                numericMin    = 0f,
-                numericMax    = 200f,
-                allowDecimals = true,
-                numericUnit   = "kg",
-                defaultChecked = false,
-            ),
-        )
-    ),
-
-    WEIGHT(
-        id = "WEIGHT",
-        displayName = "Weight",
-        description = "Log your body weight over time and see trends alongside your cycle.",
-        suggestedCategories = listOf(
-            SuggestedCategory(
-                modeKey       = "weight",
-                name          = "Weight",
-                description   = "Body weight",
-                iconName      = "monitor_weight",
-                colorToken    = "primary",
-                categoryType  = "numeric_slider",
-                numericMin    = 0f,
-                numericMax    = 200f,
-                allowDecimals = true,
-                numericUnit   = "kg",
-            ),
-        )
-    ),
-
     ENDO(
         id = "ENDO",
         displayName = "Endometriosis",
@@ -348,6 +266,77 @@ enum class AppMode(
                 colorToken   = "tertiary",
                 categoryType = "default",
                 values       = listOf("Oral", "Injection", "Patch", "Gel", "Cream", "Other"),
+            ),
+        )
+    ),
+
+    FERTILITY(
+        id = "FERTILITY",
+        displayName = "Fertility",
+        description = "Track basal body temperature, cervical fluid, and ovulation to understand your cycle in detail.",
+        features = listOf(ModeFeature.BBT_CHART),
+        suggestedCategories = listOf(
+            SuggestedCategory(
+                modeKey      = "bbt_temperature",
+                name         = "BBT Temperature",
+                description  = "Daily basal body temperature reading",
+                iconName     = "thermometer",
+                colorToken   = "tertiary",
+                categoryType = "numeric_slider",
+                numericMin   = 35.0f,
+                numericMax   = 42.0f,
+                allowDecimals = true,
+                numericUnit  = "°C",
+            ),
+            SuggestedCategory(
+                modeKey      = "cervical_fluid",
+                name         = "Cervical Fluid",
+                description  = "Daily cervical mucus observation",
+                iconName     = "water_drop",
+                colorToken   = "secondary",
+                categoryType = "default",
+                values       = listOf("Dry", "Sticky", "Creamy", "Watery", "Egg white"),
+            ),
+            SuggestedCategory(
+                modeKey      = "ovulation_test",
+                name         = "Ovulation Test",
+                description  = "Record test results to pinpoint your fertile window",
+                iconName     = "temperature",
+                colorToken   = "secondary",
+                categoryType = "default",
+                values       = listOf("Positive", "Negative", "Faint"),
+            ),
+        )
+    ),
+
+    PREGNANCY(
+        id = "PREGNANCY",
+        displayName = "Pregnancy",
+        description = "See your pregnancy week and trimester on the home screen, and track how you're feeling.",
+        features = listOf(ModeFeature.PREGNANCY_COUNTER),
+        suggestedCategories = listOf(
+            SuggestedCategory(
+                modeKey      = "nausea",
+                name         = "Nausea",
+                description  = "Morning sickness severity (0 = none, 10 = severe)",
+                iconName     = "sick",
+                colorToken   = "secondary",
+                categoryType = "numeric_slider",
+                numericMin   = 0f,
+                numericMax   = 10f,
+            ),
+            SuggestedCategory(
+                modeKey       = "weight",
+                name          = "Weight",
+                description   = "Body weight",
+                iconName      = "monitor_weight",
+                colorToken    = "tertiary",
+                categoryType  = "numeric_slider",
+                numericMin    = 0f,
+                numericMax    = 200f,
+                allowDecimals = true,
+                numericUnit   = "kg",
+                defaultChecked = false,
             ),
         )
     );
