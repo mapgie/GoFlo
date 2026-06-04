@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.36.0-beta.2] - 2026-06-04
+
+### Changed
+- Active tracking mode cards now show a filled heart icon instead of an outline heart, replacing the previous check-circle tick. The card background colour change on activation is unchanged.
+
+---
 ## [0.36.0-beta.1] - 2026-06-04
 
 ### Added

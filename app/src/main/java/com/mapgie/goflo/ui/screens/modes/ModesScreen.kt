@@ -17,8 +17,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.AlertDialog
@@ -212,7 +212,7 @@ private fun ModeCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                imageVector        = Icons.Outlined.FavoriteBorder,
+                imageVector        = if (isActive) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                 contentDescription = null,
                 tint               = MaterialTheme.colorScheme.primary,
                 modifier           = Modifier.size(28.dp),
@@ -229,15 +229,6 @@ private fun ModeCard(
                     text  = mode.description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (isActive) {
-                Spacer(Modifier.width(8.dp))
-                Icon(
-                    imageVector        = Icons.Outlined.CheckCircle,
-                    contentDescription = "Active",
-                    tint               = MaterialTheme.colorScheme.primary,
-                    modifier           = Modifier.size(20.dp),
                 )
             }
         }
