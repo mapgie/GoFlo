@@ -24,6 +24,12 @@ Rules:
 - Tapping Home in the bottom navigation bar while on the Settings screen now returns to Home. The Home tab also stays highlighted while Settings is open, making it clear which section you are in.
 
 ---
+## [0.32.1-beta.1] - 2026-06-04
+
+### Fixed
+- Pregnancy setup: date input now uses DD/MM/YYYY order with a numeric keyboard; slashes are inserted automatically so no separators need to be typed.
+
+---
 ## [0.32.0-beta.1] - 2026-06-04
 
 ### Added
