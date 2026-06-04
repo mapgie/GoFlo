@@ -23,6 +23,9 @@ When text appears or changes in response to user action (error messages, validat
 **Icon-only FABs and SmallFABs need an explicit `contentDescription` on the container, not just the icon**
 When a SmallFloatingActionButton contains an Icon with `contentDescription = null` and its label lives in an adjacent Surface (as in a speed-dial layout), TalkBack focuses on the FAB alone and reads nothing. Setting `contentDescription` on the Icon inside fixes the raw Icon composable but TalkBack still reads the FAB as unlabelled if the two are in separate composable trees. The reliable fix is `Modifier.semantics { contentDescription = label }` on the FAB itself, which takes precedence.
 
+**Inline text links: use `LinkAnnotation` (`withLink`), not the deprecated `ClickableText`**
+`ClickableText` is deprecated and, more importantly, gives the tappable span no link role — screen readers announce it as plain text, so a sighted-only "underlined = tappable" cue is the only affordance, and the hit region is a single tap offset rather than the whole phrase. Build the link with `withLink(LinkAnnotation.Url(url, styles = TextLinkStyles(...)) { handle })` inside `buildAnnotatedString`, then render with a plain `Text`. This announces the span with the correct link role, exposes a proper touch region, and lets a custom handler launch an Intent instead of relying on the default URL open. Available from Compose 1.7+.
+
 **`ModalBottomSheetProperties` requires all parameters explicitly in Material3 1.2.x**
 The constructor has no default values in this version — passing only `shouldDismissOnBackPress` fails to compile. Always supply all three: `securePolicy = SecureFlagPolicy.Inherit, isFocusable = true, shouldDismissOnBackPress = false`. `SecureFlagPolicy` also needs an explicit import from `androidx.compose.ui.window`.
 

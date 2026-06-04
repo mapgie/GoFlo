@@ -86,4 +86,5 @@ Additional rules:
 - `clearAndSetSemantics { }` must also include `role = Role.<Type>` — it replaces all child semantics, so the role must be re-declared there.
 - Status text that appears or changes in response to user action needs `Modifier.semantics { liveRegion = LiveRegionMode.Assertive }` (errors) or `LiveRegionMode.Polite` (non-urgent feedback).
 - Icon-only interactive controls (FABs, icon-only buttons outside of `IconButton`) need `Modifier.semantics { contentDescription = "<action label>" }` on the container itself.
+- Inline text links inside body copy must use `LinkAnnotation.Url` / `withLink` (not the deprecated `ClickableText`), so the span carries the link role and a full-phrase touch region.
 - Run `python3 a11y_check.py` locally before pushing to confirm no new violations.
