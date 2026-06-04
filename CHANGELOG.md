@@ -25,6 +25,7 @@ Rules:
 - Category values are now displayed as a chip row (like the Period Log view) instead of a scrollable list with a floating action button. Each chip has a trailing edit icon; tapping it opens the rename dialog. Non-system values show a Delete button in the rename dialog.
 - Removed the divider line at the bottom of the values section.
 - Section headings ("Values in this category", "Slider scale settings", etc.) now use Title Small typography for improved visual hierarchy.
+- Aligned section heading typography across all edit screens: SettingsScreen (Mode, Colour, Custom colours, Export scope, Date range, What to include, Format, GoFlo Status, Quick Log, Discreet icons, Your own icon) and ModesScreen activation sheet (This mode enables, Temperature unit, Your pregnancy date, Categories to add) all now use Title Small, matching the category edit screen standard.
 
 ---
 ## [0.32.0-beta.1] - 2026-06-04

@@ -289,7 +289,7 @@ private fun ModeActivationSheet(
                 HorizontalDivider()
                 Text(
                     "This mode enables:",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 mode.features.forEach { feature ->
@@ -313,7 +313,7 @@ private fun ModeActivationSheet(
                 HorizontalDivider()
                 Text(
                     "Temperature unit:",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -345,7 +345,7 @@ private fun ModeActivationSheet(
                 HorizontalDivider()
                 Text(
                     "Your pregnancy date:",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
@@ -395,7 +395,7 @@ private fun ModeActivationSheet(
                 HorizontalDivider()
                 Text(
                     "Categories to add:",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 mode.suggestedCategories.forEach { cat ->
