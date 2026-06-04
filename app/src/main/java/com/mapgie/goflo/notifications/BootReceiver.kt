@@ -24,6 +24,8 @@ class BootReceiver : BroadcastReceiver() {
                 val periods = app.repository.getAllPeriods().first()
                 val prefs = app.preferencesStore.preferences.first()
                 ReminderScheduler.rescheduleAll(context, periods, prefs.reminder)
+                val customAlarms = app.customAlarmRepository.getEnabledAlarms()
+                ReminderScheduler.rescheduleCustomAlarms(context, customAlarms)
             } finally {
                 pendingResult.finish()
             }

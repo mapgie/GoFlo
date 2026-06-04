@@ -118,6 +118,16 @@
                 <action android:name="com.mapgie.goflo.ACTION_PREPERIOD_REMINDER" />
                 <action android:name="com.mapgie.goflo.ACTION_OVULATION_REMINDER" />
                 <action android:name="com.mapgie.goflo.ACTION_DAILY_PERIOD_REMINDER" />
+                <action android:name="com.mapgie.goflo.ACTION_CUSTOM_ALARM" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".notifications.AlarmActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.mapgie.goflo.ACTION_CUSTOM_LOG" />
+                <action android:name="com.mapgie.goflo.ACTION_CUSTOM_SNOOZE" />
             </intent-filter>
         </receiver>
 

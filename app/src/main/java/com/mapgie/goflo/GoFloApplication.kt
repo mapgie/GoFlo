@@ -7,6 +7,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.mapgie.goflo.data.database.GoFloDatabase
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.preferences.SecurityPreferences
+import com.mapgie.goflo.data.repository.CustomAlarmRepository
 import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingRepository
 import com.mapgie.goflo.notifications.ReminderScheduler
@@ -24,6 +25,7 @@ class GoFloApplication : Application() {
     val trackingRepository by lazy {
         TrackingRepository(database.trackingCategoryDao(), database.trackingLogDao(), database.symptomDao())
     }
+    val customAlarmRepository by lazy { CustomAlarmRepository(database.customAlarmDao()) }
     val preferencesStore by lazy { AppPreferencesStore(this) }
     val securityPreferences by lazy { SecurityPreferences(this) }
 

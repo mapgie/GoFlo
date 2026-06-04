@@ -6,10 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.mapgie.goflo.data.database.dao.CustomAlarmDao
 import com.mapgie.goflo.data.database.dao.PeriodDao
 import com.mapgie.goflo.data.database.dao.SymptomDao
 import com.mapgie.goflo.data.database.dao.TrackingCategoryDao
 import com.mapgie.goflo.data.database.dao.TrackingLogDao
+import com.mapgie.goflo.data.database.entities.CustomAlarm
+import com.mapgie.goflo.data.database.entities.CustomAlarmCategory
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -25,8 +28,10 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         TrackingValue::class,
         TrackingLog::class,
         TrackingLogValue::class,
+        CustomAlarm::class,
+        CustomAlarmCategory::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -34,6 +39,7 @@ abstract class GoFloDatabase : RoomDatabase() {
     abstract fun symptomDao(): SymptomDao
     abstract fun trackingCategoryDao(): TrackingCategoryDao
     abstract fun trackingLogDao(): TrackingLogDao
+    abstract fun customAlarmDao(): CustomAlarmDao
 
     companion object {
         @Volatile private var instance: GoFloDatabase? = null
@@ -400,6 +406,41 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /** Adds custom_alarms and custom_alarm_categories tables (v18). */
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `custom_alarms`
+                       (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `hour` INTEGER NOT NULL,
+                        `minute` INTEGER NOT NULL,
+                        `label` TEXT NOT NULL DEFAULT '',
+                        `alarmType` TEXT NOT NULL DEFAULT 'NOTIFICATION',
+                        `overrideDnd` INTEGER NOT NULL DEFAULT 0,
+                        `isRecurring` INTEGER NOT NULL DEFAULT 1,
+                        `scheduleType` TEXT NOT NULL DEFAULT 'DAILY',
+                        `daysOffset` INTEGER NOT NULL DEFAULT 1,
+                        `dayOfPeriod` INTEGER NOT NULL DEFAULT 1,
+                        `snoozeDurationMinutes` INTEGER NOT NULL DEFAULT 10,
+                        `isEnabled` INTEGER NOT NULL DEFAULT 1)"""
+                )
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `custom_alarm_categories`
+                       (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `alarmId` INTEGER NOT NULL,
+                        `categoryId` INTEGER NOT NULL,
+                        FOREIGN KEY(`alarmId`) REFERENCES `custom_alarms`(`id`) ON DELETE CASCADE,
+                        FOREIGN KEY(`categoryId`) REFERENCES `tracking_categories`(`id`) ON DELETE CASCADE)"""
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_custom_alarm_categories_alarmId` ON `custom_alarm_categories`(`alarmId`)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_custom_alarm_categories_categoryId` ON `custom_alarm_categories`(`categoryId`)"
+                )
+            }
+        }
+
         /** Seeds the "Ovulation Test" system category with Positive/Negative/Faint values (v16). */
         val MIGRATION_15_16 = object : Migration(15, 16) {
             override fun migrate(database: SupportSQLiteDatabase) {
@@ -584,7 +625,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
