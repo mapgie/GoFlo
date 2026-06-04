@@ -17,10 +17,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.export.DataExporter
 import com.mapgie.goflo.data.export.ExportConfig
 import com.mapgie.goflo.data.export.ExportFormat
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
+import com.mapgie.goflo.data.repository.CustomAlarmRepository
 import com.mapgie.goflo.data.repository.ImportResult
 import com.mapgie.goflo.data.preferences.AppPreferences
 import com.mapgie.goflo.data.preferences.SecurityPreferences
@@ -46,6 +48,7 @@ class SettingsViewModel(
     private val securityPreferences: SecurityPreferences,
     private val repository: PeriodRepository,
     private val trackingRepository: TrackingRepository,
+    private val alarmRepository: CustomAlarmRepository,
     private val context: Context
 ) : ViewModel() {
 
@@ -370,7 +373,7 @@ class SettingsViewModel(
         val metaTo   = endDate   ?: LocalDate.now()
 
         val root = JSONObject()
-        root.put("version", if (config.fullBackup) 3 else 2)
+        root.put("version", if (config.fullBackup) 4 else 2)
         root.put("exportedAt", LocalDate.now().toString())
         if (config.fullBackup) root.put("fullBackup", true)
         val rangeObj = JSONObject()
@@ -378,7 +381,7 @@ class SettingsViewModel(
         rangeObj.put("to", metaTo.toString())
         root.put("dateRange", rangeObj)
 
-        // ── Full backup: category configuration ──────────────────────────────
+        // ── Full backup: category configuration, settings, and alarms ────────
         if (config.fullBackup) {
             val allCats = trackingRepository.getAllCategoriesOnce()
             val catsArray = JSONArray()
@@ -447,6 +450,31 @@ class SettingsViewModel(
                 put("alarmLabel", prefs.reminder.alarmLabel)
             }
             root.put("settings", settingsObj)
+
+            // Custom alarms
+            val catIdToName = allCats.associateBy({ it.id }, { it.name })
+            val alarmsArray = JSONArray()
+            alarmRepository.getAllAlarmsOnce().forEach { alarm ->
+                val alarmObj = JSONObject()
+                alarmObj.put("hour", alarm.hour)
+                alarmObj.put("minute", alarm.minute)
+                alarmObj.put("label", alarm.label)
+                alarmObj.put("alarmType", alarm.alarmType)
+                alarmObj.put("overrideDnd", alarm.overrideDnd)
+                alarmObj.put("isRecurring", alarm.isRecurring)
+                alarmObj.put("scheduleType", alarm.scheduleType)
+                alarmObj.put("daysOffset", alarm.daysOffset)
+                alarmObj.put("dayOfPeriod", alarm.dayOfPeriod)
+                alarmObj.put("snoozeDurationMinutes", alarm.snoozeDurationMinutes)
+                alarmObj.put("isEnabled", alarm.isEnabled)
+                val catNamesArray = JSONArray()
+                alarmRepository.getCategoryIdsForAlarm(alarm.id)
+                    .mapNotNull { catIdToName[it] }
+                    .forEach { catNamesArray.put(it) }
+                alarmObj.put("categoryNames", catNamesArray)
+                alarmsArray.put(alarmObj)
+            }
+            if (alarmsArray.length() > 0) root.put("alarms", alarmsArray)
         }
 
         if (config.includePeriods) {
@@ -657,6 +685,11 @@ class SettingsViewModel(
                             store.setReminderDeliveryMode(settingsObj.optString("reminderDeliveryMode", "NOTIFICATION"))
                             store.setAlarmLabel(settingsObj.optString("alarmLabel", ""))
                         }
+                        // Restore custom alarms if present.
+                        val alarmsArray = root.optJSONArray("alarms")
+                        if (alarmsArray != null) {
+                            importCustomAlarms(alarmsArray, replace)
+                        }
                     }
                 } // import errors are non-fatal; period result still reported
                 reschedule()
@@ -796,6 +829,65 @@ class SettingsViewModel(
 
     // ── Private ───────────────────────────────────────────────────────────────
 
+    private suspend fun importSettings(settingsObj: JSONObject) {
+        val theme = settingsObj.optString("theme", "").takeIf { it.isNotBlank() }
+        if (theme != null) store.setTheme(theme)
+        store.setWcagMode(settingsObj.optBoolean("wcagMode", false))
+        store.setCustomPrimaryHue(settingsObj.optDouble("customPrimaryHue", 0.0).toFloat())
+        store.setCustomSecondaryHue(settingsObj.optDouble("customSecondaryHue", 200.0).toFloat())
+        store.setCustomTertiaryHue(settingsObj.optDouble("customTertiaryHue", 330.0).toFloat())
+        val cycleLen = settingsObj.optInt("preferredCycleLength", 0)
+        if (cycleLen == 0 || cycleLen in 21..90) store.setPreferredCycleLength(cycleLen)
+        store.setShowPeriodPrediction(settingsObj.optBoolean("showPeriodPrediction", true))
+        store.setShowOvulationMarkers(settingsObj.optBoolean("showOvulationMarkers", true))
+        store.setDashboardEnabled(settingsObj.optBoolean("dashboardEnabled", false))
+        store.setArchiveWarningDisabled(settingsObj.optBoolean("archiveWarningDisabled", false))
+        val reminderObj = settingsObj.optJSONObject("reminder") ?: return
+        store.setPreperiodEnabled(reminderObj.optBoolean("preperiodEnabled", false))
+        store.setPreperiodDaysBefore(reminderObj.optInt("preperiodDaysBefore", 2))
+        store.setOvulationEnabled(reminderObj.optBoolean("ovulationEnabled", false))
+        store.setDailyEnabled(reminderObj.optBoolean("dailyEnabled", false))
+        store.setReminderTime(reminderObj.optInt("hour", 8), reminderObj.optInt("minute", 0))
+        val deliveryMode = reminderObj.optString("deliveryMode", "").takeIf { it.isNotBlank() }
+        if (deliveryMode != null) store.setReminderDeliveryMode(deliveryMode)
+        store.setAlarmLabel(reminderObj.optString("alarmLabel", ""))
+    }
+
+    private suspend fun importCustomAlarms(alarmsArray: JSONArray, replace: Boolean) {
+        if (replace) {
+            alarmRepository.getAllAlarmsOnce().forEach { alarm ->
+                ReminderScheduler.cancelCustomAlarm(context, alarm.id)
+                alarmRepository.deleteAlarm(alarm.id)
+            }
+        }
+        for (i in 0 until alarmsArray.length()) {
+            val alarmObj = alarmsArray.getJSONObject(i)
+            val alarm = CustomAlarm(
+                hour                = alarmObj.optInt("hour", 8),
+                minute              = alarmObj.optInt("minute", 0),
+                label               = alarmObj.optString("label", ""),
+                alarmType           = alarmObj.optString("alarmType", "NOTIFICATION"),
+                overrideDnd         = alarmObj.optBoolean("overrideDnd", false),
+                isRecurring         = alarmObj.optBoolean("isRecurring", true),
+                scheduleType        = alarmObj.optString("scheduleType", "DAILY"),
+                daysOffset          = alarmObj.optInt("daysOffset", 1),
+                dayOfPeriod         = alarmObj.optInt("dayOfPeriod", 1),
+                snoozeDurationMinutes = alarmObj.optInt("snoozeDurationMinutes", 10),
+                isEnabled           = alarmObj.optBoolean("isEnabled", true),
+            )
+            val catNamesArray = alarmObj.optJSONArray("categoryNames") ?: JSONArray()
+            val categoryIds = mutableListOf<Long>()
+            for (j in 0 until catNamesArray.length()) {
+                val name = catNamesArray.optString(j, "").takeIf { it.isNotBlank() } ?: continue
+                trackingRepository.getCategoryByName(name)?.id?.let { categoryIds.add(it) }
+            }
+            val savedId = alarmRepository.saveAlarm(alarm, categoryIds)
+            if (alarm.isEnabled) {
+                alarmRepository.getById(savedId)?.let { ReminderScheduler.scheduleCustomAlarm(context, it) }
+            }
+        }
+    }
+
     private suspend fun reschedule() {
         val periods = repository.getAllPeriods().first()
         val settings = store.preferences.first().reminder
@@ -807,11 +899,12 @@ class SettingsViewModel(
         private val securityPreferences: SecurityPreferences,
         private val repository: PeriodRepository,
         private val trackingRepository: TrackingRepository,
+        private val alarmRepository: CustomAlarmRepository,
         private val context: Context
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return SettingsViewModel(store, securityPreferences, repository, trackingRepository, context) as T
+            return SettingsViewModel(store, securityPreferences, repository, trackingRepository, alarmRepository, context) as T
         }
     }
 }

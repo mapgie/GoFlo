@@ -20,6 +20,8 @@ class CustomAlarmRepository(private val dao: CustomAlarmDao) {
 
     suspend fun getById(id: Long): CustomAlarm? = dao.getById(id)
 
+    suspend fun getAllAlarmsOnce(): List<CustomAlarm> = dao.getAllAlarmsOnce()
+
     suspend fun getEnabledAlarms(): List<CustomAlarm> = dao.getEnabledAlarms()
 
     suspend fun getCategoryIdsForAlarm(alarmId: Long): List<Long> =

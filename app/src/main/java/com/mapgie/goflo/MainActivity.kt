@@ -293,6 +293,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         securityPreferences = app.securityPreferences,
                         repository = app.repository,
                         trackingRepository = app.trackingRepository,
+                        alarmRepository = app.customAlarmRepository,
                         context = app.applicationContext
                     )
                 )
@@ -383,6 +384,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         securityPreferences  = app.securityPreferences,
                         repository           = app.repository,
                         trackingRepository   = app.trackingRepository,
+                        alarmRepository      = app.customAlarmRepository,
                         context              = app.applicationContext
                     )
                 )
@@ -399,6 +401,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         securityPreferences  = app.securityPreferences,
                         repository           = app.repository,
                         trackingRepository   = app.trackingRepository,
+                        alarmRepository      = app.customAlarmRepository,
                         context              = app.applicationContext
                     )
                 )
@@ -415,6 +418,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         securityPreferences  = app.securityPreferences,
                         repository           = app.repository,
                         trackingRepository   = app.trackingRepository,
+                        alarmRepository      = app.customAlarmRepository,
                         context              = app.applicationContext
                     )
                 )

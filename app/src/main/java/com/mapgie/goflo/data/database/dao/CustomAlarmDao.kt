@@ -19,6 +19,9 @@ interface CustomAlarmDao {
     @Query("SELECT * FROM custom_alarms WHERE id = :id")
     suspend fun getById(id: Long): CustomAlarm?
 
+    @Query("SELECT * FROM custom_alarms ORDER BY hour ASC, minute ASC")
+    suspend fun getAllAlarmsOnce(): List<CustomAlarm>
+
     @Query("SELECT * FROM custom_alarms WHERE isEnabled = 1")
     suspend fun getEnabledAlarms(): List<CustomAlarm>
 
