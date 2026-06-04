@@ -24,6 +24,12 @@ Rules:
 - Edit category (slider): value labels are now hidden by default. A "Label values" toggle reveals the labelling options, keeping the screen less busy.
 
 ---
+## [0.32.2-beta.1] - 2026-06-04
+
+### Fixed
+- Tapping Home in the bottom navigation bar while on the Settings screen now returns to Home. The Home tab also stays highlighted while Settings is open, making it clear which section you are in.
+
+---
 ## [0.32.1-beta.1] - 2026-06-04
 
 ### Fixed
