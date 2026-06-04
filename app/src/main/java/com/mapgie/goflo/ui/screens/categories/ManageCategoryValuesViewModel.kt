@@ -3,10 +3,11 @@ package com.mapgie.goflo.ui.screens.categories
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingValue
+import com.mapgie.goflo.data.repository.CustomAlarmRepository
 import com.mapgie.goflo.data.repository.TrackingRepository
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -16,21 +17,25 @@ import kotlinx.coroutines.launch
 data class ManageCategoryValuesUiState(
     val category: TrackingCategory? = null,
     val values: List<TrackingValue> = emptyList(),
+    val alarms: List<CustomAlarm> = emptyList(),
     val isLoading: Boolean = true
 )
 
 class ManageCategoryValuesViewModel(
     private val categoryId: Long,
-    private val repository: TrackingRepository
+    private val repository: TrackingRepository,
+    private val alarmRepository: CustomAlarmRepository,
 ) : ViewModel() {
 
     val uiState: StateFlow<ManageCategoryValuesUiState> = combine(
         repository.getCategoryById(categoryId),
-        repository.getValuesForCategory(categoryId)
-    ) { category, values ->
+        repository.getValuesForCategory(categoryId),
+        alarmRepository.getAlarmsByCategory(categoryId),
+    ) { category, values, alarms ->
         ManageCategoryValuesUiState(
             category = category,
             values = values,
+            alarms = alarms,
             isLoading = false
         )
     }.stateIn(
@@ -115,11 +120,12 @@ class ManageCategoryValuesViewModel(
 
     class Factory(
         private val categoryId: Long,
-        private val repository: TrackingRepository
+        private val repository: TrackingRepository,
+        private val alarmRepository: CustomAlarmRepository,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return ManageCategoryValuesViewModel(categoryId, repository) as T
+            return ManageCategoryValuesViewModel(categoryId, repository, alarmRepository) as T
         }
     }
 }

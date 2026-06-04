@@ -9,20 +9,29 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.preferences.ReminderSettings
 import com.mapgie.goflo.data.repository.PeriodRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 
 const val ACTION_PREPERIOD = "com.mapgie.goflo.ACTION_PREPERIOD_REMINDER"
 const val ACTION_OVULATION = "com.mapgie.goflo.ACTION_OVULATION_REMINDER"
 const val ACTION_DAILY = "com.mapgie.goflo.ACTION_DAILY_PERIOD_REMINDER"
+const val ACTION_CUSTOM_ALARM = "com.mapgie.goflo.ACTION_CUSTOM_ALARM"
+
 const val CHANNEL_ID = "goflo_reminders_v1"
 const val CHANNEL_NOTIF_ID = "goflo_notifications_v1"
+const val CHANNEL_CUSTOM_ALARM_ID = "goflo_custom_alarms_v1"
+const val CHANNEL_CUSTOM_DND_ID = "goflo_custom_alarms_dnd_v1"
+const val CHANNEL_CUSTOM_NOTIF_ID = "goflo_custom_notifs_v1"
+
 const val EXTRA_USE_ALARM_CHANNEL = "use_alarm_channel"
 const val EXTRA_ALARM_LABEL = "alarm_label"
+const val EXTRA_ALARM_ID = "alarm_id"
 
 object ReminderScheduler {
 
@@ -55,6 +64,57 @@ object ReminderScheduler {
                 description = "Standard notifications for period tracking"
             }
             manager.createNotificationChannel(notifChannel)
+        }
+
+        if (manager.getNotificationChannel(CHANNEL_CUSTOM_ALARM_ID) == null) {
+            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val alarmAttrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_CUSTOM_ALARM_ID,
+                    "Custom Alarms",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Sound alarms for custom reminders"
+                    setSound(alarmUri, alarmAttrs)
+                    enableVibration(true)
+                }
+            )
+        }
+
+        if (manager.getNotificationChannel(CHANNEL_CUSTOM_DND_ID) == null) {
+            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            val alarmAttrs = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ALARM)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_CUSTOM_DND_ID,
+                    "Custom Alarms (Priority)",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Alarms that override Do Not Disturb"
+                    setSound(alarmUri, alarmAttrs)
+                    enableVibration(true)
+                    setBypassDnd(true)
+                }
+            )
+        }
+
+        if (manager.getNotificationChannel(CHANNEL_CUSTOM_NOTIF_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_CUSTOM_NOTIF_ID,
+                    "Custom Reminders",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Standard notifications for custom reminders"
+                }
+            )
         }
     }
 
@@ -94,6 +154,55 @@ object ReminderScheduler {
             cancel(context, action)
         }
     }
+
+    // ── Custom alarm scheduling ───────────────────────────────────────────────
+
+    fun scheduleCustomAlarm(context: Context, alarm: CustomAlarm) {
+        if (!alarm.isEnabled) return
+        val triggerAt = nextTriggerMillis(alarm.hour, alarm.minute)
+        val pi = customAlarmPendingIntent(context, alarm.id)
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        } else {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        }
+    }
+
+    fun cancelCustomAlarm(context: Context, alarmId: Long) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(customAlarmPendingIntent(context, alarmId))
+    }
+
+    fun rescheduleCustomAlarms(context: Context, alarms: List<CustomAlarm>) {
+        alarms.forEach { alarm ->
+            cancelCustomAlarm(context, alarm.id)
+            if (alarm.isEnabled) scheduleCustomAlarm(context, alarm)
+        }
+    }
+
+    private fun nextTriggerMillis(hour: Int, minute: Int): Long {
+        val now = System.currentTimeMillis()
+        val today = LocalDate.now()
+        var millis = LocalDateTime.of(today, LocalTime.of(hour, minute))
+            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        if (millis <= now) millis += 86_400_000L
+        return millis
+    }
+
+    fun customAlarmPendingIntent(context: Context, alarmId: Long): PendingIntent {
+        val intent = Intent(context, ReminderReceiver::class.java)
+            .setAction(ACTION_CUSTOM_ALARM)
+            .putExtra(EXTRA_ALARM_ID, alarmId)
+        return PendingIntent.getBroadcast(
+            context,
+            (10000 + alarmId).toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    // ── Legacy helpers ────────────────────────────────────────────────────────
 
     private fun scheduleAt(
         context: Context,
@@ -141,7 +250,6 @@ object ReminderScheduler {
 
     private fun cancel(context: Context, action: String) {
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        // Cancel both channel variants
         alarm.cancel(pendingIntent(context, action, useAlarm = true))
         alarm.cancel(pendingIntent(context, action, useAlarm = false))
     }

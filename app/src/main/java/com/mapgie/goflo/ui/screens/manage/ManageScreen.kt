@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
@@ -44,6 +45,7 @@ fun ManageScreen(
     onNavigateToCycle: () -> Unit,
     onNavigateToQuickLog: () -> Unit,
     onNavigateToModes: () -> Unit,
+    onNavigateToAlarms: () -> Unit,
 ) {
     val context = LocalContext.current
 
@@ -88,6 +90,12 @@ fun ManageScreen(
                 subtitle = "Choose what the quick-add button logs",
                 icon = { Icon(Icons.Outlined.TouchApp, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                 onClick = onNavigateToQuickLog
+            )
+            ManageNavItem(
+                title = "Alarms",
+                subtitle = "Custom tracking reminders with flexible schedules",
+                icon = { Icon(Icons.Outlined.Alarm, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                onClick = onNavigateToAlarms
             )
             ManageNavItem(
                 title = "Reminders",

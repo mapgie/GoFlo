@@ -36,6 +36,16 @@ sealed class Screen(val route: String) {
         fun forCategory(id: Long) = "manage_category_values/$id"
     }
 
+    // ── Custom alarms ──────────────────────────────────────────────────────────
+
+    data object CustomAlarms : Screen("custom_alarms")
+
+    data object EditAlarm : Screen("edit_alarm?alarmId={alarmId}&categoryId={categoryId}") {
+        val newAlarm = "edit_alarm?alarmId=-1&categoryId=-1"
+        fun forAlarm(alarmId: Long) = "edit_alarm?alarmId=$alarmId&categoryId=-1"
+        fun newForCategory(categoryId: Long) = "edit_alarm?alarmId=-1&categoryId=$categoryId"
+    }
+
     // ── Per-day category logging ────────────────────────────────────────────────
 
     /**

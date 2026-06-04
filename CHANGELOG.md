@@ -18,6 +18,18 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.32.0-beta.1] - 2026-06-04
+
+### Added
+- Custom alarms: create multiple alarms at custom times, each with its own delivery mode (notification, alarm, or silent full-screen), optional Do Not Disturb override, and configurable snooze duration (5, 10, 15, 30, or 60 minutes).
+- Alarm schedule types: every day, during period only, outside period only, N days before predicted period, N days after period start, or on the Nth day of period.
+- Category reminders: link an alarm to one or more tracking categories. Notifications include Log and Snooze quick actions. Tapping Log opens the category logging screen.
+- Alarms page: manage all custom alarms from Manage > Alarms.
+- Category alarms section: manage alarms for a specific category directly from that category's edit screen.
+- Silent alarms: delivered as a full-screen interrupt with no sound or vibration, requiring a dismiss or snooze action.
+- Full backup now includes app settings (theme, reminder schedule, cycle preferences, dashboard state) and custom alarms. Restoring a full backup on a new phone recreates alarms and reschedules them automatically.
+
+---
 ## [0.31.1-beta.1] - 2026-06-04
 
 ### Fixed

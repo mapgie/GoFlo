@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -58,8 +61,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingValue
 import com.mapgie.goflo.ui.util.decodeScaleLabels
@@ -69,7 +76,9 @@ import com.mapgie.goflo.ui.util.encodeScaleLabels
 @Composable
 fun ManageCategoryValuesScreen(
     viewModel: ManageCategoryValuesViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToNewAlarm: () -> Unit = {},
+    onNavigateToEditAlarm: (Long) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
 
@@ -395,57 +404,140 @@ fun ManageCategoryValuesScreen(
         }
 
         val category = state.category
-        when (category?.categoryType) {
-            "numeric_slider" -> NumericSliderSettings(
-                category                = category,
-                modifier                = Modifier.padding(padding),
-                onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
-                onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
-                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
-                onToggleFlowSlider      = { viewModel.setFlowSliderMode(it) },
-                onUnsavedState          = { hasChanges, saveAction ->
-                    hasUnsavedChanges = hasChanges
-                    currentSaveAction = saveAction
-                },
-                onSave                  = { min, max, decimals, unit, scaleLabels ->
-                    viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
-                    onNavigateBack()
+        Column(modifier = Modifier.padding(padding).fillMaxSize()) {
+            Box(modifier = Modifier.weight(1f)) {
+                when (category?.categoryType) {
+                    "numeric_slider" -> NumericSliderSettings(
+                        category                = category,
+                        modifier                = Modifier,
+                        onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
+                        onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
+                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
+                        onToggleFlowSlider      = { viewModel.setFlowSliderMode(it) },
+                        onUnsavedState          = { hasChanges, saveAction ->
+                            hasUnsavedChanges = hasChanges
+                            currentSaveAction = saveAction
+                        },
+                        onSave                  = { min, max, decimals, unit, scaleLabels ->
+                            viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
+                            onNavigateBack()
+                        }
+                    )
+                    "numeric_free" -> NumericFreeSettings(
+                        category                = category,
+                        modifier                = Modifier,
+                        onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
+                        onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
+                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
+                        onUnsavedState          = { hasChanges, saveAction ->
+                            hasUnsavedChanges = hasChanges
+                            currentSaveAction = saveAction
+                        },
+                        onSave                  = { unit ->
+                            viewModel.updateUnit(unit)
+                            onNavigateBack()
+                        }
+                    )
+                    "increment" -> IncrementCategoryInfo(
+                        category                 = category,
+                        modifier                 = Modifier,
+                        onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
+                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) }
+                    )
+                    else -> DefaultCategoryValues(
+                        state                    = state,
+                        modifier                 = Modifier,
+                        onNavigateBack           = onNavigateBack,
+                        onRenameValue            = { renamingValue = it.id },
+                        onDeleteValue            = { pendingDeleteValue = it.id },
+                        onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
+                        onToggleAllowMultiple    = { viewModel.setAllowMultiple(it) },
+                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
+                        onToggleFlowSlider       = { viewModel.setFlowSliderMode(it) }
+                    )
                 }
-            )
-            "numeric_free" -> NumericFreeSettings(
-                category                = category,
-                modifier                = Modifier.padding(padding),
-                onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
-                onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
-                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
-                onUnsavedState          = { hasChanges, saveAction ->
-                    hasUnsavedChanges = hasChanges
-                    currentSaveAction = saveAction
-                },
-                onSave                  = { unit ->
-                    viewModel.updateUnit(unit)
-                    onNavigateBack()
-                }
-            )
-            "increment" -> IncrementCategoryInfo(
-                category                 = category,
-                modifier                 = Modifier.padding(padding),
-                onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
-                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) }
-            )
-            else -> DefaultCategoryValues(
-                state                    = state,
-                modifier                 = Modifier.padding(padding),
-                onNavigateBack           = onNavigateBack,
-                onRenameValue            = { renamingValue = it.id },
-                onDeleteValue            = { pendingDeleteValue = it.id },
-                onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
-                onToggleAllowMultiple    = { viewModel.setAllowMultiple(it) },
-                onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
-                onToggleFlowSlider       = { viewModel.setFlowSliderMode(it) }
+            }
+            CategoryAlarmsSection(
+                alarms = state.alarms,
+                onAddAlarm = onNavigateToNewAlarm,
+                onEditAlarm = onNavigateToEditAlarm,
             )
         }
     }
+}
+
+// ── Category alarms section ───────────────────────────────────────────────────
+
+@Composable
+private fun CategoryAlarmsSection(
+    alarms: List<CustomAlarm>,
+    onAddAlarm: () -> Unit,
+    onEditAlarm: (Long) -> Unit,
+) {
+    HorizontalDivider()
+    ListItem(
+        headlineContent = { Text("Alarms") },
+        supportingContent = {
+            if (alarms.isEmpty()) Text("No alarms for this category")
+            else Text("${alarms.size} alarm${if (alarms.size == 1) "" else "s"}")
+        },
+        leadingContent = {
+            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Alarm, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
+        },
+        trailingContent = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = onAddAlarm) {
+                    Icon(Icons.Default.Add, contentDescription = "Add alarm for this category")
+                }
+                if (alarms.isNotEmpty()) {
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
+    )
+    alarms.forEach { alarm ->
+        ListItem(
+            headlineContent = {
+                Text(
+                    "%02d:%02d%s".format(
+                        alarm.hour, alarm.minute,
+                        if (alarm.label.isNotBlank()) " - ${alarm.label}" else ""
+                    )
+                )
+            },
+            supportingContent = {
+                Text(alarmScheduleLabel(alarm))
+            },
+            trailingContent = {
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            },
+            modifier = Modifier
+                .semantics { role = Role.Button }
+                .clickable { onEditAlarm(alarm.id) }
+                .padding(start = 16.dp),
+        )
+    }
+    HorizontalDivider()
+}
+
+private fun alarmScheduleLabel(alarm: CustomAlarm): String {
+    val schedule = when (alarm.scheduleType) {
+        "DAILY" -> "Every day"
+        "DURING_PERIOD" -> "During period"
+        "NOT_DURING_PERIOD" -> "Outside period"
+        "DAYS_BEFORE_PERIOD" -> "${alarm.daysOffset} day${if (alarm.daysOffset == 1) "" else "s"} before period"
+        "DAYS_AFTER_PERIOD" -> "${alarm.daysOffset} day${if (alarm.daysOffset == 1) "" else "s"} after period starts"
+        "DAY_OF_PERIOD" -> "Day ${alarm.dayOfPeriod} of period"
+        else -> alarm.scheduleType
+    }
+    val mode = when (alarm.alarmType) {
+        "ALARM" -> "Alarm"
+        "SILENT" -> "Silent"
+        else -> "Notification"
+    }
+    return "$schedule · $mode"
 }
 
 // ── Default (text values) content ─────────────────────────────────────────────

@@ -63,6 +63,10 @@ import com.mapgie.goflo.ui.screens.dashboard.DashboardViewModel
 import com.mapgie.goflo.ui.screens.settings.PrivacyPolicyScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsScreen
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
+import com.mapgie.goflo.ui.screens.alarms.CustomAlarmsScreen
+import com.mapgie.goflo.ui.screens.alarms.CustomAlarmsViewModel
+import com.mapgie.goflo.ui.screens.alarms.EditAlarmScreen
+import com.mapgie.goflo.ui.screens.alarms.EditAlarmViewModel
 import com.mapgie.goflo.ui.screens.manage.ManageCycleScreen
 import com.mapgie.goflo.ui.screens.manage.ManageQuickLogScreen
 import com.mapgie.goflo.ui.screens.manage.ManageScreen
@@ -358,6 +362,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     onNavigateToCycle      = { navController.navigate(Screen.ManageCycle.route) },
                     onNavigateToQuickLog   = { navController.navigate(Screen.ManageQuickLog.route) },
                     onNavigateToModes      = { navController.navigate(Screen.TrackingModes.route) },
+                    onNavigateToAlarms     = { navController.navigate(Screen.CustomAlarms.route) },
                 )
             }
 
@@ -419,6 +424,46 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                 )
             }
 
+            // ── Custom alarms ─────────────────────────────────────────────────────
+
+            composable(Screen.CustomAlarms.route) {
+                val vm: CustomAlarmsViewModel = viewModel(
+                    factory = CustomAlarmsViewModel.Factory(
+                        app.customAlarmRepository, app.trackingRepository, app.applicationContext
+                    )
+                )
+                CustomAlarmsScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToNewAlarm = { navController.navigate(Screen.EditAlarm.newAlarm) },
+                    onNavigateToEditAlarm = { alarmId ->
+                        navController.navigate(Screen.EditAlarm.forAlarm(alarmId))
+                    },
+                )
+            }
+
+            composable(
+                route = Screen.EditAlarm.route,
+                arguments = listOf(
+                    navArgument("alarmId") { type = NavType.LongType; defaultValue = -1L },
+                    navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L },
+                )
+            ) { backStack ->
+                val alarmId = backStack.arguments?.getLong("alarmId") ?: -1L
+                val categoryId = backStack.arguments?.getLong("categoryId") ?: -1L
+                val vm: EditAlarmViewModel = viewModel(
+                    key = "edit_alarm_${alarmId}_$categoryId",
+                    factory = EditAlarmViewModel.Factory(
+                        app.customAlarmRepository, app.trackingRepository,
+                        app.applicationContext, alarmId, categoryId
+                    )
+                )
+                EditAlarmScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() },
+                )
+            }
+
             // ── Tracking categories management ────────────────────────────────────
 
             composable(Screen.ManageCategories.route) {
@@ -441,11 +486,19 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                 val categoryId = backStack.arguments?.getLong("categoryId") ?: return@composable
                 val vm: ManageCategoryValuesViewModel = viewModel(
                     key = "manage_cat_$categoryId",
-                    factory = ManageCategoryValuesViewModel.Factory(categoryId, app.trackingRepository)
+                    factory = ManageCategoryValuesViewModel.Factory(
+                        categoryId, app.trackingRepository, app.customAlarmRepository
+                    )
                 )
                 ManageCategoryValuesScreen(
                     viewModel = vm,
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToNewAlarm = {
+                        navController.navigate(Screen.EditAlarm.newForCategory(categoryId))
+                    },
+                    onNavigateToEditAlarm = { alarmId ->
+                        navController.navigate(Screen.EditAlarm.forAlarm(alarmId))
+                    },
                 )
             }
 
