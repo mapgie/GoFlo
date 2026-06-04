@@ -369,7 +369,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
 
             composable(Screen.TrackingModes.route) {
                 val vm: ModesViewModel = viewModel(
-                    factory = ModesViewModel.Factory(app.trackingRepository, app.preferencesStore)
+                    factory = ModesViewModel.Factory(app.trackingRepository, app.repository, app.preferencesStore)
                 )
                 ModesScreen(
                     viewModel      = vm,
