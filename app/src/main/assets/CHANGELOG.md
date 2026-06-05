@@ -19,7 +19,7 @@ Rules:
 
 ---
 
-## [0.38.0-beta.1] - 2026-06-05
+## [0.40.0-beta.1] - 2026-06-05
 
 ### Added
 - New "Alarms & Notifications" screen that gathers custom alarms, period reminders, and their system permissions in one place. The permission rows (Notifications, Exact alarms, Do Not Disturb access) show their live grant status as "Allowed" or "Tap to allow" and refresh when you return from system settings. Status is shown with both an icon and a label, never colour alone.
