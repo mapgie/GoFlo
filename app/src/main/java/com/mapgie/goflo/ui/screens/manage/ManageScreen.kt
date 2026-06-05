@@ -1,9 +1,5 @@
 package com.mapgie.goflo.ui.screens.manage
 
-import android.content.Context
-import android.content.Intent
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.Alarm
-import androidx.compose.material.icons.outlined.DoNotDisturbOn
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
@@ -30,7 +24,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -41,14 +34,11 @@ import com.mapgie.goflo.ui.components.BetaFeedbackBanner
 @Composable
 fun ManageScreen(
     onNavigateToCategories: () -> Unit,
-    onNavigateToReminders: () -> Unit,
     onNavigateToCycle: () -> Unit,
     onNavigateToQuickLog: () -> Unit,
     onNavigateToModes: () -> Unit,
-    onNavigateToAlarms: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
 ) {
-    val context = LocalContext.current
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -91,68 +81,13 @@ fun ManageScreen(
                 onClick = onNavigateToQuickLog
             )
             ManageNavItem(
-                title = "Alarms",
-                subtitle = "Custom tracking reminders with flexible schedules",
-                icon = { Icon(Icons.Outlined.Alarm, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                onClick = onNavigateToAlarms
-            )
-            ManageNavItem(
-                title = "Reminders",
-                subtitle = "Set up period and ovulation alerts",
+                title = "Alarms & Notifications",
+                subtitle = "Alarms, period reminders, and their permissions",
                 icon = { Icon(Icons.Outlined.NotificationsNone, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                onClick = onNavigateToReminders
-            )
-            ManageSectionHeader("Permissions")
-            ManageNavItem(
-                title = "Notification permissions",
-                subtitle = "Grant alarms and/or notifications access in system settings",
-                icon = { Icon(Icons.Outlined.NotificationsNone, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                onClick = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    }
-                }
-            )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                ManageNavItem(
-                    title = "Alarm permission",
-                    subtitle = "Grant exact alarm scheduling for disruptive alarm mode",
-                    icon = { Icon(Icons.Outlined.NotificationsNone, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                    onClick = {
-                        context.startActivity(
-                            Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    }
-                )
-            }
-            ManageNavItem(
-                title = "Do Not Disturb access",
-                subtitle = "Allow GoFlo alarms to sound when DND is active",
-                icon = { Icon(Icons.Outlined.DoNotDisturbOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                onClick = {
-                    context.startActivity(
-                        Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                }
+                onClick = onNavigateToNotifications
             )
         }
     }
-}
-
-@Composable
-private fun ManageSectionHeader(title: String) {
-    Text(
-        text     = title,
-        style    = MaterialTheme.typography.titleSmall,
-        color    = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)
-    )
 }
 
 @Composable

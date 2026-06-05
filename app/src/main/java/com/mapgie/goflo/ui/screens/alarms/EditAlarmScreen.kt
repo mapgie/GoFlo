@@ -40,13 +40,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
 private val SNOOZE_OPTIONS = listOf(5, 10, 15, 30, 60)
 
@@ -150,6 +160,35 @@ private fun ConfigureStep(
     onToggleCategory: (Long) -> Unit,
     onSave: () -> Unit,
 ) {
+    val context = LocalContext.current
+    var showDndPermissionDialog by remember { mutableStateOf(false) }
+
+    if (showDndPermissionDialog) {
+        AlertDialog(
+            onDismissRequest = { showDndPermissionDialog = false },
+            title = { Text("Allow override of Do Not Disturb?") },
+            text = {
+                Text(
+                    "For this alarm to sound while Do Not Disturb is on, GoFlo needs " +
+                    "Do Not Disturb access. You can grant it now in system settings. " +
+                    "The setting stays on here either way."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDndPermissionDialog = false
+                    context.startActivity(
+                        Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }) { Text("Open settings") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDndPermissionDialog = false }) { Text("Not now") }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -240,7 +279,15 @@ private fun ConfigureStep(
                     },
                     modifier = Modifier
                         .semantics { role = Role.Switch }
-                        .clickable { onSetOverrideDnd(!state.overrideDnd) },
+                        .clickable {
+                            val newValue = !state.overrideDnd
+                            onSetOverrideDnd(newValue)
+                            // Without Do Not Disturb access the bypass-DND channel is
+                            // silently ignored by the OS, so prompt for it on enable.
+                            if (newValue && !isDndAccessGranted(context)) {
+                                showDndPermissionDialog = true
+                            }
+                        },
                 )
             }
 
@@ -408,3 +455,7 @@ private fun ConfigureStep(
         }
     }
 }
+
+private fun isDndAccessGranted(context: Context): Boolean =
+    (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+        .isNotificationPolicyAccessGranted

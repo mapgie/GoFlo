@@ -70,6 +70,7 @@ import com.mapgie.goflo.ui.screens.alarms.EditAlarmViewModel
 import com.mapgie.goflo.ui.screens.manage.ManageCycleScreen
 import com.mapgie.goflo.ui.screens.manage.ManageQuickLogScreen
 import com.mapgie.goflo.ui.screens.manage.ManageScreen
+import com.mapgie.goflo.ui.screens.manage.NotificationsHubScreen
 import com.mapgie.goflo.ui.screens.manage.RemindersScreen
 import com.mapgie.goflo.ui.screens.modes.ModesScreen
 import com.mapgie.goflo.ui.screens.modes.ModesViewModel
@@ -368,12 +369,19 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
 
             composable(Screen.Manage.route) {
                 ManageScreen(
-                    onNavigateToCategories = { navController.navigate(Screen.ManageCategories.route) },
-                    onNavigateToReminders  = { navController.navigate(Screen.Reminders.route) },
-                    onNavigateToCycle      = { navController.navigate(Screen.ManageCycle.route) },
-                    onNavigateToQuickLog   = { navController.navigate(Screen.ManageQuickLog.route) },
-                    onNavigateToModes      = { navController.navigate(Screen.TrackingModes.route) },
-                    onNavigateToAlarms     = { navController.navigate(Screen.CustomAlarms.route) },
+                    onNavigateToCategories    = { navController.navigate(Screen.ManageCategories.route) },
+                    onNavigateToCycle         = { navController.navigate(Screen.ManageCycle.route) },
+                    onNavigateToQuickLog      = { navController.navigate(Screen.ManageQuickLog.route) },
+                    onNavigateToModes         = { navController.navigate(Screen.TrackingModes.route) },
+                    onNavigateToNotifications = { navController.navigate(Screen.NotificationsHub.route) },
+                )
+            }
+
+            composable(Screen.NotificationsHub.route) {
+                NotificationsHubScreen(
+                    onBack                = { navController.popBackStack() },
+                    onNavigateToAlarms    = { navController.navigate(Screen.CustomAlarms.route) },
+                    onNavigateToReminders = { navController.navigate(Screen.Reminders.route) },
                 )
             }
 
