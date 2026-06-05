@@ -18,6 +18,17 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.38.0-beta.1] - 2026-06-04
+
+### Changed
+- Tracking modes list: Fertility and Pregnancy now appear at the bottom of the list; the general health modes (Endometriosis, PCOS, HRT, Perimenopause, Hormone Tracking) appear first.
+- Weight is removed as a standalone tracking mode. Weight tracking remains available as an optional category inside the Pregnancy and PCOS modes.
+- Ovulation Test is no longer a default system category. It is now a suggested category within Fertility mode, added when the user activates that mode. Existing Ovulation Test entries are preserved.
+- Fertility mode now includes Ovulation Test as a suggested category alongside BBT Temperature and Cervical Fluid.
+- Pregnancy setup: when "Due date" is selected the date field is pre-filled with the calculated due date (last period + 280 days) rather than the period date itself. The field remains editable. When "Last period" is selected, pre-fill behaviour is unchanged.
+- Show fertility markers on calendar now defaults to off for new installs.
+
+---
 ## [0.37.0-beta.1] - 2026-06-04
 
 ### Changed
