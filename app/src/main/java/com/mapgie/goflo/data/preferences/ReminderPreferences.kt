@@ -88,6 +88,14 @@ data class AppPreferences(
     val statsChartType: String = "",
     /** Zoom level for the month bar chart. 0=compact, 1=normal, 2=wide. */
     val statsZoomLevel: Int = 1,
+    /** Comma-separated TrackingCategory IDs selected as rows in the Grid (heatmap) view. */
+    val heatmapCategoryIds: String = "",
+    /** Day window for the Grid view columns: 30, 60, 90, 180, or 365. */
+    val heatmapWindowDays: Int = 30,
+    /** Per-cell aggregation for the Grid view: "SUM" or "AVERAGE". */
+    val heatmapAggregation: String = "AVERAGE",
+    /** Cell size for the Grid view. 0=compact, 1=normal, 2=wide. */
+    val heatmapZoomLevel: Int = 1,
     /** True once the new-user onboarding banner has been dismissed. */
     val onboardingBannerDismissed: Boolean = false,
     /** Hue (0–360°) for the primary colour in the custom theme. */
@@ -136,6 +144,10 @@ class AppPreferencesStore(private val context: Context) {
         val STATS_CATEGORY2_ID = longPreferencesKey("stats_category2_id")
         val STATS_CHART_TYPE = stringPreferencesKey("stats_chart_type")
         val STATS_ZOOM_LEVEL = intPreferencesKey("stats_zoom_level")
+        val HEATMAP_CATEGORY_IDS = stringPreferencesKey("heatmap_category_ids")
+        val HEATMAP_WINDOW_DAYS = intPreferencesKey("heatmap_window_days")
+        val HEATMAP_AGGREGATION = stringPreferencesKey("heatmap_aggregation")
+        val HEATMAP_ZOOM_LEVEL = intPreferencesKey("heatmap_zoom_level")
         val ONBOARDING_BANNER_DISMISSED = booleanPreferencesKey("onboarding_banner_dismissed")
         val CUSTOM_PRIMARY_HUE   = floatPreferencesKey("custom_primary_hue")
         val CUSTOM_SECONDARY_HUE = floatPreferencesKey("custom_secondary_hue")
@@ -167,6 +179,10 @@ class AppPreferencesStore(private val context: Context) {
             statsCategory2Id = prefs[Keys.STATS_CATEGORY2_ID] ?: -1L,
             statsChartType = prefs[Keys.STATS_CHART_TYPE] ?: "",
             statsZoomLevel = prefs[Keys.STATS_ZOOM_LEVEL] ?: 1,
+            heatmapCategoryIds = prefs[Keys.HEATMAP_CATEGORY_IDS] ?: "",
+            heatmapWindowDays = prefs[Keys.HEATMAP_WINDOW_DAYS] ?: 30,
+            heatmapAggregation = prefs[Keys.HEATMAP_AGGREGATION] ?: "AVERAGE",
+            heatmapZoomLevel = prefs[Keys.HEATMAP_ZOOM_LEVEL] ?: 1,
             onboardingBannerDismissed = prefs[Keys.ONBOARDING_BANNER_DISMISSED] ?: false,
             customPrimaryHue       = prefs[Keys.CUSTOM_PRIMARY_HUE]          ?: 0f,
             customSecondaryHue     = prefs[Keys.CUSTOM_SECONDARY_HUE]        ?: 200f,
@@ -308,6 +324,22 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setStatsZoomLevel(level: Int) {
         context.dataStore.edit { it[Keys.STATS_ZOOM_LEVEL] = level }
+    }
+
+    suspend fun setHeatmapCategoryIds(ids: String) {
+        context.dataStore.edit { it[Keys.HEATMAP_CATEGORY_IDS] = ids }
+    }
+
+    suspend fun setHeatmapWindowDays(days: Int) {
+        context.dataStore.edit { it[Keys.HEATMAP_WINDOW_DAYS] = days }
+    }
+
+    suspend fun setHeatmapAggregation(mode: String) {
+        context.dataStore.edit { it[Keys.HEATMAP_AGGREGATION] = mode }
+    }
+
+    suspend fun setHeatmapZoomLevel(level: Int) {
+        context.dataStore.edit { it[Keys.HEATMAP_ZOOM_LEVEL] = level }
     }
 
     suspend fun setOnboardingBannerDismissed(dismissed: Boolean) {

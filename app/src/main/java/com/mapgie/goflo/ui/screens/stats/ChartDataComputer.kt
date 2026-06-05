@@ -7,8 +7,10 @@ import com.mapgie.goflo.ui.util.decodeScaleLabels
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.time.temporal.WeekFields
+import java.util.Locale
 
 // ── Shared chart-data computation utilities ───────────────────────────────────
 //
@@ -482,5 +484,155 @@ internal fun chartBuildDualMonthBuckets(
             count1 = logs1ByMonth[ym]?.size ?: 0,
             count2 = logs2ByMonth[ym]?.size ?: 0
         )
+    }
+}
+
+// ── Grid / heatmap computation ─────────────────────────────────────────────────
+
+/**
+ * Computes a [HeatmapData] grid: one [HeatmapRow] per category, one column per day
+ * (or per ISO week when [weekly]). Each cell's magnitude is derived from the logged
+ * level and reduced with [aggregation]; magnitudes are normalised per row at render
+ * time, so [HeatmapRow.rowMin]/[HeatmapRow.rowMax] are precomputed here.
+ *
+ * Magnitude kind per category:
+ * - numeric category -> NUMERIC: the parsed numeric value.
+ * - default + single-select -> ORDINAL: the value's displayOrder (its "level").
+ * - default + multi-select -> COUNT: number of logged entries (aggregation ignored).
+ */
+internal suspend fun computeHeatmapData(
+    categories: List<TrackingCategory>,
+    repository: TrackingRepository,
+    start: LocalDate,
+    end: LocalDate,
+    weekly: Boolean,
+    aggregation: HeatmapAggregation,
+): HeatmapData {
+    if (categories.isEmpty()) return HeatmapData.Empty
+
+    val columns = buildHeatmapColumns(start, end, weekly)
+    val weekFields = WeekFields.ISO
+    // Map a log date to its column index (or null when out of range).
+    fun columnIndexFor(date: LocalDate): Int? {
+        if (date.isBefore(start) || date.isAfter(end)) return null
+        return if (weekly) {
+            val firstWeek = start.with(weekFields.dayOfWeek(), 1)
+            val thisWeek = date.with(weekFields.dayOfWeek(), 1)
+            ChronoUnit.WEEKS.between(firstWeek, thisWeek).toInt().takeIf { it in columns.indices }
+        } else {
+            ChronoUnit.DAYS.between(start, date).toInt().takeIf { it in columns.indices }
+        }
+    }
+
+    val rows = categories.map { category ->
+        val kind = when {
+            category.isNumeric -> MagnitudeKind.NUMERIC
+            !category.allowMultiple -> MagnitudeKind.ORDINAL
+            else -> MagnitudeKind.COUNT
+        }
+        val labelToOrder: Map<String, Int> =
+            if (kind == MagnitudeKind.ORDINAL)
+                repository.getValuesForCategoryOnce(category.id).associate { it.label to it.displayOrder }
+            else emptyMap()
+
+        val logs = repository.getLogsForCategoryInRange(category.id, start, end)
+
+        // Accumulate per column: numeric/ordinal collect raw values; count sums entries.
+        val valuesPerColumn = arrayOfNulls<MutableList<Float>>(columns.size)
+        val countPerColumn = IntArray(columns.size)
+        for (log in logs) {
+            val date = runCatching { LocalDate.parse(log.date) }.getOrNull() ?: continue
+            val colIdx = columnIndexFor(date) ?: continue
+            val values = repository.getValuesForLog(log.id)
+            when (kind) {
+                MagnitudeKind.NUMERIC -> {
+                    val v = values.firstOrNull()?.toFloatOrNull() ?: continue
+                    val bucket = valuesPerColumn[colIdx] ?: mutableListOf<Float>().also { valuesPerColumn[colIdx] = it }
+                    bucket.add(v)
+                }
+                MagnitudeKind.ORDINAL -> {
+                    val level = values.mapNotNull { labelToOrder[it] }.maxOrNull() ?: continue
+                    val bucket = valuesPerColumn[colIdx] ?: mutableListOf<Float>().also { valuesPerColumn[colIdx] = it }
+                    bucket.add(level.toFloat())
+                }
+                MagnitudeKind.COUNT -> {
+                    countPerColumn[colIdx] += values.size.coerceAtLeast(1)
+                }
+            }
+        }
+
+        val magnitudes: List<Float?> = columns.indices.map { i ->
+            when (kind) {
+                MagnitudeKind.COUNT -> countPerColumn[i].takeIf { it > 0 }?.toFloat()
+                else -> {
+                    val vals = valuesPerColumn[i]
+                    if (vals.isNullOrEmpty()) null
+                    else when (aggregation) {
+                        HeatmapAggregation.SUM -> vals.sum()
+                        HeatmapAggregation.AVERAGE -> vals.average().toFloat()
+                    }
+                }
+            }
+        }
+
+        val present = magnitudes.filterNotNull()
+        HeatmapRow(
+            categoryId = category.id,
+            name = category.name,
+            iconName = category.iconName,
+            colorToken = category.colorToken,
+            magnitudes = magnitudes,
+            rowMin = present.minOrNull() ?: 0f,
+            rowMax = present.maxOrNull() ?: 0f,
+            kind = kind,
+            unit = category.numericUnit,
+            ordinalLabels = labelToOrder.entries.associate { (label, order) -> order to label },
+            numericScaleLabels = if (kind == MagnitudeKind.NUMERIC) category.scaleLabels.decodeScaleLabels() else emptyMap(),
+        )
+    }
+
+    return HeatmapData.Grid(columns = columns, rows = rows, bucketingIsWeekly = weekly)
+}
+
+/** Builds the ordered, dense column list for the grid (every day or every ISO week). */
+private fun buildHeatmapColumns(start: LocalDate, end: LocalDate, weekly: Boolean): List<HeatmapColumn> {
+    val accessibilityFmt = DateTimeFormatter.ofPattern("d MMM yyyy")
+    return if (weekly) {
+        val weekFields = WeekFields.ISO
+        val columns = mutableListOf<HeatmapColumn>()
+        var ws = start.with(weekFields.dayOfWeek(), 1)
+        val lastWs = end.with(weekFields.dayOfWeek(), 1)
+        while (!ws.isAfter(lastWs)) {
+            val weekNo = ws.get(weekFields.weekOfWeekBasedYear())
+            columns.add(
+                HeatmapColumn(
+                    key = ws.toString(),
+                    label = "W$weekNo",
+                    accessibilityLabel = "Week of ${ws.format(accessibilityFmt)}",
+                )
+            )
+            ws = ws.plusWeeks(1)
+        }
+        columns
+    } else {
+        val columns = mutableListOf<HeatmapColumn>()
+        var d = start
+        while (!d.isAfter(end)) {
+            // Show the month abbreviation on the 1st (or the very first column) for orientation.
+            val isMonthStart = d.dayOfMonth == 1 || d == start
+            val label = if (isMonthStart)
+                d.month.getDisplayName(TextStyle.SHORT, Locale.getDefault())
+            else
+                d.dayOfMonth.toString()
+            columns.add(
+                HeatmapColumn(
+                    key = d.toString(),
+                    label = label,
+                    accessibilityLabel = d.format(accessibilityFmt),
+                )
+            )
+            d = d.plusDays(1)
+        }
+        columns
     }
 }

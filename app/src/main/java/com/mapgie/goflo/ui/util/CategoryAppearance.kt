@@ -207,6 +207,19 @@ fun ordinalShade(base: Color, surface: Color, index: Int, total: Int): Color {
     return lerp(surface, base, t)
 }
 
+/**
+ * Continuous analogue of [ordinalShade] for heatmap cells: blends [surface] toward
+ * [base] by a normalised [fraction] in 0..1 (lower = lighter, higher = more saturated).
+ *
+ * A small floor (0.15) keeps the lowest non-empty cell faintly tinted so it stays
+ * visible against the surface. A single-hue lightness ramp like this is colour-blind
+ * safe; callers still pair it with a label/legend so meaning is never colour-only.
+ */
+fun continuousShade(base: Color, surface: Color, fraction: Float): Color {
+    val t = 0.15f + 0.85f * fraction.coerceIn(0f, 1f)
+    return lerp(surface, base, t)
+}
+
 @Composable
 fun String.toCategoryOnColor(): Color {
     val s = MaterialTheme.colorScheme

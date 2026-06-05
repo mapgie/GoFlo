@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.filled.BubbleChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DonutLarge
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ScatterPlot
@@ -95,6 +96,7 @@ fun StatsScreen(
     dashboardEnabled: Boolean = false,
     onToggleDashboard: () -> Unit = {},
     onPinStat: () -> Unit = {},
+    onOpenHeatmap: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
     var bannerExpanded by rememberSaveable { mutableStateOf(false) }
@@ -214,6 +216,43 @@ fun StatsScreen(
                         onSwap = viewModel::swapCategories,
                         onClear = viewModel::clearSelections,
                     )
+                }
+
+                // Grid (heatmap) entry point
+                item {
+                    ElevatedCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onOpenHeatmap() }
+                            .semantics { role = Role.Button }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(
+                                Icons.Default.GridView,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text("Grid view", style = MaterialTheme.typography.titleSmall)
+                                Text(
+                                    "Compare several categories day by day, shaded by intensity.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Icon(
+                                Icons.AutoMirrored.Filled.NavigateNext,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
 
                 if (state.selectedCategory1 != null) {
