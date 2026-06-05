@@ -68,7 +68,6 @@ data class DayLogData(
     val period: PeriodEntry?,
     val periodSymptomLabels: List<String>,
     val trackingLogs: List<TrackingLogWithValues>,
-    val flowCategoryName: String = "Flow",
     val symptomsCategoryName: String = "Symptoms",
 )
 
@@ -170,7 +169,6 @@ class HomeViewModel(
         .flatMapLatest { (date, cats) ->
             if (date == null) return@flatMapLatest flowOf(null)
 
-            val flowCatName = cats.firstOrNull { it.systemKey == "flow" }?.name ?: "Flow"
             val symptomsCatName = cats.firstOrNull { it.systemKey == "symptoms" }?.name ?: "Symptoms"
 
             // Combine period list + tracking logs for this date; when either
@@ -198,7 +196,6 @@ class HomeViewModel(
                         period = period,
                         periodSymptomLabels = labels,
                         trackingLogs = trackingLogs,
-                        flowCategoryName = flowCatName,
                         symptomsCategoryName = symptomsCatName,
                     )
                 }

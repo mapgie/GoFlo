@@ -146,7 +146,6 @@ fun HomeScreen(
                 logMenuTargetDate = data.date
                 showLogMenu = true
             },
-            flowCategoryName = data.flowCategoryName,
             symptomsCategoryName = data.symptomsCategoryName,
         )
     }

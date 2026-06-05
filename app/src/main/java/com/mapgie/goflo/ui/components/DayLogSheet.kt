@@ -68,7 +68,6 @@ fun DayLogSheet(
     onEditPeriod: (Long) -> Unit,
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
     onLogMore: () -> Unit,
-    flowCategoryName: String = "Flow",
     symptomsCategoryName: String = "Symptoms",
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -143,8 +142,6 @@ fun DayLogSheet(
             if (period != null) {
                 val periodColor = MaterialTheme.colorScheme.primary
 
-                val flow = period.flowLevel
-
                 LogEntryRow(
                     icon        = Icons.Outlined.WaterDrop,
                     iconColor   = periodColor,
@@ -152,12 +149,6 @@ fun DayLogSheet(
                     label       = "Period",
                     onEdit      = { onEditPeriod(period.id) }
                 ) {
-                    AttributeValueLine(
-                        attribute  = flowCategoryName,
-                        value      = flow,
-                        valueColor = periodColor
-                    )
-
                     if (periodSymptoms.isNotEmpty()) {
                         AttributeValueLine(
                             attribute  = symptomsCategoryName,
