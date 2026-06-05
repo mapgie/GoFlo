@@ -35,6 +35,9 @@ Room emits `NOT NULL` with no SQL `DEFAULT` for every entity field that lacks a 
 **Commit a stable debug keystore to the repo**
 Android generates a fresh debug keystore per machine/CI runner. Without a committed keystore, every CI build has a different signature and OTA updates are blocked — users get a "conflicting package" error and must uninstall first. Commit a single debug keystore and wire it into `signingConfigs.debug`.
 
+**`ACCESS_NOTIFICATION_POLICY` must be in the manifest for the app to appear in the DND access list**
+Android populates Settings > Apps > Special app access > Do Not Disturb from the manifest declaration alone — it does not discover the app from runtime API usage. Without `<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />`, the app is simply absent from that list, so users can never grant the access that makes `setBypassDnd(true)` on a notification channel effective. The runtime check (`isNotificationPolicyAccessGranted`) and any UI prompting the user to grant access are both silently pointless until the declaration is present.
+
 **Time-critical notifications need the alarm audio stream, not the notification stream**
 A notification channel created without explicit `AudioAttributes` plays at notification volume and respects Do Not Disturb — both of which users routinely silence. For any reminder that must be heard (alarm, timer, urgent alert), call `setSound(uri, AudioAttributes(USAGE_ALARM))` on the channel so it plays at alarm volume and bypasses Do Not Disturb. Channel properties are written once and then immutable — changing stream type requires a new channel ID, since the OS ignores `createNotificationChannel()` for properties on an existing channel.
 
