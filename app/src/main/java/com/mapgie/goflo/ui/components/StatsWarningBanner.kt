@@ -32,7 +32,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 
 private const val SHORT_TEXT =
-    "These charts are for curiosity and personal insight only — not medical advice."
+    "These charts are for curiosity and personal insight only. Not medical advice."
 
 private const val FULL_TEXT =
     "GoFlo is a personal tracking tool for your own curiosity and awareness. " +
