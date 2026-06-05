@@ -18,8 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -32,21 +33,26 @@ import androidx.compose.material.icons.filled.BubbleChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ScatterPlot
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -96,7 +102,7 @@ fun StatsScreen(
     dashboardEnabled: Boolean = false,
     onToggleDashboard: () -> Unit = {},
     onPinStat: () -> Unit = {},
-    onOpenHeatmap: () -> Unit = {},
+    onNavigateToGrid: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
     var bannerExpanded by rememberSaveable { mutableStateOf(false) }
@@ -113,6 +119,13 @@ fun StatsScreen(
         }
         snackbarHostState.showSnackbar(message)
         viewModel.clearPinResult()
+    }
+
+    var showHelpDialog by remember { mutableStateOf(false) }
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
+    if (showHelpDialog) {
+        StatsHelpDialog(onDismiss = { showHelpDialog = false })
     }
 
     Scaffold(
@@ -143,6 +156,27 @@ fun StatsScreen(
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
+                        }
+                    }
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Help") },
+                                onClick = {
+                                    showOverflowMenu = false
+                                    showHelpDialog = true
+                                }
+                            )
                         }
                     }
                 }
@@ -218,44 +252,10 @@ fun StatsScreen(
                     )
                 }
 
-                // Grid (heatmap) entry point
-                item {
-                    ElevatedCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenHeatmap() }
-                            .semantics { role = Role.Button }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(
-                                Icons.Default.GridView,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                            )
-                            Column(Modifier.weight(1f)) {
-                                Text("Grid view", style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    "Compare several categories day by day, shaded by intensity.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            Icon(
-                                Icons.AutoMirrored.Filled.NavigateNext,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                }
-
                 if (state.selectedCategory1 != null) {
+                    item {
+                        ChartGridModeSwitcher(onNavigateToGrid = onNavigateToGrid)
+                    }
                     item {
                         ChartTypeSelector(
                             cat1 = state.selectedCategory1!!,
@@ -266,63 +266,29 @@ fun StatsScreen(
                     }
                 }
 
-                // Pin / Unpin button (when dashboard enabled and a category is selected)
-                if (dashboardEnabled && state.selectedCategory1 != null) {
-                    item {
-                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                            if (state.isCurrentViewPinned) {
-                                TextButton(
-                                    onClick = { viewModel.unpinCurrentView() },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(4.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.BookmarkRemove,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Unpin from Dashboard")
-                                }
-                            } else {
-                                TextButton(
-                                    onClick = onPinStat,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(4.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Outlined.BookmarkAdd,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text("Pin this view to Dashboard")
-                                }
-                            }
+                item {
+                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ChartArea(
+                                chartData = state.chartData,
+                                hasCategorySelected = state.selectedCategory1 != null,
+                                timeRange = state.timeRange,
+                                onSelectRange = viewModel::setTimeRange,
+                                zoomLevel = state.zoomLevel,
+                                showZoom = state.timeRange is TimeRange.SpecificMonth,
+                            )
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                            TimeRangePicker(
+                                selectedRange = state.timeRange,
+                                onSelect = viewModel::setTimeRange,
+                                zoomLevel = state.zoomLevel,
+                                onZoom = viewModel::setZoomLevel,
+                            )
                         }
                     }
-                }
-
-                item {
-                    ChartArea(
-                        chartData = state.chartData,
-                        hasCategorySelected = state.selectedCategory1 != null,
-                        timeRange = state.timeRange,
-                        onSelectRange = viewModel::setTimeRange,
-                        zoomLevel = state.zoomLevel,
-                        showZoom = state.timeRange is TimeRange.SpecificMonth,
-                    )
-                }
-
-                item {
-                    TimeRangePicker(
-                        selectedRange = state.timeRange,
-                        onSelect = viewModel::setTimeRange,
-                        zoomLevel = state.zoomLevel,
-                        onZoom = viewModel::setZoomLevel,
-                    )
                 }
             }
         }
@@ -352,15 +318,14 @@ private fun TimeRangePicker(
         is TimeRange.SpecificMonth -> 3
     }
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = "Time range",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Time range",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                 options.forEachIndexed { index, label ->
                     SegmentedButton(
                         selected = selectedIndex == index,
@@ -382,7 +347,6 @@ private fun TimeRangePicker(
                     }
                 }
             }
-        }
     }
 
     if (showYearDialog) {
@@ -443,7 +407,12 @@ private fun CategoryPickerSection(
             ) {
                 Text(text = "Categories", style = MaterialTheme.typography.titleMedium)
                 if (selectedCat1 != null) {
-                    TextButton(onClick = onClear) {
+                    TextButton(
+                        onClick = onClear,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
                         Icon(
                             Icons.Default.Close,
                             contentDescription = null,
@@ -658,14 +627,14 @@ private fun ChartTypeSelector(
 
             cat2 != null -> {
                 // Two non-numeric categories: Trends and Over Time hidden
-                add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Distribution"))
-                add(ChartOption(ChartType.COMBO, Icons.Default.TableChart, "Combinations"))
+                add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Breakdown"))
+                add(ChartOption(ChartType.COMBO, Icons.Default.TableChart, "Combos"))
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart, "Compare"))
             }
 
             else -> {
                 add(ChartOption(ChartType.TRENDS, Icons.Default.BarChart, "Trends"))
-                add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Distribution"))
+                add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Breakdown"))
                 add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
                 add(ChartOption(ChartType.PHASE_SUMMARY, Icons.Default.TableChart, "By Phase"))
             }
@@ -679,55 +648,108 @@ private fun ChartTypeSelector(
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp)
-            ) {
-                items(options) { option ->
-                    val isSelected = selectedType == option.type
-                    Card(
-                        modifier = Modifier
-                            .width(80.dp)
-                            .clickable { onSelect(option.type) }
-                            .semantics { role = Role.Button },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isSelected)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else
-                                MaterialTheme.colorScheme.surfaceVariant
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                options.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = selectedType == option.type,
+                        onClick = { onSelect(option.type) },
+                        shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                        icon = { SegmentedButtonDefaults.Icon(active = selectedType == option.type) }
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = option.icon,
-                                contentDescription = null,
-                                tint = if (isSelected)
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                text = option.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center,
-                                color = if (isSelected)
-                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                else
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(option.label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                     }
                 }
             }
         }
+    }
+}
+
+// ── Chart / Grid mode switcher ────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChartGridModeSwitcher(onNavigateToGrid: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text("View", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(8.dp))
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                SegmentedButton(
+                    selected = true,
+                    onClick = {},
+                    shape = SegmentedButtonDefaults.itemShape(0, 2),
+                    icon = { SegmentedButtonDefaults.Icon(active = true) }
+                ) {
+                    Icon(Icons.Default.ShowChart, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Chart", style = MaterialTheme.typography.labelSmall)
+                }
+                SegmentedButton(
+                    selected = false,
+                    onClick = onNavigateToGrid,
+                    shape = SegmentedButtonDefaults.itemShape(1, 2),
+                    icon = { SegmentedButtonDefaults.Icon(active = false) }
+                ) {
+                    Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Grid", style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
+}
+
+// ── Stats Help Dialog ─────────────────────────────────────────────────────────
+
+@Composable
+private fun StatsHelpDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Stats help") },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                StatsHelpSection(
+                    title = "Time ranges",
+                    body = "All Time: every entry you have logged.\n" +
+                        "Year to date (YTD): from 1 January of this year to today.\n" +
+                        "Year: all entries in a specific calendar year.\n" +
+                        "Month: entries in a single month, with left/right arrows to step through months."
+                )
+                StatsHelpSection(
+                    title = "Chart types",
+                    body = "Trends: the most common logged values, ranked by frequency.\n" +
+                        "Breakdown: how often each value was logged as a proportion of the total.\n" +
+                        "Over Time: how many times each value was logged per time period.\n" +
+                        "Compare: two categories side by side over time.\n" +
+                        "By Phase: how values are distributed across cycle phases.\n" +
+                        "Scatter: plot one numeric value against another.\n" +
+                        "Average: the mean numeric value per time period.\n" +
+                        "Spread: how often each numeric value was recorded."
+                )
+                StatsHelpSection(
+                    title = "Grid view",
+                    body = "The Grid view stacks several categories as rows and shows intensity-shaded cells day by day, so you can spot patterns across categories at a glance."
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Got it") }
+        }
+    )
+}
+
+@Composable
+private fun StatsHelpSection(title: String, body: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        Text(
+            body,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -750,9 +772,8 @@ private fun ChartArea(
         else -> null
     }
 
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            // Navigation row: month arrows for SpecificMonth, year arrows for CalendarYear/YTD
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Navigation row: month arrows for SpecificMonth, year arrows for CalendarYear/YTD
             when {
                 currentMonth != null -> {
                     Row(
@@ -969,7 +990,6 @@ private fun ChartArea(
                     }
                 }
             }
-        } // Column
     }
 }
 

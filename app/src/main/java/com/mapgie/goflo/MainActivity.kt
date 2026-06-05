@@ -279,11 +279,11 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         scope.launch { app.preferencesStore.setDashboardEnabled(!dashboardEnabled) }
                     },
                     onPinStat = { vm.pinCurrentView() },
-                    onOpenHeatmap = { navController.navigate(Screen.Heatmap.route) },
+                    onNavigateToGrid = { navController.navigate(Screen.StatsGrid.route) }
                 )
             }
 
-            composable(Screen.Heatmap.route) {
+            composable(Screen.StatsGrid.route) {
                 val vm: HeatmapViewModel = viewModel(
                     factory = HeatmapViewModel.Factory(app.trackingRepository, app.preferencesStore)
                 )

@@ -18,6 +18,20 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.41.0-beta.1] - 2026-06-05
+
+### Added
+- Chart/Grid mode switcher on the Stats screen: a segmented button below the Categories card lets users navigate directly to the Grid view without hunting for a buried list row.
+- Help dialog accessible from the Stats overflow menu (three-dot button), explaining time range labels (including YTD), all chart types, and the Grid view.
+
+### Changed
+- Chart type selector on Stats screen: replaced the horizontally scrollable card row with a full-width segmented button row, making all available options visible without scrolling.
+- Stats screen: the chart area and time range picker are now grouped inside a single card, making clear that the time range control belongs to the chart above it.
+- Stats screen: the inline "Pin to Dashboard" / "Unpin from Dashboard" card has been removed. The bookmark icon in the top app bar already provides this action and is always visible when the dashboard is enabled.
+- Disclaimer banner: removed the em dash from the collapsed text ("only. Not medical advice." instead of "only — not medical advice.").
+- Categories Clear button: changed from accent/primary color to a neutral grey so it is not mistaken for a destructive or error action.
+
+---
 ## [0.40.1-beta.1] - 2026-06-05
 
 ### Fixed
