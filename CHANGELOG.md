@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.41.1-beta.1] - 2026-06-05
+
+### Fixed
+- Stats screen "View" switcher: the Chart and Grid icons were drawn on top of their labels because both an icon and the label text were placed in the segmented button label slot. The icon now sits in the button's dedicated icon slot, so "Chart" and "Grid" read cleanly.
+
+---
 ## [0.41.0-beta.1] - 2026-06-05
 
 ### Added

@@ -678,20 +678,28 @@ private fun ChartGridModeSwitcher(onNavigateToGrid: () -> Unit) {
                     selected = true,
                     onClick = {},
                     shape = SegmentedButtonDefaults.itemShape(0, 2),
-                    icon = { SegmentedButtonDefaults.Icon(active = true) }
+                    icon = {
+                        Icon(
+                            Icons.Default.ShowChart,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 ) {
-                    Icon(Icons.Default.ShowChart, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text("Chart", style = MaterialTheme.typography.labelSmall)
                 }
                 SegmentedButton(
                     selected = false,
                     onClick = onNavigateToGrid,
                     shape = SegmentedButtonDefaults.itemShape(1, 2),
-                    icon = { SegmentedButtonDefaults.Icon(active = false) }
+                    icon = {
+                        Icon(
+                            Icons.Default.GridView,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 ) {
-                    Icon(Icons.Default.GridView, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text("Grid", style = MaterialTheme.typography.labelSmall)
                 }
             }
