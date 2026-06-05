@@ -18,6 +18,14 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.42.0-beta.1] - 2026-06-05
+
+### Changed
+- Stats screen redesign: the chart now sits at the top of the page as the headline, with its time range controls, so your data is the first thing you see.
+- The Dashboard enable/disable control moved out of its large card and into an icon button in the top app bar. The icon is filled when the dashboard is on and outlined when off, and announces its state to screen readers, so it no longer takes up space on the page.
+- The Categories panel can now be collapsed. Tap the "Categories" header to fold it away once you have made your selection; collapsed, it shows a one-line summary of the chosen categories. It starts expanded.
+
+---
 ## [0.41.1-beta.1] - 2026-06-05
 
 ### Fixed

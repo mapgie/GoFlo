@@ -1,6 +1,7 @@
 package com.mapgie.goflo.ui.screens.stats
 
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,9 +32,13 @@ import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.filled.BubbleChart
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DonutLarge
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Dashboard as DashboardOutline
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ScatterPlot
@@ -60,7 +65,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -83,6 +87,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -106,6 +111,7 @@ fun StatsScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var bannerExpanded by rememberSaveable { mutableStateOf(false) }
+    var categoriesExpanded by rememberSaveable { mutableStateOf(true) }
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     val scrollBehavior = if (isLandscape) TopAppBarDefaults.enterAlwaysScrollBehavior() else null
@@ -139,6 +145,16 @@ fun StatsScreen(
                 ),
                 scrollBehavior = scrollBehavior,
                 actions = {
+                    IconButton(onClick = onToggleDashboard) {
+                        Icon(
+                            imageVector = if (dashboardEnabled) Icons.Filled.Dashboard else Icons.Outlined.DashboardOutline,
+                            contentDescription = if (dashboardEnabled) "Dashboard enabled. Tap to disable." else "Dashboard disabled. Tap to enable.",
+                            tint = if (dashboardEnabled)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
+                        )
+                    }
                     if (dashboardEnabled && state.selectedCategory1 != null) {
                         if (state.isCurrentViewPinned) {
                             IconButton(onClick = { viewModel.unpinCurrentView() }) {
@@ -213,59 +229,7 @@ fun StatsScreen(
                     )
                 }
 
-                // Dashboard toggle card
-                item {
-                    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text("Dashboard", style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    if (dashboardEnabled) "Dashboard enabled. Pin favourite views below." else "Enable to create a quick-access dashboard",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Switch(
-                                checked = dashboardEnabled,
-                                onCheckedChange = { onToggleDashboard() })
-                        }
-                    }
-                }
-
-                item {
-                    CategoryPickerSection(
-                        categories = state.categories,
-                        selectedCat1 = state.selectedCategory1,
-                        selectedCat2 = state.selectedCategory2,
-                        chartType = state.chartType,
-                        activeSlot = state.activeSlot,
-                        onSelect = viewModel::selectCategory,
-                        onSetActiveSlot = viewModel::setActiveSlot,
-                        onSwap = viewModel::swapCategories,
-                        onClear = viewModel::clearSelections,
-                    )
-                }
-
-                if (state.selectedCategory1 != null) {
-                    item {
-                        ChartGridModeSwitcher(onNavigateToGrid = onNavigateToGrid)
-                    }
-                    item {
-                        ChartTypeSelector(
-                            cat1 = state.selectedCategory1!!,
-                            cat2 = state.selectedCategory2,
-                            selectedType = state.chartType,
-                            onSelect = viewModel::setChartType
-                        )
-                    }
-                }
-
+                // Chart card — the headline of the screen, kept at the top.
                 item {
                     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
@@ -288,6 +252,39 @@ fun StatsScreen(
                                 onZoom = viewModel::setZoomLevel,
                             )
                         }
+                    }
+                }
+
+                // Category picker — sits right under the chart, collapsible so it
+                // can step out of the way and free space for the controls below.
+                item {
+                    CategoryPickerSection(
+                        categories = state.categories,
+                        selectedCat1 = state.selectedCategory1,
+                        selectedCat2 = state.selectedCategory2,
+                        chartType = state.chartType,
+                        activeSlot = state.activeSlot,
+                        expanded = categoriesExpanded,
+                        onToggleExpanded = { categoriesExpanded = !categoriesExpanded },
+                        onSelect = viewModel::selectCategory,
+                        onSetActiveSlot = viewModel::setActiveSlot,
+                        onSwap = viewModel::swapCategories,
+                        onClear = viewModel::clearSelections,
+                    )
+                }
+
+                // Chart configuration — only meaningful once a category is chosen.
+                if (state.selectedCategory1 != null) {
+                    item {
+                        ChartTypeSelector(
+                            cat1 = state.selectedCategory1!!,
+                            cat2 = state.selectedCategory2,
+                            selectedType = state.chartType,
+                            onSelect = viewModel::setChartType
+                        )
+                    }
+                    item {
+                        ChartGridModeSwitcher(onNavigateToGrid = onNavigateToGrid)
                     }
                 }
             }
@@ -390,6 +387,8 @@ private fun CategoryPickerSection(
     selectedCat2: TrackingCategory?,
     chartType: ChartType,
     activeSlot: Int,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onSelect: (TrackingCategory) -> Unit,
     onSetActiveSlot: (Int) -> Unit,
     onSwap: () -> Unit,
@@ -399,14 +398,35 @@ private fun CategoryPickerSection(
 
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(12.dp)) {
-            // Header row
+            // Header row — tapping anywhere collapses or expands the panel.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .semantics {
+                        role = Role.Button
+                        stateDescription = if (expanded) "Expanded" else "Collapsed"
+                    }
+                    .clickable { onToggleExpanded() }
+                    .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Categories", style = MaterialTheme.typography.titleMedium)
-                if (selectedCat1 != null) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "Categories", style = MaterialTheme.typography.titleMedium)
+                    if (!expanded) {
+                        val summary = listOfNotNull(selectedCat1?.name, selectedCat2?.name)
+                            .joinToString(" + ")
+                            .ifEmpty { "No categories selected" }
+                        Text(
+                            text = summary,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                        )
+                    }
+                }
+                if (expanded && selectedCat1 != null) {
                     TextButton(
                         onClick = onClear,
                         colors = ButtonDefaults.textButtonColors(
@@ -422,106 +442,115 @@ private fun CategoryPickerSection(
                         Text("Clear")
                     }
                 }
-            }
-
-            // Slot selector row
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Slot 1
-                val slot1Label = if (useAxisLabels) "X" else "1"
-                CategorySlotChip(
-                    slotLabel = slot1Label,
-                    category = selectedCat1,
-                    isActive = activeSlot == 1,
-                    placeholder = "Pick a category",
-                    onClick = { onSetActiveSlot(1) },
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-
-                // Slot 2 (only when slot 1 is filled)
-                if (selectedCat1 != null) {
-                    val slot2Label = if (useAxisLabels) "Y" else "2"
-                    CategorySlotChip(
-                        slotLabel = slot2Label,
-                        category = selectedCat2,
-                        isActive = activeSlot == 2,
-                        placeholder = "Add second...",
-                        onClick = { onSetActiveSlot(2) },
-                    )
-                }
-
-                // Swap button when both slots filled
-                if (selectedCat1 != null && selectedCat2 != null) {
-                    IconButton(onClick = onSwap, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            Icons.Default.SwapHoriz,
-                            contentDescription = "Swap categories",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            AnimatedVisibility(visible = expanded) {
+                Column {
+                    // Slot selector row
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Slot 1
+                        val slot1Label = if (useAxisLabels) "X" else "1"
+                        CategorySlotChip(
+                            slotLabel = slot1Label,
+                            category = selectedCat1,
+                            isActive = activeSlot == 1,
+                            placeholder = "Pick a category",
+                            onClick = { onSetActiveSlot(1) },
+                        )
 
-            // Category chip list — clicking fills the active slot
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                categories.forEach { category ->
-                    val isCat1 = selectedCat1?.id == category.id
-                    val isCat2 = selectedCat2?.id == category.id
-                    val isSelected = isCat1 || isCat2
-                    val isActiveSlotSelected =
-                        (activeSlot == 1 && isCat1) || (activeSlot == 2 && isCat2)
+                        // Slot 2 (only when slot 1 is filled)
+                        if (selectedCat1 != null) {
+                            val slot2Label = if (useAxisLabels) "Y" else "2"
+                            CategorySlotChip(
+                                slotLabel = slot2Label,
+                                category = selectedCat2,
+                                isActive = activeSlot == 2,
+                                placeholder = "Add second...",
+                                onClick = { onSetActiveSlot(2) },
+                            )
+                        }
 
-                    val icon = category.iconName.toCategoryIcon()
-                    val bubbleColor = category.colorToken.toCategoryColor()
-                    val onBubbleColor = category.colorToken.toCategoryOnColor()
-
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onSelect(category) },
-                        label = { Text(category.name) },
-                        leadingIcon = {
-                            Box(
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                                    .background(bubbleColor),
-                                contentAlignment = Alignment.Center
-                            ) {
+                        // Swap button when both slots filled
+                        if (selectedCat1 != null && selectedCat2 != null) {
+                            IconButton(onClick = onSwap, modifier = Modifier.size(36.dp)) {
                                 Icon(
-                                    imageVector = icon.vector,
-                                    contentDescription = null,
-                                    tint = onBubbleColor,
-                                    modifier = Modifier.size(12.dp)
+                                    Icons.Default.SwapHoriz,
+                                    contentDescription = "Swap categories",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = if (isActiveSlotSelected)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else
-                                MaterialTheme.colorScheme.secondaryContainer,
-                            selectedLabelColor = if (isActiveSlotSelected)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else
-                                MaterialTheme.colorScheme.onSecondaryContainer,
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = isSelected,
-                            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            selectedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                            borderWidth = 1.dp,
-                            selectedBorderWidth = 1.dp
-                        )
-                    )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Category chip list — clicking fills the active slot
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        categories.forEach { category ->
+                            val isCat1 = selectedCat1?.id == category.id
+                            val isCat2 = selectedCat2?.id == category.id
+                            val isSelected = isCat1 || isCat2
+                            val isActiveSlotSelected =
+                                (activeSlot == 1 && isCat1) || (activeSlot == 2 && isCat2)
+
+                            val icon = category.iconName.toCategoryIcon()
+                            val bubbleColor = category.colorToken.toCategoryColor()
+                            val onBubbleColor = category.colorToken.toCategoryOnColor()
+
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onSelect(category) },
+                                label = { Text(category.name) },
+                                leadingIcon = {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clip(CircleShape)
+                                            .background(bubbleColor),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = icon.vector,
+                                            contentDescription = null,
+                                            tint = onBubbleColor,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = if (isActiveSlotSelected)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.secondaryContainer,
+                                    selectedLabelColor = if (isActiveSlotSelected)
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.onSecondaryContainer,
+                                ),
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    selectedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                    borderWidth = 1.dp,
+                                    selectedBorderWidth = 1.dp
+                                )
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -874,7 +903,7 @@ private fun ChartArea(
                         ) {
                             Text(
                                 text = if (!hasCategorySelected)
-                                    "Select a category above to get started"
+                                    "Select a category below to get started"
                                 else
                                     "No data found for the selected range",
                                 style = MaterialTheme.typography.bodyMedium,
