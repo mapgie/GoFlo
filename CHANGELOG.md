@@ -18,6 +18,11 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.41.2-beta.1] - 2026-06-05
+
+### Fixed
+- Period flow logging no longer writes the same flow level to every day in the period span. A single flow measurement recorded with a period is synced to the start date only; per-day flow can still be logged individually via the category tracker.
+
 ## [0.41.1-beta.1] - 2026-06-05
 
 ### Fixed
