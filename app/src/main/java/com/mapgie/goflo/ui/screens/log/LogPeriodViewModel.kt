@@ -271,9 +271,7 @@ class LogPeriodViewModel(
         } else {
             state.selectedFlowLabel
         }
-        val end = state.endDate ?: state.startDate
-        val dates = generateSequence(state.startDate) { d -> if (d < end) d.plusDays(1) else null }.toList()
-        tr.syncFlowLogsForPeriod(flowCategory.id, dates, flowLabel)
+        tr.syncFlowLogsForPeriod(flowCategory.id, listOf(state.startDate), flowLabel)
     }
 
     /** Saves each pinned category's current selection as a tracking log for the period start date. */
