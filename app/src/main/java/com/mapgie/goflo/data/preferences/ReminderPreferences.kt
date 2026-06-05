@@ -48,7 +48,7 @@ data class AppPreferences(
     /** Whether to show predicted future period days on the calendar. */
     val showPeriodPrediction: Boolean = true,
     /** Whether to show ovulation day and fertility-window markers on the calendar. */
-    val showOvulationMarkers: Boolean = true,
+    val showOvulationMarkers: Boolean = false,
     /**
      * When true the colour picker switches every standard palette to its WCAG AAA
      * accessible variant (deeper/lighter primary colours, higher-contrast outlines).
