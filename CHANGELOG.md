@@ -18,6 +18,16 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.38.0-beta.1] - 2026-06-05
+
+### Added
+- New "Alarms & Notifications" screen that gathers custom alarms, period reminders, and their system permissions in one place. The permission rows (Notifications, Exact alarms, Do Not Disturb access) show their live grant status as "Allowed" or "Tap to allow" and refresh when you return from system settings. Status is shown with both an icon and a label, never colour alone.
+- Enabling "Override Do Not Disturb" on a custom alarm now prompts to grant Do Not Disturb access. The bypass relies on this permission, so previously the toggle could be silently ineffective until the access was granted elsewhere.
+
+### Changed
+- Manage screen: alarms, reminders, and the three permission rows are now reached through a single "Alarms & Notifications" entry instead of being spread across separate rows and a standalone "Permissions" section.
+
+---
 ## [0.37.0-beta.1] - 2026-06-04
 
 ### Changed

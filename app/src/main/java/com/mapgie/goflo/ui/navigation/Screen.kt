@@ -24,6 +24,7 @@ sealed class Screen(val route: String) {
 
     data object Manage : Screen("manage")
     data object TrackingModes : Screen("tracking_modes")
+    data object NotificationsHub : Screen("notifications_hub")
     data object Reminders : Screen("reminders")
 
     data object ManageCategories : Screen("manage_categories")
