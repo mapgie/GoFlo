@@ -95,6 +95,10 @@ class SettingsViewModel(
     fun setCustomSecondaryHue(hue: Float) = viewModelScope.launch { store.setCustomSecondaryHue(hue) }
     fun setCustomTertiaryHue(hue: Float)  = viewModelScope.launch { store.setCustomTertiaryHue(hue) }
 
+    fun setCustomPrimaryArgb(argb: Int)   = viewModelScope.launch { store.setCustomPrimaryArgb(argb) }
+    fun setCustomSecondaryArgb(argb: Int) = viewModelScope.launch { store.setCustomSecondaryArgb(argb) }
+    fun setCustomTertiaryArgb(argb: Int)  = viewModelScope.launch { store.setCustomTertiaryArgb(argb) }
+
     // ── App icon ───────────────────────────────────────────────────────────────
 
     /**
@@ -436,6 +440,9 @@ class SettingsViewModel(
                 put("customPrimaryHue", prefs.customPrimaryHue)
                 put("customSecondaryHue", prefs.customSecondaryHue)
                 put("customTertiaryHue", prefs.customTertiaryHue)
+                put("customPrimaryArgb", prefs.customPrimaryArgb)
+                put("customSecondaryArgb", prefs.customSecondaryArgb)
+                put("customTertiaryArgb", prefs.customTertiaryArgb)
                 put("activeModes", prefs.activeModes)
                 put("pregnancyDateStr", prefs.pregnancyDateStr)
                 put("pregnancyStartType", prefs.pregnancyStartType)
@@ -668,6 +675,9 @@ class SettingsViewModel(
                             store.setCustomPrimaryHue(settingsObj.optDouble("customPrimaryHue", 0.0).toFloat())
                             store.setCustomSecondaryHue(settingsObj.optDouble("customSecondaryHue", 200.0).toFloat())
                             store.setCustomTertiaryHue(settingsObj.optDouble("customTertiaryHue", 330.0).toFloat())
+                            store.setCustomPrimaryArgb(settingsObj.optInt("customPrimaryArgb", 0))
+                            store.setCustomSecondaryArgb(settingsObj.optInt("customSecondaryArgb", 0))
+                            store.setCustomTertiaryArgb(settingsObj.optInt("customTertiaryArgb", 0))
                             store.setActiveModes(settingsObj.optString("activeModes", ""))
                             store.setPregnancyDate(
                                 settingsObj.optString("pregnancyDateStr", ""),
@@ -836,6 +846,9 @@ class SettingsViewModel(
         store.setCustomPrimaryHue(settingsObj.optDouble("customPrimaryHue", 0.0).toFloat())
         store.setCustomSecondaryHue(settingsObj.optDouble("customSecondaryHue", 200.0).toFloat())
         store.setCustomTertiaryHue(settingsObj.optDouble("customTertiaryHue", 330.0).toFloat())
+        store.setCustomPrimaryArgb(settingsObj.optInt("customPrimaryArgb", 0))
+        store.setCustomSecondaryArgb(settingsObj.optInt("customSecondaryArgb", 0))
+        store.setCustomTertiaryArgb(settingsObj.optInt("customTertiaryArgb", 0))
         val cycleLen = settingsObj.optInt("preferredCycleLength", 0)
         if (cycleLen == 0 || cycleLen in 21..90) store.setPreferredCycleLength(cycleLen)
         store.setShowPeriodPrediction(settingsObj.optBoolean("showPeriodPrediction", true))

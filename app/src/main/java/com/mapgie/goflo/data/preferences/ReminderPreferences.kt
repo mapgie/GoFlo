@@ -104,6 +104,12 @@ data class AppPreferences(
     val customSecondaryHue: Float = 200f,
     /** Hue (0–360°) for the tertiary colour in the custom theme. */
     val customTertiaryHue: Float = 330f,
+    /** Full ARGB colour picked for the primary slot in the custom theme (0 = derive from hue). */
+    val customPrimaryArgb: Int = 0,
+    /** Full ARGB colour picked for the secondary slot in the custom theme (0 = derive from hue). */
+    val customSecondaryArgb: Int = 0,
+    /** Full ARGB colour picked for the tertiary slot in the custom theme (0 = derive from hue). */
+    val customTertiaryArgb: Int = 0,
     /** Comma-separated list of active tracking mode IDs (e.g. "FERTILITY,PREGNANCY"). */
     val activeModes: String = "",
     /** ISO-8601 date string for the pregnancy anchor date. Interpretation depends on [pregnancyStartType]. */
@@ -152,6 +158,9 @@ class AppPreferencesStore(private val context: Context) {
         val CUSTOM_PRIMARY_HUE   = floatPreferencesKey("custom_primary_hue")
         val CUSTOM_SECONDARY_HUE = floatPreferencesKey("custom_secondary_hue")
         val CUSTOM_TERTIARY_HUE  = floatPreferencesKey("custom_tertiary_hue")
+        val CUSTOM_PRIMARY_ARGB   = intPreferencesKey("custom_primary_argb")
+        val CUSTOM_SECONDARY_ARGB = intPreferencesKey("custom_secondary_argb")
+        val CUSTOM_TERTIARY_ARGB  = intPreferencesKey("custom_tertiary_argb")
         val ACTIVE_MODES              = stringPreferencesKey("active_modes")
         val PREGNANCY_DATE_STR        = stringPreferencesKey("pregnancy_date_str")
         val PREGNANCY_START_TYPE      = stringPreferencesKey("pregnancy_start_type")
@@ -187,6 +196,9 @@ class AppPreferencesStore(private val context: Context) {
             customPrimaryHue       = prefs[Keys.CUSTOM_PRIMARY_HUE]          ?: 0f,
             customSecondaryHue     = prefs[Keys.CUSTOM_SECONDARY_HUE]        ?: 200f,
             customTertiaryHue      = prefs[Keys.CUSTOM_TERTIARY_HUE]         ?: 330f,
+            customPrimaryArgb      = prefs[Keys.CUSTOM_PRIMARY_ARGB]         ?: 0,
+            customSecondaryArgb    = prefs[Keys.CUSTOM_SECONDARY_ARGB]       ?: 0,
+            customTertiaryArgb     = prefs[Keys.CUSTOM_TERTIARY_ARGB]        ?: 0,
             activeModes            = prefs[Keys.ACTIVE_MODES]                ?: "",
             pregnancyDateStr       = prefs[Keys.PREGNANCY_DATE_STR]          ?: "",
             pregnancyStartType     = prefs[Keys.PREGNANCY_START_TYPE]        ?: "EDD",
@@ -356,6 +368,18 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setCustomTertiaryHue(hue: Float) {
         context.dataStore.edit { it[Keys.CUSTOM_TERTIARY_HUE] = hue }
+    }
+
+    suspend fun setCustomPrimaryArgb(argb: Int) {
+        context.dataStore.edit { it[Keys.CUSTOM_PRIMARY_ARGB] = argb }
+    }
+
+    suspend fun setCustomSecondaryArgb(argb: Int) {
+        context.dataStore.edit { it[Keys.CUSTOM_SECONDARY_ARGB] = argb }
+    }
+
+    suspend fun setCustomTertiaryArgb(argb: Int) {
+        context.dataStore.edit { it[Keys.CUSTOM_TERTIARY_ARGB] = argb }
     }
 
     suspend fun setActiveModes(modes: String) {

@@ -16,10 +16,13 @@ import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.Tune
+import android.graphics.Color as AndroidColor
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
@@ -127,7 +130,17 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             val appPrefs by app.preferencesStore.preferences.collectAsState(initial = initialPrefs)
             val currentTheme = runCatching { AppTheme.valueOf(appPrefs.theme) }.getOrDefault(AppTheme.CORAL)
             val customHues = if (currentTheme == AppTheme.CUSTOM) {
-                Triple(appPrefs.customPrimaryHue, appPrefs.customSecondaryHue, appPrefs.customTertiaryHue)
+                fun hueOf(argb: Int, fallback: Float): Float {
+                    if (argb == 0) return fallback
+                    val hsv = FloatArray(3)
+                    AndroidColor.colorToHSV(argb, hsv)
+                    return hsv[0]
+                }
+                Triple(
+                    hueOf(appPrefs.customPrimaryArgb,   appPrefs.customPrimaryHue),
+                    hueOf(appPrefs.customSecondaryArgb, appPrefs.customSecondaryHue),
+                    hueOf(appPrefs.customTertiaryArgb,  appPrefs.customTertiaryHue),
+                )
             } else null
 
             GoFloTheme(appTheme = currentTheme, wcag = appPrefs.wcagMode, customHues = customHues) {
@@ -203,8 +216,14 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
+                val navItemColors = NavigationBarItemDefaults.colors(
+                    indicatorColor    = MaterialTheme.colorScheme.primary,
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                )
                 NavigationBar {
                     NavigationBarItem(
+                        colors   = navItemColors,
                         selected = currentRoute == Screen.Home.route || currentRoute == Screen.Settings.route,
                         onClick = { navController.navigate(Screen.Home.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -214,6 +233,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         label = { Text("Home") }
                     )
                     NavigationBarItem(
+                        colors   = navItemColors,
                         selected = currentRoute == Screen.History.route,
                         onClick = { navController.navigate(Screen.History.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -224,6 +244,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     )
                     if (dashboardEnabled) {
                         NavigationBarItem(
+                            colors   = navItemColors,
                             selected = currentRoute == Screen.Dashboard.route,
                             onClick = { navController.navigate(Screen.Dashboard.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -234,6 +255,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         )
                     }
                     NavigationBarItem(
+                        colors   = navItemColors,
                         selected = currentRoute == Screen.Stats.route,
                         onClick = { navController.navigate(Screen.Stats.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -243,6 +265,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         label = { Text("Stats") }
                     )
                     NavigationBarItem(
+                        colors   = navItemColors,
                         selected = currentRoute == Screen.Manage.route,
                         onClick = { navController.navigate(Screen.Manage.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }

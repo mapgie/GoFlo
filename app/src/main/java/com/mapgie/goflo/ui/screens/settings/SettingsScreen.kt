@@ -54,8 +54,11 @@ import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import android.graphics.Color as AndroidColor
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
@@ -119,6 +122,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
@@ -1118,16 +1122,22 @@ private fun AppearanceSubScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             CompactThemePicker(
-                current              = currentTheme,
-                wcagChecked          = prefs.wcagMode,
-                customPrimaryHue     = prefs.customPrimaryHue,
-                customSecondaryHue   = prefs.customSecondaryHue,
-                customTertiaryHue    = prefs.customTertiaryHue,
-                onSelect             = { viewModel.setTheme(it.name) },
-                onWcagToggle         = { viewModel.setWcagMode(it) },
-                onCustomPrimaryHue   = { viewModel.setCustomPrimaryHue(it) },
-                onCustomSecondaryHue = { viewModel.setCustomSecondaryHue(it) },
-                onCustomTertiaryHue  = { viewModel.setCustomTertiaryHue(it) },
+                current               = currentTheme,
+                wcagChecked           = prefs.wcagMode,
+                customPrimaryHue      = prefs.customPrimaryHue,
+                customSecondaryHue    = prefs.customSecondaryHue,
+                customTertiaryHue     = prefs.customTertiaryHue,
+                customPrimaryArgb     = prefs.customPrimaryArgb,
+                customSecondaryArgb   = prefs.customSecondaryArgb,
+                customTertiaryArgb    = prefs.customTertiaryArgb,
+                onSelect              = { viewModel.setTheme(it.name) },
+                onWcagToggle          = { viewModel.setWcagMode(it) },
+                onCustomPrimaryHue    = { viewModel.setCustomPrimaryHue(it) },
+                onCustomSecondaryHue  = { viewModel.setCustomSecondaryHue(it) },
+                onCustomTertiaryHue   = { viewModel.setCustomTertiaryHue(it) },
+                onCustomPrimaryArgb   = { viewModel.setCustomPrimaryArgb(it) },
+                onCustomSecondaryArgb = { viewModel.setCustomSecondaryArgb(it) },
+                onCustomTertiaryArgb  = { viewModel.setCustomTertiaryArgb(it) },
             )
 
             HorizontalDivider()
@@ -1815,16 +1825,22 @@ private fun SupportCard(
 
 @Composable
 private fun CompactThemePicker(
-    current:              AppTheme,
-    wcagChecked:          Boolean,
-    customPrimaryHue:     Float,
-    customSecondaryHue:   Float,
-    customTertiaryHue:    Float,
-    onSelect:             (AppTheme) -> Unit,
-    onWcagToggle:         (Boolean) -> Unit,
-    onCustomPrimaryHue:   (Float) -> Unit,
-    onCustomSecondaryHue: (Float) -> Unit,
-    onCustomTertiaryHue:  (Float) -> Unit,
+    current:               AppTheme,
+    wcagChecked:           Boolean,
+    customPrimaryHue:      Float,
+    customSecondaryHue:    Float,
+    customTertiaryHue:     Float,
+    customPrimaryArgb:     Int,
+    customSecondaryArgb:   Int,
+    customTertiaryArgb:    Int,
+    onSelect:              (AppTheme) -> Unit,
+    onWcagToggle:          (Boolean) -> Unit,
+    onCustomPrimaryHue:    (Float) -> Unit,
+    onCustomSecondaryHue:  (Float) -> Unit,
+    onCustomTertiaryHue:   (Float) -> Unit,
+    onCustomPrimaryArgb:   (Int) -> Unit,
+    onCustomSecondaryArgb: (Int) -> Unit,
+    onCustomTertiaryArgb:  (Int) -> Unit,
 ) {
     val currentMode    = current.themeMode
     val currentPalette = current.standardPalette
@@ -1983,26 +1999,32 @@ private fun CompactThemePicker(
 
         // ── Custom colour pickers ─────────────────────────────────────────────
         if (isCustom) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     "Custom colours",
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                ColorHuePicker(
-                    label       = "Primary",
-                    hue         = customPrimaryHue,
-                    onHueChange = onCustomPrimaryHue,
+                CustomColorRow(
+                    label        = "Primary",
+                    hue          = customPrimaryHue,
+                    argb         = customPrimaryArgb,
+                    onHueChange  = onCustomPrimaryHue,
+                    onArgbChange = onCustomPrimaryArgb,
                 )
-                ColorHuePicker(
-                    label       = "Secondary",
-                    hue         = customSecondaryHue,
-                    onHueChange = onCustomSecondaryHue,
+                CustomColorRow(
+                    label        = "Secondary",
+                    hue          = customSecondaryHue,
+                    argb         = customSecondaryArgb,
+                    onHueChange  = onCustomSecondaryHue,
+                    onArgbChange = onCustomSecondaryArgb,
                 )
-                ColorHuePicker(
-                    label       = "Tertiary",
-                    hue         = customTertiaryHue,
-                    onHueChange = onCustomTertiaryHue,
+                CustomColorRow(
+                    label        = "Tertiary",
+                    hue          = customTertiaryHue,
+                    argb         = customTertiaryArgb,
+                    onHueChange  = onCustomTertiaryHue,
+                    onArgbChange = onCustomTertiaryArgb,
                 )
             }
         }
@@ -2121,32 +2143,196 @@ private fun CustomPaletteSlot(isSelected: Boolean, onClick: () -> Unit, modifier
     }
 }
 
-// ── Hue picker for custom theme ───────────────────────────────────────────────
+// ── Custom colour row (tappable, opens full picker dialog) ────────────────────
 
 @Composable
-private fun ColorHuePicker(label: String, hue: Float, onHueChange: (Float) -> Unit) {
+private fun CustomColorRow(
+    label:        String,
+    hue:          Float,
+    argb:         Int,
+    onHueChange:  (Float) -> Unit,
+    onArgbChange: (Int) -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    val displayArgb = if (argb != 0) argb else {
+        val hsv = FloatArray(3)
+        AndroidColor.HSVToColor(hsv.also { it[0] = hue; it[1] = 1f; it[2] = 0.8f })
+    }
+
+    if (showPicker) {
+        ColorPickerDialog(
+            label      = label,
+            currentArgb = displayArgb,
+            onDismiss  = { showPicker = false },
+            onConfirm  = { newArgb ->
+                onArgbChange(newArgb)
+                val hsv = FloatArray(3)
+                AndroidColor.colorToHSV(newArgb, hsv)
+                onHueChange(hsv[0])
+                showPicker = false
+            },
+        )
+    }
+
     Row(
+        modifier              = Modifier
+            .fillMaxWidth()
+            .semantics { role = Role.Button }
+            .clickable { showPicker = true }
+            .padding(vertical = 10.dp),
         verticalAlignment     = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier              = Modifier.fillMaxWidth()
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
+                .size(32.dp)
                 .clip(CircleShape)
-                .background(Color.hsl(hue, 1f, 0.45f))
+                .background(Color(displayArgb))
                 .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
         )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text  = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            HuePicker(hue = hue, onHueChange = onHueChange)
-        }
+        Text(
+            text     = label,
+            modifier = Modifier.weight(1f),
+            style    = MaterialTheme.typography.bodyMedium,
+        )
+        Text(
+            text  = "#%06X".format(displayArgb and 0xFFFFFF),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Icon(
+            imageVector        = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
+
+// ── Full HSV colour picker dialog ─────────────────────────────────────────────
+
+@Composable
+private fun ColorPickerDialog(
+    label:       String,
+    currentArgb: Int,
+    onDismiss:   () -> Unit,
+    onConfirm:   (Int) -> Unit,
+) {
+    val startHsv = FloatArray(3).also { AndroidColor.colorToHSV(currentArgb, it) }
+
+    var hue        by remember { mutableStateOf(startHsv[0]) }
+    var saturation by remember { mutableStateOf(startHsv[1]) }
+    var hsvalue    by remember { mutableStateOf(startHsv[2]) }
+    var hexText    by remember { mutableStateOf("%06X".format(currentArgb and 0xFFFFFF)) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(label) },
+        text  = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(AndroidColor.HSVToColor(floatArrayOf(hue, saturation, hsvalue))))
+                )
+                HsvSquarePicker(
+                    hue        = hue,
+                    saturation = saturation,
+                    value      = hsvalue,
+                    onSaturationValueChange = { s, v ->
+                        saturation = s
+                        hsvalue    = v
+                        hexText = "%06X".format(AndroidColor.HSVToColor(floatArrayOf(hue, s, v)) and 0xFFFFFF)
+                    },
+                )
+                HuePicker(
+                    hue         = hue,
+                    onHueChange = { h ->
+                        hue     = h
+                        hexText = "%06X".format(AndroidColor.HSVToColor(floatArrayOf(h, saturation, hsvalue)) and 0xFFFFFF)
+                    },
+                )
+                OutlinedTextField(
+                    value         = hexText,
+                    onValueChange = { input ->
+                        val clean = input.uppercase().filter { it in "0123456789ABCDEF" }.take(6)
+                        hexText = clean
+                        if (clean.length == 6) {
+                            clean.toLongOrNull(16)?.let { rgb ->
+                                val argb = (0xFF000000L or rgb).toInt()
+                                val hsv  = FloatArray(3)
+                                AndroidColor.colorToHSV(argb, hsv)
+                                hue = hsv[0]; saturation = hsv[1]; hsvalue = hsv[2]
+                            }
+                        }
+                    },
+                    label           = { Text("HEX") },
+                    prefix          = { Text("#") },
+                    singleLine      = true,
+                    isError         = hexText.isNotEmpty() && hexText.length < 6,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                    modifier        = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                onConfirm(AndroidColor.HSVToColor(floatArrayOf(hue, saturation, hsvalue)))
+            }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+// ── HSV saturation/brightness square ─────────────────────────────────────────
+
+@Composable
+private fun HsvSquarePicker(
+    hue:                    Float,
+    saturation:             Float,
+    value:                  Float,
+    onSaturationValueChange: (Float, Float) -> Unit,
+    modifier:               Modifier = Modifier,
+) {
+    val pureHueColor = Color(AndroidColor.HSVToColor(floatArrayOf(hue, 1f, 1f)))
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .semantics { contentDescription = "Colour saturation and brightness selector" }
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    val w = size.width.toFloat().coerceAtLeast(1f)
+                    val h = size.height.toFloat().coerceAtLeast(1f)
+                    onSaturationValueChange(
+                        (down.position.x / w).coerceIn(0f, 1f),
+                        1f - (down.position.y / h).coerceIn(0f, 1f),
+                    )
+                    drag(down.id) { change ->
+                        onSaturationValueChange(
+                            (change.position.x / w).coerceIn(0f, 1f),
+                            1f - (change.position.y / h).coerceIn(0f, 1f),
+                        )
+                        change.consume()
+                    }
+                }
+            }
+    ) {
+        drawRect(brush = Brush.horizontalGradient(listOf(Color.White, pureHueColor)))
+        drawRect(brush = Brush.verticalGradient(listOf(Color.Transparent, Color.Black)))
+        val tx = saturation * size.width
+        val ty = (1f - value) * size.height
+        drawCircle(Color.Black.copy(alpha = 0.3f), 12.dp.toPx(), Offset(tx, ty))
+        drawCircle(Color.White,                   11.dp.toPx(), Offset(tx, ty), style = Stroke(2.dp.toPx()))
+        drawCircle(Color(AndroidColor.HSVToColor(floatArrayOf(hue, saturation, value))),
+                    8.dp.toPx(), Offset(tx, ty))
+    }
+}
+
+// ── Hue bar ───────────────────────────────────────────────────────────────────
 
 @Composable
 private fun HuePicker(hue: Float, onHueChange: (Float) -> Unit, modifier: Modifier = Modifier) {
