@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.40.1-beta.1] - 2026-06-05
+
+### Fixed
+- GoFlo now appears in Settings > Apps > Special app access > Do Not Disturb. The `ACCESS_NOTIFICATION_POLICY` manifest permission was missing, which caused the system to omit the app from that list entirely.
+
+---
 ## [0.40.0-beta.1] - 2026-06-05
 
 ### Added
