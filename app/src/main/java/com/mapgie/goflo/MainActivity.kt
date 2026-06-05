@@ -74,6 +74,8 @@ import com.mapgie.goflo.ui.screens.manage.NotificationsHubScreen
 import com.mapgie.goflo.ui.screens.manage.RemindersScreen
 import com.mapgie.goflo.ui.screens.modes.ModesScreen
 import com.mapgie.goflo.ui.screens.modes.ModesViewModel
+import com.mapgie.goflo.ui.screens.stats.HeatmapScreen
+import com.mapgie.goflo.ui.screens.stats.HeatmapViewModel
 import com.mapgie.goflo.ui.screens.stats.StatsScreen
 import com.mapgie.goflo.ui.screens.stats.StatsViewModel
 import android.annotation.SuppressLint
@@ -276,8 +278,16 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     onToggleDashboard = {
                         scope.launch { app.preferencesStore.setDashboardEnabled(!dashboardEnabled) }
                     },
-                    onPinStat = { vm.pinCurrentView() }
+                    onPinStat = { vm.pinCurrentView() },
+                    onOpenHeatmap = { navController.navigate(Screen.Heatmap.route) },
                 )
+            }
+
+            composable(Screen.Heatmap.route) {
+                val vm: HeatmapViewModel = viewModel(
+                    factory = HeatmapViewModel.Factory(app.trackingRepository, app.preferencesStore)
+                )
+                HeatmapScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }
 
             composable(Screen.Dashboard.route) {

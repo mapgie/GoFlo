@@ -28,6 +28,23 @@ Rules:
 - Manage screen: alarms, reminders, and the three permission rows are now reached through a single "Alarms & Notifications" entry instead of being spread across separate rows and a standalone "Permissions" section.
 
 ---
+## [0.39.0-beta.1] - 2026-06-05
+
+### Added
+- Stats: a new Grid view that stacks several tracking categories as rows and shows each day as a filled square shaded by intensity, so you can compare categories at a glance. Pick any number of categories, choose a 30, 60, or 90 day window (longer windows aggregate by week), switch each cell between Sum and Average of the logged level, and adjust the cell size. Intensity is scaled within each row and every cell is described for screen readers.
+
+---
+## [0.38.0-beta.1] - 2026-06-04
+
+### Changed
+- Tracking modes list: Fertility and Pregnancy now appear at the bottom of the list; the general health modes (Endometriosis, PCOS, HRT, Perimenopause, Hormone Tracking) appear first.
+- Weight is removed as a standalone tracking mode. Weight tracking remains available as an optional category inside the Pregnancy and PCOS modes.
+- Ovulation Test is no longer a default system category. It is now a suggested category within Fertility mode, added when the user activates that mode. Existing Ovulation Test entries are preserved.
+- Fertility mode now includes Ovulation Test as a suggested category alongside BBT Temperature and Cervical Fluid.
+- Pregnancy setup: when "Due date" is selected the date field is pre-filled with the calculated due date (last period + 280 days) rather than the period date itself. The field remains editable. When "Last period" is selected, pre-fill behaviour is unchanged.
+- Show fertility markers on calendar now defaults to off for new installs.
+
+---
 ## [0.37.0-beta.1] - 2026-06-04
 
 ### Changed

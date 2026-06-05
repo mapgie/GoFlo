@@ -31,7 +31,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         CustomAlarm::class,
         CustomAlarmCategory::class,
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -596,24 +596,20 @@ abstract class GoFloDatabase : RoomDatabase() {
                     )
                 }
 
-            // Ovulation Test — temperature icon, secondary colour token
-            database.execSQL(
-                "INSERT INTO tracking_categories " +
-                "(name, isSystem, systemKey, displayOrder, `iconName`, `colorToken`, `categoryType`, " +
-                "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
-                "isArchived, allowMultiple, showInLogPeriod, trackAgainstTime) " +
-                "VALUES ('Ovulation Test', 1, 'ovulation_test', 2, 'temperature', 'secondary', 'default', " +
-                "0.0, 10.0, 0, '', '', 0, 0, 0, 0)"
-            )
-            val ovTestIdCursor = database.query("SELECT last_insert_rowid()")
-            ovTestIdCursor.moveToFirst()
-            val ovTestId = ovTestIdCursor.getLong(0)
-            ovTestIdCursor.close()
+        }
 
-            listOf("Positive", "Negative", "Faint").forEachIndexed { index, label ->
+        /**
+         * Removes Ovulation Test from the system-category set (v19).
+         * It becomes a regular user category owned by the Fertility mode so it
+         * is no longer seeded on fresh install and can be managed (or skipped)
+         * when the user activates Fertility mode.
+         */
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL(
-                    "INSERT INTO tracking_values (categoryId, label, displayOrder, isSeeded) VALUES (?, ?, ?, 1)",
-                    arrayOf(ovTestId, label, index)
+                    "UPDATE tracking_categories " +
+                    "SET isSystem = 0, modeKey = 'ovulation_test' " +
+                    "WHERE systemKey = 'ovulation_test'"
                 )
             }
         }
@@ -625,7 +621,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

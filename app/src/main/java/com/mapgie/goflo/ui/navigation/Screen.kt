@@ -7,6 +7,7 @@ sealed class Screen(val route: String) {
     data object History : Screen("history")
     data object Dashboard : Screen("dashboard")
     data object Stats : Screen("stats")
+    data object Heatmap : Screen("heatmap")
     data object Settings : Screen("settings")
     data object LogPeriod : Screen("log_period?periodId={periodId}&startDate={startDate}") {
         fun withId(periodId: Long) = "log_period?periodId=$periodId"
