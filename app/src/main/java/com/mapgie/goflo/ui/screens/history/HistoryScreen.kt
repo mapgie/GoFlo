@@ -285,17 +285,10 @@ private fun PeriodCard(period: PeriodEntry, cycleLength: Int? = null, onClick: (
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(
-                    text  = start.format(displayFormat),
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text  = period.flowLevel,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
+            Text(
+                text  = start.format(displayFormat),
+                style = MaterialTheme.typography.titleMedium
+            )
             Text(
                 text  = if (end != null) "Until ${end.format(displayFormat)}  ·  $duration" else "Ongoing",
                 style = MaterialTheme.typography.bodyMedium,
