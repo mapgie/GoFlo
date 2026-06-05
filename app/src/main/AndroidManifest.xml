@@ -11,6 +11,12 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!--
+        Required for GoFlo to appear in Settings > Apps > Special app access > Do Not Disturb.
+        Without this declaration the system never lists the app, so users cannot grant the policy
+        access that lets custom alarms bypass DND.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <application
         android:name=".GoFloApplication"
