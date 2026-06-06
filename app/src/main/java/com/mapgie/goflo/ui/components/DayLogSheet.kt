@@ -22,6 +22,7 @@ import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -135,133 +136,77 @@ fun DayLogSheet(
 
             HorizontalDivider()
 
-            // ── Period section ────────────────────────────────────────────────
+            // Split tracked categories into those logged with the period (the
+            // ones that appear on the Log Period screen) and everything else.
+            val periodLinkedCats = if (period != null) {
+                categoryOrder.filter { catId ->
+                    logsByCategory[catId]?.firstOrNull()?.category?.showInLogPeriod == true
+                }
+            } else {
+                emptyList()
+            }
+            val otherCats = categoryOrder.filter { it !in periodLinkedCats }
+
+            // ── Period box ────────────────────────────────────────────────────
+            // The period and everything logged alongside it share one box, so
+            // they read as a single entry even though they are separate categories.
 
             if (period != null) {
                 val periodColor = MaterialTheme.colorScheme.primary
 
-                LogEntryRow(
-                    icon        = Icons.Outlined.WaterDrop,
-                    iconColor   = periodColor,
-                    iconOnColor = MaterialTheme.colorScheme.onPrimary,
-                    label       = "Period",
-                    onEdit      = { onEditPeriod(period.id) }
-                ) {
-                    if (period.notes.isNotEmpty()) {
-                        Text(
-                            text      = "\"${period.notes}\"",
-                            style     = MaterialTheme.typography.bodySmall,
-                            fontStyle = FontStyle.Italic,
-                            color     = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                HorizontalDivider()
-            }
-
-            // ── Tracking logs (grouped by category) ───────────────────────────
-
-            if (trackingLogs.isNotEmpty()) {
-                Text(
-                    "Tracked",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                categoryOrder.forEach { catId ->
-                    val entries = logsByCategory[catId] ?: return@forEach
-                    val first = entries.first()
-                    val category = first.category
-                    val bubbleColor = category?.colorToken?.toCategoryColor()
-                        ?: MaterialTheme.colorScheme.secondary
-                    val onBubble = category?.colorToken?.toCategoryOnColor()
-                        ?: MaterialTheme.colorScheme.onSecondary
-                    val icon = category?.iconName?.toCategoryIcon()?.vector
-
-                    val hasTimedEntries = showAgainstTime &&
-                        category?.trackAgainstTime == true &&
-                        entries.any { it.log.loggedAt.isNotEmpty() }
-
-                    LogEntryRow(
-                        icon        = icon,
-                        iconColor   = bubbleColor,
-                        iconOnColor = onBubble,
-                        label       = category?.name ?: "Unknown",
-                        onEdit      = { onEditTrackingLog(first.log.categoryId, entries.last().log.id) }
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        if (hasTimedEntries) {
-                            // Show each entry with its timestamp on its own line
-                            entries.forEach { entry ->
-                                val timePrefix = entry.log.loggedAt.ifEmpty { null }
-                                val displayValues = if (category != null) {
-                                    entry.values.map { enrichDisplayValue(it, category) }
-                                } else {
-                                    entry.values
-                                }
-                                val valueText = displayValues.joinToString(", ")
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = if (timePrefix != null && valueText.isNotEmpty()) "$timePrefix $valueText"
-                                               else timePrefix ?: valueText,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    TextButton(
-                                        onClick = { onEditTrackingLog(entry.log.categoryId, entry.log.id) },
-                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
-                                    ) {
-                                        Text(
-                                            text = "edit",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                        )
-                                    }
-                                }
-                            }
-                        } else {
-                            // Collect all values from all entries and display inline
-                            val allDisplayValues = entries.flatMap { entry ->
-                                if (category != null) {
-                                    entry.values.map { enrichDisplayValue(it, category) }
-                                } else {
-                                    entry.values
-                                }
-                            }
-
-                            if (allDisplayValues.isNotEmpty()) {
-                                if (allDisplayValues.size == 1) {
-                                    Text(
-                                        text  = allDisplayValues[0],
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = bubbleColor
-                                    )
-                                } else {
-                                    Text(
-                                        text  = allDisplayValues.joinToString(" · "),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-
-                            // Show notes from the last entry that has them
-                            val notesEntry = entries.lastOrNull { it.log.notes.isNotEmpty() }
-                            if (notesEntry != null) {
+                        LogEntryRow(
+                            icon        = Icons.Outlined.WaterDrop,
+                            iconColor   = periodColor,
+                            iconOnColor = MaterialTheme.colorScheme.onPrimary,
+                            label       = "Period",
+                            onEdit      = { onEditPeriod(period.id) }
+                        ) {
+                            if (period.notes.isNotEmpty()) {
                                 Text(
-                                    text      = "\"${notesEntry.log.notes}\"",
+                                    text      = "\"${period.notes}\"",
                                     style     = MaterialTheme.typography.bodySmall,
                                     fontStyle = FontStyle.Italic,
                                     color     = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
+
+                        periodLinkedCats.forEach { catId ->
+                            val entries = logsByCategory[catId] ?: return@forEach
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+                            CategoryLogEntry(
+                                entries           = entries,
+                                showAgainstTime   = showAgainstTime,
+                                onEditTrackingLog = onEditTrackingLog
+                            )
+                        }
                     }
+                }
+            }
+
+            // ── Other tracked categories ──────────────────────────────────────
+
+            if (otherCats.isNotEmpty()) {
+                Text(
+                    "Tracked",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                otherCats.forEach { catId ->
+                    val entries = logsByCategory[catId] ?: return@forEach
+                    CategoryLogEntry(
+                        entries           = entries,
+                        showAgainstTime   = showAgainstTime,
+                        onEditTrackingLog = onEditTrackingLog
+                    )
                 }
 
                 HorizontalDivider()
@@ -277,6 +222,109 @@ fun DayLogSheet(
             }
 
             Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+/**
+ * Renders a single tracked category's logs for the day (one row, possibly with
+ * multiple timestamped entries). Shared by the period box and the "Tracked" list.
+ */
+@Composable
+private fun CategoryLogEntry(
+    entries: List<TrackingLogWithValues>,
+    showAgainstTime: Boolean,
+    onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
+) {
+    val first = entries.first()
+    val category = first.category
+    val bubbleColor = category?.colorToken?.toCategoryColor()
+        ?: MaterialTheme.colorScheme.secondary
+    val onBubble = category?.colorToken?.toCategoryOnColor()
+        ?: MaterialTheme.colorScheme.onSecondary
+    val icon = category?.iconName?.toCategoryIcon()?.vector
+
+    val hasTimedEntries = showAgainstTime &&
+        category?.trackAgainstTime == true &&
+        entries.any { it.log.loggedAt.isNotEmpty() }
+
+    LogEntryRow(
+        icon        = icon,
+        iconColor   = bubbleColor,
+        iconOnColor = onBubble,
+        label       = category?.name ?: "Unknown",
+        onEdit      = { onEditTrackingLog(first.log.categoryId, entries.last().log.id) }
+    ) {
+        if (hasTimedEntries) {
+            // Show each entry with its timestamp on its own line
+            entries.forEach { entry ->
+                val timePrefix = entry.log.loggedAt.ifEmpty { null }
+                val displayValues = if (category != null) {
+                    entry.values.map { enrichDisplayValue(it, category) }
+                } else {
+                    entry.values
+                }
+                val valueText = displayValues.joinToString(", ")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (timePrefix != null && valueText.isNotEmpty()) "$timePrefix $valueText"
+                               else timePrefix ?: valueText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(
+                        onClick = { onEditTrackingLog(entry.log.categoryId, entry.log.id) },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text(
+                            text = "edit",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+        } else {
+            // Collect all values from all entries and display inline
+            val allDisplayValues = entries.flatMap { entry ->
+                if (category != null) {
+                    entry.values.map { enrichDisplayValue(it, category) }
+                } else {
+                    entry.values
+                }
+            }
+
+            if (allDisplayValues.isNotEmpty()) {
+                if (allDisplayValues.size == 1) {
+                    Text(
+                        text  = allDisplayValues[0],
+                        style = MaterialTheme.typography.titleMedium,
+                        color = bubbleColor
+                    )
+                } else {
+                    Text(
+                        text  = allDisplayValues.joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            // Show notes from the last entry that has them
+            val notesEntry = entries.lastOrNull { it.log.notes.isNotEmpty() }
+            if (notesEntry != null) {
+                Text(
+                    text      = "\"${notesEntry.log.notes}\"",
+                    style     = MaterialTheme.typography.bodySmall,
+                    fontStyle = FontStyle.Italic,
+                    color     = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
