@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,8 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.outlined.BookmarkAdd
 import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.filled.BubbleChart
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DonutLarge
@@ -623,42 +626,41 @@ private fun ChartTypeSelector(
 ) {
     data class ChartOption(val type: ChartType, val icon: ImageVector, val label: String)
 
-    val eitherNumeric = cat1.isNumeric || cat2?.isNumeric == true
-
     val options = buildList {
         when {
             cat1.isNumeric && cat2?.isNumeric == true -> {
                 add(ChartOption(ChartType.SCATTER, Icons.Default.BubbleChart, "Scatter"))
                 add(ChartOption(ChartType.NUMERIC_AVERAGE, Icons.Default.BarChart, "Average"))
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart, "Compare"))
+                if (cat1.trackAgainstTime && cat2.trackAgainstTime)
+                    add(ChartOption(ChartType.TIME_CORRELATION, Icons.Default.ScatterPlot, "Timing"))
             }
 
             cat1.isNumeric && cat2 == null -> {
-                add(ChartOption(ChartType.TIME_SCATTER, Icons.Default.ScatterPlot, "Time"))
+                add(ChartOption(ChartType.TIME_SCATTER, Icons.Default.ScatterPlot, "Over Time"))
                 add(ChartOption(ChartType.NUMERIC_AVERAGE, Icons.Default.BarChart, "Average"))
-                add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
-                add(
-                    ChartOption(
-                        ChartType.NUMERIC_DISTRIBUTION,
-                        Icons.Default.DonutLarge,
-                        "Distribution"
-                    )
-                )
+                add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Timeline"))
+                add(ChartOption(ChartType.NUMERIC_DISTRIBUTION, Icons.Default.DonutLarge, "Spread"))
+                add(ChartOption(ChartType.WEEKDAY, Icons.Default.DateRange, "By Day"))
+                if (cat1.trackAgainstTime)
+                    add(ChartOption(ChartType.TIME_OF_DAY, Icons.Default.Schedule, "By Hour"))
             }
 
-            eitherNumeric -> {
-                // One numeric, one non-numeric: only Compare makes sense for two cats
+            cat1.isNumeric || cat2?.isNumeric == true -> {
                 if (cat2 != null)
                     add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart, "Compare"))
                 else
                     add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
+                if (cat1.trackAgainstTime && cat2?.trackAgainstTime == true)
+                    add(ChartOption(ChartType.TIME_CORRELATION, Icons.Default.ScatterPlot, "Timing"))
             }
 
             cat2 != null -> {
-                // Two non-numeric categories: Trends and Over Time hidden
                 add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Breakdown"))
                 add(ChartOption(ChartType.COMBO, Icons.Default.TableChart, "Combos"))
                 add(ChartOption(ChartType.DUAL_TIME_SERIES, Icons.Default.BarChart, "Compare"))
+                if (cat1.trackAgainstTime && cat2.trackAgainstTime)
+                    add(ChartOption(ChartType.TIME_CORRELATION, Icons.Default.ScatterPlot, "Timing"))
             }
 
             else -> {
@@ -666,6 +668,9 @@ private fun ChartTypeSelector(
                 add(ChartOption(ChartType.PIE, Icons.Default.DonutLarge, "Breakdown"))
                 add(ChartOption(ChartType.TIME_SERIES, Icons.Default.BarChart, "Over Time"))
                 add(ChartOption(ChartType.PHASE_SUMMARY, Icons.Default.TableChart, "By Phase"))
+                add(ChartOption(ChartType.WEEKDAY, Icons.Default.DateRange, "By Day"))
+                if (cat1.trackAgainstTime)
+                    add(ChartOption(ChartType.TIME_OF_DAY, Icons.Default.Schedule, "By Hour"))
             }
         }
     }
@@ -677,15 +682,17 @@ private fun ChartTypeSelector(
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                options.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = selectedType == option.type,
-                        onClick = { onSelect(option.type) },
-                        shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                        icon = { SegmentedButtonDefaults.Icon(active = selectedType == option.type) }
-                    ) {
-                        Text(option.label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                SingleChoiceSegmentedButtonRow {
+                    options.forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = selectedType == option.type,
+                            onClick = { onSelect(option.type) },
+                            shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                            icon = { SegmentedButtonDefaults.Icon(active = selectedType == option.type) }
+                        ) {
+                            Text(option.label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                        }
                     }
                 }
             }
@@ -1024,6 +1031,48 @@ private fun ChartArea(
 
                     is StatsChartData.PhaseSummaryData -> {
                         PhaseSummaryChart(data = chartData)
+                    }
+
+                    is StatsChartData.WeekdayData -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = if (chartData.isNumeric) "Average ${chartData.categoryName} by weekday"
+                                       else "${chartData.categoryName} by weekday",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                            WeekdayChart(data = chartData)
+                        }
+                    }
+
+                    is StatsChartData.TimeOfDayData -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = if (chartData.isNumeric) "Average ${chartData.categoryName} by time of day"
+                                       else "${chartData.categoryName}: time of day",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                            TimeOfDayChart(data = chartData)
+                        }
+                    }
+
+                    is StatsChartData.TimeCorrelationData -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            TimeCorrelationChart(data = chartData)
+                        }
                     }
                 }
             }

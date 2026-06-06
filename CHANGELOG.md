@@ -18,6 +18,14 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.46.0-beta.1] - 2026-06-06
+
+### Added
+- Stats: "By Day" chart shows how often (or average severity) a tracked category falls on each day of the week, answering questions like "do I get headaches more on Fridays?"
+- Stats: "By Hour" chart shows the time-of-day distribution in 2-hour slots for any category with time tracking enabled, answering "what time of day do my headaches happen?"
+- Stats: "Timing" chart overlays two time-tracked categories on a date-versus-hour scatter plot, making lead/lag relationships visible, for example seeing that a hormone log at 8am consistently precedes a headache log at 6pm.
+
+---
 ## [0.45.1-beta.1] - 2026-06-06
 
 ### Fixed

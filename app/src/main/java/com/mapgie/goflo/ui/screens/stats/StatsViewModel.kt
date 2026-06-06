@@ -15,7 +15,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -49,6 +51,12 @@ enum class ChartType {
     TRENDS,
     /** Per-phase breakdown of logged values across the cycle. */
     PHASE_SUMMARY,
+    /** Frequency or average by day of week (Mon-Sun). Only valid when cat2 == null. */
+    WEEKDAY,
+    /** Time-of-day distribution (2-hour buckets). Only valid when cat1.trackAgainstTime && cat2 == null. */
+    TIME_OF_DAY,
+    /** Two time-tracked categories overlaid on a date x hour scatter. Only valid when both categories have trackAgainstTime. */
+    TIME_CORRELATION,
 }
 
 // ── Chart data models ─────────────────────────────────────────────────────────
@@ -75,6 +83,10 @@ data class ScatterPoint(val x: Float, val y: Float)
 data class TimeScatterPoint(val dayOffset: Int, val dateLabel: String, val value: Float)
 
 data class TrendsBar(val label: String, val count: Int, val percentage: Int)
+
+data class WeekdayBar(val dayLabel: String, val count: Int, val avgValue: Float?)
+data class TimeOfDayBar(val hourLabel: String, val count: Int, val avgValue: Float?)
+data class TimeLogPoint(val dayOffset: Int, val hourFraction: Float, val dateLabel: String)
 
 data class PinnedStat(
     val id: String,
@@ -142,6 +154,25 @@ sealed class StatsChartData {
     data class PhaseSummaryData(
         val rows: List<PhaseSummaryRow>,
         val categoryName: String,
+    ) : StatsChartData()
+    data class WeekdayData(
+        val bars: List<WeekdayBar>,
+        val categoryName: String,
+        val isNumeric: Boolean,
+    ) : StatsChartData()
+    data class TimeOfDayData(
+        val bars: List<TimeOfDayBar>,
+        val categoryName: String,
+        val isNumeric: Boolean,
+    ) : StatsChartData()
+    data class TimeCorrelationData(
+        val points1: List<TimeLogPoint>,
+        val points2: List<TimeLogPoint>,
+        val cat1Name: String,
+        val cat2Name: String,
+        val colorToken1: String,
+        val colorToken2: String,
+        val totalDays: Int,
     ) : StatsChartData()
 }
 
@@ -357,7 +388,9 @@ class StatsViewModel(
         currentType: ChartType
     ): ChartType {
         val hiddenForTwoCats = cat2 != null &&
-            (currentType == ChartType.TRENDS || currentType == ChartType.TIME_SERIES)
+            (currentType == ChartType.TRENDS || currentType == ChartType.TIME_SERIES ||
+             currentType == ChartType.WEEKDAY || currentType == ChartType.TIME_OF_DAY ||
+             currentType == ChartType.PHASE_SUMMARY)
             
         if (!hiddenForTwoCats && isValidChartType(currentType, cat1, cat2)) return currentType
         
@@ -514,6 +547,9 @@ class StatsViewModel(
             ChartType.TRENDS -> !cat1.isNumeric
             ChartType.PHASE_SUMMARY -> !cat1.isNumeric && cat2 == null
             ChartType.PIE, ChartType.TIME_SERIES -> true
+            ChartType.WEEKDAY -> cat2 == null
+            ChartType.TIME_OF_DAY -> cat1.trackAgainstTime && cat2 == null
+            ChartType.TIME_CORRELATION -> cat1.trackAgainstTime && cat2?.trackAgainstTime == true
         }
     }
 
@@ -739,6 +775,107 @@ class StatsViewModel(
 
                         if (rows.isEmpty()) StatsChartData.Empty
                         else StatsChartData.PhaseSummaryData(rows, cat1.name)
+                    }
+                }
+
+                ChartType.WEEKDAY -> {
+                    val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
+                    if (logs.isEmpty()) {
+                        StatsChartData.Empty
+                    } else {
+                        val dayOrder = listOf(
+                            DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY
+                        )
+                        val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                        val bars = if (cat1.isNumeric) {
+                            val byDay = mutableMapOf<DayOfWeek, MutableList<Float>>()
+                            for (log in logs) {
+                                val dow = LocalDate.parse(log.date).dayOfWeek
+                                val value = repository.getValuesForLog(log.id).firstOrNull()?.toFloatOrNull() ?: continue
+                                byDay.getOrPut(dow) { mutableListOf() }.add(value)
+                            }
+                            dayOrder.zip(dayLabels).map { (dow, label) ->
+                                val values = byDay[dow] ?: emptyList()
+                                WeekdayBar(label, values.size, if (values.isEmpty()) null else values.average().toFloat())
+                            }
+                        } else {
+                            val byDay = logs.groupBy { LocalDate.parse(it.date).dayOfWeek }
+                            dayOrder.zip(dayLabels).map { (dow, label) ->
+                                WeekdayBar(label, byDay[dow]?.size ?: 0, null)
+                            }
+                        }
+                        if (bars.all { it.count == 0 }) StatsChartData.Empty
+                        else StatsChartData.WeekdayData(bars, cat1.name, cat1.isNumeric)
+                    }
+                }
+
+                ChartType.TIME_OF_DAY -> {
+                    val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+                    val logs = repository.getLogsForCategoryInRange(cat1.id, start, end)
+                        .filter { it.loggedAt.isNotEmpty() }
+                    if (logs.isEmpty()) {
+                        StatsChartData.Empty
+                    } else {
+                        val bars = if (cat1.isNumeric) {
+                            val byBucket = mutableMapOf<Int, MutableList<Float>>()
+                            for (log in logs) {
+                                val bucket = runCatching { LocalTime.parse(log.loggedAt, timeFmt).hour / 2 }.getOrNull() ?: continue
+                                val value = repository.getValuesForLog(log.id).firstOrNull()?.toFloatOrNull() ?: continue
+                                byBucket.getOrPut(bucket) { mutableListOf() }.add(value)
+                            }
+                            (0 until 12).map { b ->
+                                val values = byBucket[b] ?: emptyList()
+                                TimeOfDayBar(hourBucketLabel(b), values.size, if (values.isEmpty()) null else values.average().toFloat())
+                            }
+                        } else {
+                            val counts = IntArray(12)
+                            for (log in logs) {
+                                val bucket = runCatching { LocalTime.parse(log.loggedAt, timeFmt).hour / 2 }.getOrNull() ?: continue
+                                counts[bucket]++
+                            }
+                            (0 until 12).map { b -> TimeOfDayBar(hourBucketLabel(b), counts[b], null) }
+                        }
+                        if (bars.all { it.count == 0 }) StatsChartData.Empty
+                        else StatsChartData.TimeOfDayData(bars, cat1.name, cat1.isNumeric)
+                    }
+                }
+
+                ChartType.TIME_CORRELATION -> {
+                    if (cat2 == null) {
+                        StatsChartData.Empty
+                    } else {
+                        val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+                        val dateFmt = DateTimeFormatter.ofPattern("d MMM")
+                        fun logsToPoints(logs: List<TrackingLog>): List<TimeLogPoint> =
+                            logs.filter { it.loggedAt.isNotEmpty() }.mapNotNull { log ->
+                                val hour = runCatching {
+                                    val t = LocalTime.parse(log.loggedAt, timeFmt)
+                                    t.hour + t.minute / 60f
+                                }.getOrNull() ?: return@mapNotNull null
+                                val date = LocalDate.parse(log.date)
+                                TimeLogPoint(
+                                    dayOffset    = ChronoUnit.DAYS.between(start, date).toInt(),
+                                    hourFraction = hour,
+                                    dateLabel    = date.format(dateFmt),
+                                )
+                            }
+                        val points1 = logsToPoints(repository.getLogsForCategoryInRange(cat1.id, start, end))
+                        val points2 = logsToPoints(repository.getLogsForCategoryInRange(cat2.id, start, end))
+                        if (points1.isEmpty() && points2.isEmpty()) {
+                            StatsChartData.Empty
+                        } else {
+                            val totalDays = ChronoUnit.DAYS.between(start, end).toInt().coerceAtLeast(1)
+                            StatsChartData.TimeCorrelationData(
+                                points1     = points1,
+                                points2     = points2,
+                                cat1Name    = cat1.name,
+                                cat2Name    = cat2.name,
+                                colorToken1 = cat1.colorToken,
+                                colorToken2 = cat2.colorToken,
+                                totalDays   = totalDays,
+                            )
+                        }
                     }
                 }
             }
@@ -1057,6 +1194,16 @@ class StatsViewModel(
                 count1 = logs1ByMonth[ym]?.size ?: 0,
                 count2 = logs2ByMonth[ym]?.size ?: 0
             )
+        }
+    }
+
+    private fun hourBucketLabel(bucket: Int): String {
+        val h = bucket * 2
+        return when {
+            h == 0  -> "12am"
+            h == 12 -> "12pm"
+            h < 12  -> "${h}am"
+            else    -> "${h - 12}pm"
         }
     }
 
