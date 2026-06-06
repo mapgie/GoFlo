@@ -10,14 +10,25 @@ import androidx.core.view.WindowCompat
 
 @Composable
 fun GoFloTheme(
-    appTheme:    AppTheme = AppTheme.CORAL,
-    wcag:        Boolean  = false,
-    customHues:  Triple<Float, Float, Float>? = null,
+    appTheme:           AppTheme = AppTheme.CORAL,
+    wcag:               Boolean  = false,
+    customHues:         Triple<Float, Float, Float>? = null,
+    customArgbs:        Triple<Int, Int, Int>? = null,
+    customPickedForDark: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
     val colorScheme = if (appTheme == AppTheme.CUSTOM && customHues != null) {
-        buildCustomColorScheme(customHues.first, customHues.second, customHues.third, isDark = false)
+        buildCustomColorScheme(
+            primaryHue    = customHues.first,
+            secondaryHue  = customHues.second,
+            tertiaryHue   = customHues.third,
+            primaryArgb   = customArgbs?.first  ?: 0,
+            secondaryArgb = customArgbs?.second ?: 0,
+            tertiaryArgb  = customArgbs?.third  ?: 0,
+            isDark        = systemDark,
+            pickedForDark = customPickedForDark,
+        )
     } else {
         colorSchemeFor(appTheme, systemDark, wcag)
     }

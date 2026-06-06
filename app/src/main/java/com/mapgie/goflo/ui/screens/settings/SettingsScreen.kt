@@ -120,6 +120,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -1122,22 +1123,26 @@ private fun AppearanceSubScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             CompactThemePicker(
-                current               = currentTheme,
-                wcagChecked           = prefs.wcagMode,
-                customPrimaryHue      = prefs.customPrimaryHue,
-                customSecondaryHue    = prefs.customSecondaryHue,
-                customTertiaryHue     = prefs.customTertiaryHue,
-                customPrimaryArgb     = prefs.customPrimaryArgb,
-                customSecondaryArgb   = prefs.customSecondaryArgb,
-                customTertiaryArgb    = prefs.customTertiaryArgb,
-                onSelect              = { viewModel.setTheme(it.name) },
-                onWcagToggle          = { viewModel.setWcagMode(it) },
-                onCustomPrimaryHue    = { viewModel.setCustomPrimaryHue(it) },
-                onCustomSecondaryHue  = { viewModel.setCustomSecondaryHue(it) },
-                onCustomTertiaryHue   = { viewModel.setCustomTertiaryHue(it) },
-                onCustomPrimaryArgb   = { viewModel.setCustomPrimaryArgb(it) },
-                onCustomSecondaryArgb = { viewModel.setCustomSecondaryArgb(it) },
-                onCustomTertiaryArgb  = { viewModel.setCustomTertiaryArgb(it) },
+                current                  = currentTheme,
+                wcagChecked              = prefs.wcagMode,
+                customPrimaryHue         = prefs.customPrimaryHue,
+                customSecondaryHue       = prefs.customSecondaryHue,
+                customTertiaryHue        = prefs.customTertiaryHue,
+                customPrimaryArgb        = prefs.customPrimaryArgb,
+                customSecondaryArgb      = prefs.customSecondaryArgb,
+                customTertiaryArgb       = prefs.customTertiaryArgb,
+                customThemeName          = prefs.customThemeName,
+                customPickedForDark      = prefs.customThemePickedForDark,
+                onSelect                 = { viewModel.setTheme(it.name) },
+                onWcagToggle             = { viewModel.setWcagMode(it) },
+                onCustomPrimaryHue       = { viewModel.setCustomPrimaryHue(it) },
+                onCustomSecondaryHue     = { viewModel.setCustomSecondaryHue(it) },
+                onCustomTertiaryHue      = { viewModel.setCustomTertiaryHue(it) },
+                onCustomPrimaryArgb      = { viewModel.setCustomPrimaryArgb(it) },
+                onCustomSecondaryArgb    = { viewModel.setCustomSecondaryArgb(it) },
+                onCustomTertiaryArgb     = { viewModel.setCustomTertiaryArgb(it) },
+                onCustomThemeName        = { viewModel.setCustomThemeName(it) },
+                onCustomPickedForDark    = { viewModel.setCustomThemePickedForDark(it) },
             )
 
             HorizontalDivider()
@@ -1825,22 +1830,26 @@ private fun SupportCard(
 
 @Composable
 private fun CompactThemePicker(
-    current:               AppTheme,
-    wcagChecked:           Boolean,
-    customPrimaryHue:      Float,
-    customSecondaryHue:    Float,
-    customTertiaryHue:     Float,
-    customPrimaryArgb:     Int,
-    customSecondaryArgb:   Int,
-    customTertiaryArgb:    Int,
-    onSelect:              (AppTheme) -> Unit,
-    onWcagToggle:          (Boolean) -> Unit,
-    onCustomPrimaryHue:    (Float) -> Unit,
-    onCustomSecondaryHue:  (Float) -> Unit,
-    onCustomTertiaryHue:   (Float) -> Unit,
-    onCustomPrimaryArgb:   (Int) -> Unit,
-    onCustomSecondaryArgb: (Int) -> Unit,
-    onCustomTertiaryArgb:  (Int) -> Unit,
+    current:                 AppTheme,
+    wcagChecked:             Boolean,
+    customPrimaryHue:        Float,
+    customSecondaryHue:      Float,
+    customTertiaryHue:       Float,
+    customPrimaryArgb:       Int,
+    customSecondaryArgb:     Int,
+    customTertiaryArgb:      Int,
+    customThemeName:         String,
+    customPickedForDark:     Boolean,
+    onSelect:                (AppTheme) -> Unit,
+    onWcagToggle:            (Boolean) -> Unit,
+    onCustomPrimaryHue:      (Float) -> Unit,
+    onCustomSecondaryHue:    (Float) -> Unit,
+    onCustomTertiaryHue:     (Float) -> Unit,
+    onCustomPrimaryArgb:     (Int) -> Unit,
+    onCustomSecondaryArgb:   (Int) -> Unit,
+    onCustomTertiaryArgb:    (Int) -> Unit,
+    onCustomThemeName:       (String) -> Unit,
+    onCustomPickedForDark:   (Boolean) -> Unit,
 ) {
     val currentMode    = current.themeMode
     val currentPalette = current.standardPalette
@@ -1999,33 +2008,148 @@ private fun CompactThemePicker(
 
         // ── Custom colour pickers ─────────────────────────────────────────────
         if (isCustom) {
+            // Resets to expanded whenever the user (re-)selects the custom slot.
+            var customColorsExpanded by rememberSaveable(isCustom) { mutableStateOf(true) }
+
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Custom colours",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                CustomColorRow(
-                    label        = "Primary",
-                    hue          = customPrimaryHue,
-                    argb         = customPrimaryArgb,
-                    onHueChange  = onCustomPrimaryHue,
-                    onArgbChange = onCustomPrimaryArgb,
-                )
-                CustomColorRow(
-                    label        = "Secondary",
-                    hue          = customSecondaryHue,
-                    argb         = customSecondaryArgb,
-                    onHueChange  = onCustomSecondaryHue,
-                    onArgbChange = onCustomSecondaryArgb,
-                )
-                CustomColorRow(
-                    label        = "Tertiary",
-                    hue          = customTertiaryHue,
-                    argb         = customTertiaryArgb,
-                    onHueChange  = onCustomTertiaryHue,
-                    onArgbChange = onCustomTertiaryArgb,
-                )
+                // Header: title + collapsed preview + edit button
+                Row(
+                    modifier          = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text  = if (customThemeName.isNotBlank()) customThemeName else "Custom colours",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (!customColorsExpanded) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment     = Alignment.CenterVertically,
+                        ) {
+                            listOf(
+                                customPrimaryArgb   to customPrimaryHue,
+                                customSecondaryArgb to customSecondaryHue,
+                                customTertiaryArgb  to customTertiaryHue,
+                            ).forEach { (argb, hue) ->
+                                val previewColor = if (argb != 0) Color(argb)
+                                                  else Color.hsl(hue, if (customPickedForDark) 0.75f else 0.60f,
+                                                                      if (customPickedForDark) 0.75f else 0.35f)
+                                Box(
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clip(CircleShape)
+                                        .background(previewColor)
+                                        .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), CircleShape)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        IconButton(
+                            onClick  = { customColorsExpanded = true },
+                            modifier = Modifier.size(36.dp),
+                        ) {
+                            Icon(
+                                imageVector        = Icons.Outlined.Palette,
+                                contentDescription = "Edit custom colours",
+                                tint               = MaterialTheme.colorScheme.primary,
+                                modifier           = Modifier.size(18.dp),
+                            )
+                        }
+                    }
+                }
+
+                if (customColorsExpanded) {
+                    // Optional theme name
+                    OutlinedTextField(
+                        value         = customThemeName,
+                        onValueChange = onCustomThemeName,
+                        label         = { Text("Theme name (optional)") },
+                        singleLine    = true,
+                        modifier      = Modifier.fillMaxWidth(),
+                    )
+
+                    // Light / dark mode declaration
+                    Text(
+                        text  = "I'm defining colours for:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+                    ) {
+                        listOf(false to "Light mode", true to "Dark mode").forEachIndexed { index, (dark, label) ->
+                            val selected = customPickedForDark == dark
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                    .semantics { role = Role.RadioButton; this.selected = selected }
+                                    .clickable { onCustomPickedForDark(dark) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text  = label,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (selected) MaterialTheme.colorScheme.onPrimary
+                                            else MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            if (index == 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .fillMaxHeight()
+                                        .background(MaterialTheme.colorScheme.outline)
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text  = "The other mode's colours are derived from your hue automatically.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    CustomColorRow(
+                        label        = "Primary",
+                        hue          = customPrimaryHue,
+                        argb         = customPrimaryArgb,
+                        onHueChange  = onCustomPrimaryHue,
+                        onArgbChange = onCustomPrimaryArgb,
+                    )
+                    CustomColorRow(
+                        label        = "Secondary",
+                        hue          = customSecondaryHue,
+                        argb         = customSecondaryArgb,
+                        onHueChange  = onCustomSecondaryHue,
+                        onArgbChange = onCustomSecondaryArgb,
+                    )
+                    CustomColorRow(
+                        label        = "Tertiary",
+                        hue          = customTertiaryHue,
+                        argb         = customTertiaryArgb,
+                        onHueChange  = onCustomTertiaryHue,
+                        onArgbChange = onCustomTertiaryArgb,
+                    )
+
+                    // Done collapses the pickers
+                    Row(
+                        modifier              = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                    ) {
+                        FilledTonalButton(onClick = { customColorsExpanded = false }) {
+                            Text("Done")
+                        }
+                    }
+                }
             }
         }
     }

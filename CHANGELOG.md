@@ -18,6 +18,18 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.44.0-beta.1] - 2026-06-06
+
+### Fixed
+- Custom theme colours now display accurately throughout the app. Previously the picked ARGB was discarded and only the hue was used with fixed saturation/lightness formulas, making a bright orange like #FF940A appear as a muddy brown. The actual picked colour is now used directly for the primary/secondary/tertiary roles in the configured mode; on-colours are computed from luminance to maintain WCAG contrast.
+- Custom theme now correctly follows the system dark/light preference instead of always rendering in light mode.
+
+### Added
+- Custom colour pickers are now collapsible. A "Done" button collapses the three pickers to a compact row showing the name and colour swatches; the palette icon re-expands them.
+- Custom themes can now be named via a text field that appears above the colour rows.
+- Light/Dark mode declaration for custom colours: a segmented toggle lets you specify which mode your picked colours are designed for. The complementary mode's colours are derived from the hue automatically.
+
+---
 ## [0.43.0-beta.1] - 2026-06-06
 
 ### Changed

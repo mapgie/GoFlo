@@ -142,8 +142,17 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                     hueOf(appPrefs.customTertiaryArgb,  appPrefs.customTertiaryHue),
                 )
             } else null
+            val customArgbs = if (currentTheme == AppTheme.CUSTOM) {
+                Triple(appPrefs.customPrimaryArgb, appPrefs.customSecondaryArgb, appPrefs.customTertiaryArgb)
+            } else null
 
-            GoFloTheme(appTheme = currentTheme, wcag = appPrefs.wcagMode, customHues = customHues) {
+            GoFloTheme(
+                appTheme            = currentTheme,
+                wcag                = appPrefs.wcagMode,
+                customHues          = customHues,
+                customArgbs         = customArgbs,
+                customPickedForDark = appPrefs.customThemePickedForDark,
+            ) {
                 when (appState) {
                     AppState.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()

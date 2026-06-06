@@ -112,6 +112,10 @@ data class AppPreferences(
     val customSecondaryArgb: Int = 0,
     /** Full ARGB colour picked for the tertiary slot in the custom theme (0 = derive from hue). */
     val customTertiaryArgb: Int = 0,
+    /** Display name the user gave to their custom theme (empty = unnamed). */
+    val customThemeName: String = "",
+    /** True when the picked colours are intended for dark mode; false = light mode (default). */
+    val customThemePickedForDark: Boolean = false,
     /** Comma-separated list of active tracking mode IDs (e.g. "FERTILITY,PREGNANCY"). */
     val activeModes: String = "",
     /** ISO-8601 date string for the pregnancy anchor date. Interpretation depends on [pregnancyStartType]. */
@@ -164,6 +168,8 @@ class AppPreferencesStore(private val context: Context) {
         val CUSTOM_PRIMARY_ARGB   = intPreferencesKey("custom_primary_argb")
         val CUSTOM_SECONDARY_ARGB = intPreferencesKey("custom_secondary_argb")
         val CUSTOM_TERTIARY_ARGB  = intPreferencesKey("custom_tertiary_argb")
+        val CUSTOM_THEME_NAME           = stringPreferencesKey("custom_theme_name")
+        val CUSTOM_THEME_PICKED_FOR_DARK = booleanPreferencesKey("custom_theme_picked_for_dark")
         val ACTIVE_MODES              = stringPreferencesKey("active_modes")
         val PREGNANCY_DATE_STR        = stringPreferencesKey("pregnancy_date_str")
         val PREGNANCY_START_TYPE      = stringPreferencesKey("pregnancy_start_type")
@@ -203,6 +209,8 @@ class AppPreferencesStore(private val context: Context) {
             customPrimaryArgb      = prefs[Keys.CUSTOM_PRIMARY_ARGB]         ?: 0,
             customSecondaryArgb    = prefs[Keys.CUSTOM_SECONDARY_ARGB]       ?: 0,
             customTertiaryArgb     = prefs[Keys.CUSTOM_TERTIARY_ARGB]        ?: 0,
+            customThemeName        = prefs[Keys.CUSTOM_THEME_NAME]           ?: "",
+            customThemePickedForDark = prefs[Keys.CUSTOM_THEME_PICKED_FOR_DARK] ?: false,
             activeModes            = prefs[Keys.ACTIVE_MODES]                ?: "",
             pregnancyDateStr       = prefs[Keys.PREGNANCY_DATE_STR]          ?: "",
             pregnancyStartType     = prefs[Keys.PREGNANCY_START_TYPE]        ?: "EDD",
@@ -388,6 +396,14 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setCustomTertiaryArgb(argb: Int) {
         context.dataStore.edit { it[Keys.CUSTOM_TERTIARY_ARGB] = argb }
+    }
+
+    suspend fun setCustomThemeName(name: String) {
+        context.dataStore.edit { it[Keys.CUSTOM_THEME_NAME] = name }
+    }
+
+    suspend fun setCustomThemePickedForDark(dark: Boolean) {
+        context.dataStore.edit { it[Keys.CUSTOM_THEME_PICKED_FOR_DARK] = dark }
     }
 
     suspend fun setActiveModes(modes: String) {
