@@ -47,6 +47,7 @@ class GoFloApplication : Application() {
             }
         })
         appScope.launch { runFlowBackfillIfNeeded() }
+        appScope.launch { runSymptomsBackfillIfNeeded() }
     }
 
     /**
@@ -82,5 +83,36 @@ class GoFloApplication : Application() {
         }
 
         preferencesStore.setFlowBackfillDone(true)
+    }
+
+    /**
+     * One-time migration: copies period symptoms from the PeriodSymptom table into
+     * the TrackingLog system (symptoms category, period start date) so the day sheet
+     * shows them under Tracked rather than as an inherent period property.
+     */
+    private suspend fun runSymptomsBackfillIfNeeded() {
+        val prefs = preferencesStore.preferences.first()
+        if (prefs.symptomsBackfillDone) return
+
+        val symptomsCategory = trackingRepository.getSystemCategoryByKey("symptoms") ?: run {
+            preferencesStore.setSymptomsBackfillDone(true)
+            return
+        }
+
+        val periods = repository.getAllPeriodsOnce()
+        for (period in periods) {
+            val start = runCatching { LocalDate.parse(period.startDate) }.getOrNull() ?: continue
+            val symptoms = repository.getSymptomsParsed(period.id)
+            if (symptoms.isEmpty()) continue
+            trackingRepository.saveLog(
+                date           = start,
+                categoryId     = symptomsCategory.id,
+                selectedValues = symptoms,
+                notes          = "",
+                allowMultiple  = false,
+            )
+        }
+
+        preferencesStore.setSymptomsBackfillDone(true)
     }
 }

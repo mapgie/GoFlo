@@ -72,7 +72,6 @@ class LogPeriodViewModel(
         if (periodId > 0) {
             viewModelScope.launch {
                 val period = repository.getPeriodById(periodId).first()
-                val symptoms = repository.getSymptomsParsed(periodId)
                 if (period != null) {
                     _uiState.update {
                         it.copy(
@@ -81,8 +80,6 @@ class LogPeriodViewModel(
                             existingId = period.id,
                             startDate = LocalDate.parse(period.startDate),
                             endDate = period.endDate?.let { d -> LocalDate.parse(d) },
-                            selectedFlowLabel = period.flowLevel.ifBlank { "Medium" },
-                            symptoms = symptoms,
                             notes = period.notes
                         )
                     }
@@ -106,9 +103,35 @@ class LogPeriodViewModel(
         val flowCat = tr.getSystemCategoryByKey("flow")
         val symptomsCat = tr.getSystemCategoryByKey("symptoms")
 
+        // When editing, load current flow and symptoms from TrackingLog for the start date.
+        val currentState = _uiState.value
+        var editFlowLabel: String? = null
+        var editFlowSlider: Float? = null
+        var editSymptoms: Set<String>? = null
+        if (currentState.isEditing) {
+            val startDate = currentState.startDate
+            if (flowCat != null) {
+                val raw = tr.getExistingLog(startDate, flowCat.id)?.values?.firstOrNull()
+                if (raw != null) {
+                    if (flowCat.categoryType == "numeric_slider") {
+                        editFlowSlider = raw.toFloatOrNull()
+                        editFlowLabel = when (editFlowSlider?.toInt()) {
+                            1 -> "Spotting"; 2 -> "Light"; 4 -> "Heavy"; else -> "Medium"
+                        }
+                    } else {
+                        editFlowLabel = raw
+                    }
+                }
+            }
+            if (symptomsCat != null) {
+                editSymptoms = tr.getExistingLog(startDate, symptomsCat.id)?.values?.toSet() ?: emptySet()
+            }
+        }
+
         _uiState.update { state ->
-            val sliderValue = if (flowCat?.categoryType == "numeric_slider" && state.flowSliderValue == null) {
-                flowLabelToSliderValue(state.selectedFlowLabel)
+            val selectedFlow = editFlowLabel ?: state.selectedFlowLabel
+            val sliderValue = editFlowSlider ?: if (flowCat?.categoryType == "numeric_slider" && state.flowSliderValue == null) {
+                flowLabelToSliderValue(selectedFlow)
             } else {
                 state.flowSliderValue
             }
@@ -117,6 +140,8 @@ class LogPeriodViewModel(
                 symptomsCategoryName = symptomsCat?.name ?: state.symptomsCategoryName,
                 flowCategory         = flowCat,
                 flowSliderValue      = sliderValue,
+                selectedFlowLabel    = selectedFlow,
+                symptoms             = editSymptoms ?: state.symptoms,
             )
         }
 
@@ -237,17 +262,16 @@ class LogPeriodViewModel(
                     id = state.existingId ?: 0,
                     startDate = state.startDate.toString(),
                     endDate = state.endDate?.toString(),
-                    flowLevel = state.selectedFlowLabel,
+                    flowLevel = "",
                     notes = state.notes
                 )
                 if (state.isEditing && state.existingId != null) {
-                    repository.updatePeriod(entry, state.symptoms.toList())
+                    repository.updatePeriod(entry, emptyList())
                 } else {
-                    repository.insertPeriod(entry, state.symptoms.toList())
+                    repository.insertPeriod(entry, emptyList())
                 }
-                // Dual-write: sync flow data to TrackingLog so Stats can query uniformly
                 syncFlowToTrackingLog(state)
-                // Save pinned category selections for the period start date
+                syncSymptomsToTrackingLog(state)
                 syncPinnedCategoryLogs(state)
                 application?.let { GoFloWidget.updateAllWidgets(it) }
                 _uiState.update { it.copy(saved = true) }
@@ -272,6 +296,23 @@ class LogPeriodViewModel(
             state.selectedFlowLabel
         }
         tr.syncFlowLogsForPeriod(flowCategory.id, listOf(state.startDate), flowLabel)
+    }
+
+    private suspend fun syncSymptomsToTrackingLog(state: LogPeriodUiState) {
+        val tr = trackingRepository ?: return
+        val symptomsCategory = tr.getSystemCategoryByKey("symptoms") ?: return
+        if (state.symptoms.isEmpty()) {
+            val existing = tr.getExistingLog(state.startDate, symptomsCategory.id) ?: return
+            tr.deleteLog(existing.log)
+        } else {
+            tr.saveLog(
+                date           = state.startDate,
+                categoryId     = symptomsCategory.id,
+                selectedValues = state.symptoms,
+                notes          = "",
+                allowMultiple  = false,
+            )
+        }
     }
 
     /** Saves each pinned category's current selection as a tracking log for the period start date. */

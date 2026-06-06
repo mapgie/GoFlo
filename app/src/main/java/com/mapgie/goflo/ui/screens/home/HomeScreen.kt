@@ -130,7 +130,6 @@ fun HomeScreen(
         DayLogSheet(
             date = data.date,
             period = data.period,
-            periodSymptoms = data.periodSymptomLabels,
             trackingLogs = data.trackingLogs,
             onDismiss = { viewModel.clearSelectedDay() },
             onEditPeriod = { periodId ->

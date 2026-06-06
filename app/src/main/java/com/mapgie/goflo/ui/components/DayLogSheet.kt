@@ -62,13 +62,11 @@ private val headerFormat = DateTimeFormatter.ofPattern("EEEE, MMM d")
 fun DayLogSheet(
     date: LocalDate,
     period: PeriodEntry?,
-    periodSymptoms: List<String>,
     trackingLogs: List<TrackingLogWithValues>,
     onDismiss: () -> Unit,
     onEditPeriod: (Long) -> Unit,
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
     onLogMore: () -> Unit,
-    symptomsCategoryName: String = "Symptoms",
 ) {
     val sheetState = rememberModalBottomSheetState()
 
@@ -149,15 +147,6 @@ fun DayLogSheet(
                     label       = "Period",
                     onEdit      = { onEditPeriod(period.id) }
                 ) {
-                    if (periodSymptoms.isNotEmpty()) {
-                        AttributeValueLine(
-                            attribute  = symptomsCategoryName,
-                            value      = periodSymptoms.joinToString(" · "),
-                            valueColor = MaterialTheme.colorScheme.onSurface,
-                            valueLarge = false
-                        )
-                    }
-
                     if (period.notes.isNotEmpty()) {
                         Text(
                             text      = "\"${period.notes}\"",
