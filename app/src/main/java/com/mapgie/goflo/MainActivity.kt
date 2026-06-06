@@ -364,7 +364,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                 val prefilledDate = startDateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
                 val vm: com.mapgie.goflo.ui.screens.log.LogPeriodViewModel = viewModel(
                     key = "log_${periodId}_${startDateStr}",
-                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate, app.trackingRepository, app)
+                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate, app.trackingRepository, app, app.preferencesStore)
                 )
                 com.mapgie.goflo.ui.screens.log.LogPeriodScreen(viewModel = vm, onBack = { navController.popBackStack() })
             }

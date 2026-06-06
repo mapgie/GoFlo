@@ -31,7 +31,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         CustomAlarm::class,
         CustomAlarmCategory::class,
     ],
-    version = 19,
+    version = 20,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -560,7 +560,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                 "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
                 "isArchived, allowMultiple, showInLogPeriod, trackAgainstTime) " +
                 "VALUES ('Flow', 1, 'flow', 0, 'water', 'primary', 'default', " +
-                "0.0, 10.0, 0, '', '', 0, 0, 0, 0)"
+                "0.0, 10.0, 0, '', '', 0, 0, 1, 0)"
             )
             val flowIdCursor = database.query("SELECT last_insert_rowid()")
             flowIdCursor.moveToFirst()
@@ -581,7 +581,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                 "numericMin, numericMax, allowDecimals, numericUnit, scaleLabels, " +
                 "isArchived, allowMultiple, showInLogPeriod, trackAgainstTime) " +
                 "VALUES ('Symptoms', 1, 'symptoms', 1, 'healing', 'tertiary', 'default', " +
-                "0.0, 10.0, 0, '', '', 0, 0, 0, 0)"
+                "0.0, 10.0, 0, '', '', 0, 0, 1, 0)"
             )
             val symptomIdCursor = database.query("SELECT last_insert_rowid()")
             symptomIdCursor.moveToFirst()
@@ -614,6 +614,16 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /** Marks Flow and Symptoms as tracked with period by default (v20). */
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "UPDATE tracking_categories SET showInLogPeriod = 1 " +
+                    "WHERE systemKey IN ('flow', 'symptoms')"
+                )
+            }
+        }
+
         fun getInstance(context: Context): GoFloDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -621,7 +631,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

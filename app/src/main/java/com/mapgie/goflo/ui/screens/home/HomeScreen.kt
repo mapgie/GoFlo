@@ -114,6 +114,9 @@ fun HomeScreen(
         val id = state.quickLogCategoryId
         val cat = state.trackingCategories.firstOrNull { it.id == id }
         when {
+            id == -1L && !state.periodTrackingEnabled -> {
+                showLogMenu = true
+            }
             id == -1L ->
                 onNavigate(Screen.LogPeriod.newEntryForDate(date))
             cat?.categoryType == "increment" ->
@@ -201,6 +204,7 @@ fun HomeScreen(
                     logMenuTargetDate = null
                     onNavigate(Screen.LogPeriod.newEntryForDate(targetDate))
                 },
+                periodTrackingEnabled = state.periodTrackingEnabled,
                 categories = state.trackingCategories,
                 onLogCategory = { categoryId ->
                     showLogMenu = false
@@ -293,6 +297,7 @@ private fun SpeedDial(
     expanded: Boolean,
     onToggle: () -> Unit,
     onLogPeriod: () -> Unit,
+    periodTrackingEnabled: Boolean,
     categories: List<com.mapgie.goflo.data.database.entities.TrackingCategory>,
     onLogCategory: (Long) -> Unit,
 ) {
@@ -327,14 +332,16 @@ private fun SpeedDial(
                     }
                 }
 
-                // Log Period — always at the top of the list
-                SpeedDialItem(
-                    label          = "Log Period",
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor   = MaterialTheme.colorScheme.onPrimaryContainer,
-                    onClick        = onLogPeriod
-                ) {
-                    Icon(Icons.Default.DateRange, contentDescription = null)
+                // Log Period — shown only when period tracking is enabled
+                if (periodTrackingEnabled) {
+                    SpeedDialItem(
+                        label          = "Log Period",
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor   = MaterialTheme.colorScheme.onPrimaryContainer,
+                        onClick        = onLogPeriod
+                    ) {
+                        Icon(Icons.Default.DateRange, contentDescription = null)
+                    }
                 }
             }
         }
