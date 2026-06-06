@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -66,10 +65,7 @@ data class PregnancyInfo(
 data class DayLogData(
     val date: LocalDate,
     val period: PeriodEntry?,
-    val periodSymptomLabels: List<String>,
     val trackingLogs: List<TrackingLogWithValues>,
-    val flowCategoryName: String = "Flow",
-    val symptomsCategoryName: String = "Symptoms",
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -163,45 +159,24 @@ class HomeViewModel(
      * When [_selectedDay] changes, this flow switches to load that day's data.
      * Null when no day is selected.
      */
-    val dayLogData: StateFlow<DayLogData?> = combine(
-        _selectedDay,
-        trackingRepository.getActiveCategories()
-    ) { date, cats -> Pair(date, cats) }
-        .flatMapLatest { (date, cats) ->
+    val dayLogData: StateFlow<DayLogData?> = _selectedDay
+        .flatMapLatest { date ->
             if (date == null) return@flatMapLatest flowOf(null)
 
-            val flowCatName = cats.firstOrNull { it.systemKey == "flow" }?.name ?: "Flow"
-            val symptomsCatName = cats.firstOrNull { it.systemKey == "symptoms" }?.name ?: "Symptoms"
-
-            // Combine period list + tracking logs for this date; when either
-            // updates (e.g. after user saves/deletes) the sheet re-renders.
             combine(
                 repository.getAllPeriods(),
                 trackingRepository.getLogsForDate(date)
             ) { periods, trackingLogs ->
-                // Find the period covering this date
                 val period = periods.firstOrNull { p ->
                     val start = LocalDate.parse(p.startDate)
                     val end = p.endDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
                     !date.isBefore(start) && !date.isAfter(end)
                 }
-                Pair(period, trackingLogs)
-            }.flatMapLatest { (period, trackingLogs) ->
-                // If there's a period, load its symptoms reactively
-                val symptomsFlow = period?.let { repository.getSymptomsForPeriod(it.id) }
-                    ?: flowOf(emptyList())
-
-                symptomsFlow.map { symptomEntries ->
-                    val labels = symptomEntries.map { it.symptomType }
-                    DayLogData(
-                        date = date,
-                        period = period,
-                        periodSymptomLabels = labels,
-                        trackingLogs = trackingLogs,
-                        flowCategoryName = flowCatName,
-                        symptomsCategoryName = symptomsCatName,
-                    )
-                }
+                DayLogData(
+                    date = date,
+                    period = period,
+                    trackingLogs = trackingLogs,
+                )
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

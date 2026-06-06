@@ -63,6 +63,8 @@ data class AppPreferences(
      * been completed. Prevents the migration running on every app start.
      */
     val flowBackfillDone: Boolean = false,
+    /** True once the one-time migration of period symptoms into TrackingLog has been completed. */
+    val symptomsBackfillDone: Boolean = false,
     /**
      * When true, the GoFlo Status home-screen widget shows live cycle data even
      * if a PIN is set.  Users who trust their home screen can opt in; the default
@@ -141,6 +143,7 @@ class AppPreferencesStore(private val context: Context) {
         val ARCHIVE_WARNING_DISABLED = booleanPreferencesKey("archive_warning_disabled")
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
+        val SYMPTOMS_BACKFILL_DONE = booleanPreferencesKey("symptoms_backfill_done")
         val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
         val DASHBOARD_ENABLED = booleanPreferencesKey("dashboard_enabled")
         val PINNED_STATS = stringPreferencesKey("pinned_stats")
@@ -179,6 +182,7 @@ class AppPreferencesStore(private val context: Context) {
             archiveWarningDisabled = prefs[Keys.ARCHIVE_WARNING_DISABLED] ?: false,
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
+            symptomsBackfillDone = prefs[Keys.SYMPTOMS_BACKFILL_DONE] ?: false,
             widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
             dashboardEnabled = prefs[Keys.DASHBOARD_ENABLED] ?: false,
             pinnedStats = prefs[Keys.PINNED_STATS] ?: "",
@@ -300,6 +304,10 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setFlowBackfillDone(done: Boolean) {
         context.dataStore.edit { it[Keys.FLOW_BACKFILL_DONE] = done }
+    }
+
+    suspend fun setSymptomsBackfillDone(done: Boolean) {
+        context.dataStore.edit { it[Keys.SYMPTOMS_BACKFILL_DONE] = done }
     }
 
     suspend fun setWidgetDataVisible(visible: Boolean) {

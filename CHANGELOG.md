@@ -18,6 +18,20 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.43.0-beta.1] - 2026-06-06
+
+### Changed
+- The period entity now stores only the date range and notes. Flow and symptoms logged on the period screen are saved as regular tracking log entries for the start date, identical to logging them via the category tracker. Existing period flow and symptom data is migrated to tracking logs on first launch.
+- The day sheet period row now shows only notes; symptoms appear under Tracked like any other category.
+- History screen period cards no longer display a flow level label.
+
+---
+## [0.42.1-beta.1] - 2026-06-06
+
+### Fixed
+- Flow is no longer shown as an inherent property of a period in the day sheet or history screen. Logging flow on the period screen creates a regular tracked entry for that day; the period row shows only symptoms and notes.
+
+---
 ## [0.42.0-beta.1] - 2026-06-05
 
 ### Added

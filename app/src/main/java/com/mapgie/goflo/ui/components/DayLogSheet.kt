@@ -62,14 +62,11 @@ private val headerFormat = DateTimeFormatter.ofPattern("EEEE, MMM d")
 fun DayLogSheet(
     date: LocalDate,
     period: PeriodEntry?,
-    periodSymptoms: List<String>,
     trackingLogs: List<TrackingLogWithValues>,
     onDismiss: () -> Unit,
     onEditPeriod: (Long) -> Unit,
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
     onLogMore: () -> Unit,
-    flowCategoryName: String = "Flow",
-    symptomsCategoryName: String = "Symptoms",
 ) {
     val sheetState = rememberModalBottomSheetState()
 
@@ -143,8 +140,6 @@ fun DayLogSheet(
             if (period != null) {
                 val periodColor = MaterialTheme.colorScheme.primary
 
-                val flow = period.flowLevel
-
                 LogEntryRow(
                     icon        = Icons.Outlined.WaterDrop,
                     iconColor   = periodColor,
@@ -152,21 +147,6 @@ fun DayLogSheet(
                     label       = "Period",
                     onEdit      = { onEditPeriod(period.id) }
                 ) {
-                    AttributeValueLine(
-                        attribute  = flowCategoryName,
-                        value      = flow,
-                        valueColor = periodColor
-                    )
-
-                    if (periodSymptoms.isNotEmpty()) {
-                        AttributeValueLine(
-                            attribute  = symptomsCategoryName,
-                            value      = periodSymptoms.joinToString(" · "),
-                            valueColor = MaterialTheme.colorScheme.onSurface,
-                            valueLarge = false
-                        )
-                    }
-
                     if (period.notes.isNotEmpty()) {
                         Text(
                             text      = "\"${period.notes}\"",
