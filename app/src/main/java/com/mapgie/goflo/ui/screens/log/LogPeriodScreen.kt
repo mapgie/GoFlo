@@ -243,10 +243,11 @@ fun LogPeriodScreen(
                     }
                 }
 
-                // Flow section
-                SectionLabel(state.flowCategoryName)
+                // Flow section — only shown when the category is tracked with period and not archived
                 val flowCat = state.flowCategory
-                if (flowCat?.categoryType == "numeric_slider") {
+                if (flowCat != null && flowCat.showInLogPeriod && !flowCat.isArchived) {
+                SectionLabel(state.flowCategoryName)
+                if (flowCat.categoryType == "numeric_slider") {
                     val sliderValue = state.flowSliderValue ?: flowCat.numericMin
                     val scaleMap = flowCat.scaleLabels.decodeScaleLabels()
                     val scaleLabel = scaleMap[sliderValue.toInt()] ?: sliderValue.toInt().toString()
@@ -309,8 +310,11 @@ fun LogPeriodScreen(
                         )
                     }
                 }
+                } // end flow showInLogPeriod guard
 
-                // Symptoms section
+                // Symptoms section — only shown when the category is tracked with period and not archived
+                val symptomsCat = state.symptomsCategory
+                if (symptomsCat != null && symptomsCat.showInLogPeriod && !symptomsCat.isArchived) {
                 SectionLabel(state.symptomsCategoryName)
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -341,6 +345,7 @@ fun LogPeriodScreen(
                         )
                     )
                 }
+                } // end symptoms showInLogPeriod guard
 
                 // Pinned tracking categories
                 state.pinnedCategories.forEach { category ->

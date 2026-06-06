@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.47.1-beta.1] - 2026-06-06
+
+### Changed
+- Flow and Symptoms are now tracked with period by default (DB migration v20 sets showInLogPeriod = 1 for both system categories). This means they are archived alongside other period-pinned categories when Pregnancy Tracking is activated, and they respect the showInLogPeriod flag going forward. Existing users get the flag set automatically on upgrade.
+
+---
 ## [0.47.0-beta.1] - 2026-06-06
 
 ### Added

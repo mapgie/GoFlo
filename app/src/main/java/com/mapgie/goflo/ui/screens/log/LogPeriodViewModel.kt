@@ -48,8 +48,10 @@ data class LogPeriodUiState(
     val flowCategoryName: String = "Flow",
     /** User-chosen display name for the Symptoms system category. */
     val symptomsCategoryName: String = "Symptoms",
-    /** Full Flow system category entity — used to know its current categoryType. */
+    /** Full Flow system category entity — used to know its current categoryType and showInLogPeriod. */
     val flowCategory: TrackingCategory? = null,
+    /** Full Symptoms system category entity — used to check showInLogPeriod. */
+    val symptomsCategory: TrackingCategory? = null,
     /** Current slider position when the Flow category is in slider mode (1-4). */
     val flowSliderValue: Float? = null,
     /** Ordered list of selectable flow level options (from TrackingValues). */
@@ -143,6 +145,7 @@ class LogPeriodViewModel(
                 flowCategoryName     = flowCat?.name ?: state.flowCategoryName,
                 symptomsCategoryName = symptomsCat?.name ?: state.symptomsCategoryName,
                 flowCategory         = flowCat,
+                symptomsCategory     = symptomsCat,
                 flowSliderValue      = sliderValue,
                 selectedFlowLabel    = selectedFlow,
                 symptoms             = editSymptoms ?: state.symptoms,
@@ -168,7 +171,8 @@ class LogPeriodViewModel(
 
     private suspend fun loadPinnedCategories() {
         val tr = trackingRepository ?: return
-        val categories = tr.getShowInLogPeriodCategories()
+        // Exclude system categories (flow, symptoms) — they have dedicated UI sections above.
+        val categories = tr.getShowInLogPeriodCategories().filter { !it.isSystem }
         if (categories.isEmpty()) return
 
         val valuesMap = mutableMapOf<Long, List<String>>()
@@ -293,6 +297,7 @@ class LogPeriodViewModel(
     private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) {
         val tr = trackingRepository ?: return
         val flowCategory = tr.getSystemCategoryByKey("flow") ?: return
+        if (!flowCategory.showInLogPeriod || flowCategory.isArchived) return
         val flowLabel = if (flowCategory.categoryType == "numeric_slider") {
             val v = state.flowSliderValue ?: flowLabelToSliderValue(state.selectedFlowLabel)
             v.toInt().toString()
@@ -305,6 +310,7 @@ class LogPeriodViewModel(
     private suspend fun syncSymptomsToTrackingLog(state: LogPeriodUiState) {
         val tr = trackingRepository ?: return
         val symptomsCategory = tr.getSystemCategoryByKey("symptoms") ?: return
+        if (!symptomsCategory.showInLogPeriod || symptomsCategory.isArchived) return
         if (state.symptoms.isEmpty()) {
             val existing = tr.getExistingLog(state.startDate, symptomsCategory.id) ?: return
             tr.deleteLog(existing.log)
