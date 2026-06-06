@@ -730,3 +730,212 @@ fun TrendsChart(data: StatsChartData.TrendsData) {
         }
     }
 }
+
+// ── Weekday chart ─────────────────────────────────────────────────────────────────────
+
+@Composable
+fun WeekdayChart(data: StatsChartData.WeekdayData, modifier: Modifier = Modifier) {
+    val barColor = MaterialTheme.colorScheme.primary
+    val maxBarValue = if (data.isNumeric)
+        data.bars.mapNotNull { it.avgValue }.maxOrNull() ?: 1f
+    else
+        data.bars.maxOfOrNull { it.count.toFloat() } ?: 1f
+    val clampedMax = maxBarValue.coerceAtLeast(0.001f)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            data.bars.forEach { bar ->
+                val displayValue = bar.avgValue ?: bar.count.toFloat()
+                val fraction = (displayValue / clampedMax).coerceIn(0f, 1f)
+                val topLabel = when {
+                    bar.count == 0 -> ""
+                    bar.avgValue != null -> "%.1f".format(bar.avgValue)
+                    else -> bar.count.toString()
+                }
+                Column(
+                    modifier = Modifier.width(40.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = topLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.height(16.dp)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .padding(horizontal = 4.dp),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(fraction)
+                                .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                                .background(barColor)
+                        )
+                    }
+                    Text(
+                        text = bar.dayLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Time-of-day chart ─────────────────────────────────────────────────────────────────
+
+@Composable
+fun TimeOfDayChart(data: StatsChartData.TimeOfDayData, modifier: Modifier = Modifier) {
+    val barColor = MaterialTheme.colorScheme.primary
+    val maxBarValue = if (data.isNumeric)
+        data.bars.mapNotNull { it.avgValue }.maxOrNull() ?: 1f
+    else
+        data.bars.maxOfOrNull { it.count.toFloat() } ?: 1f
+    val clampedMax = maxBarValue.coerceAtLeast(0.001f)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+        ) {
+            data.bars.forEach { bar ->
+                val displayValue = bar.avgValue ?: bar.count.toFloat()
+                val fraction = (displayValue / clampedMax).coerceIn(0f, 1f)
+                val topLabel = when {
+                    bar.count == 0 -> ""
+                    bar.avgValue != null -> "%.1f".format(bar.avgValue)
+                    else -> bar.count.toString()
+                }
+                Column(
+                    modifier = Modifier.width(40.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = topLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.height(16.dp)
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .padding(horizontal = 4.dp),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(fraction)
+                                .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                                .background(barColor)
+                        )
+                    }
+                    Text(
+                        text = bar.hourLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ── Time correlation chart ────────────────────────────────────────────────────────────
+
+@Composable
+fun TimeCorrelationChart(data: StatsChartData.TimeCorrelationData, modifier: Modifier = Modifier) {
+    val color1 = if (data.colorToken1.isNotEmpty()) data.colorToken1.toCategoryColor()
+                 else MaterialTheme.colorScheme.primary
+    val color2 = if (data.colorToken2.isNotEmpty()) data.colorToken2.toCategoryColor()
+                 else MaterialTheme.colorScheme.tertiary
+    val outline    = MaterialTheme.colorScheme.outlineVariant
+    val labelStyle = MaterialTheme.typography.labelSmall
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Legend
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            LegendItem(color = color1, label = data.cat1Name)
+            LegendItem(color = color2, label = data.cat2Name)
+        }
+
+        Text(
+            text = "Hour of day  ↑",
+            style = labelStyle,
+            color = labelColor,
+            modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+        )
+
+        Row(modifier = Modifier.fillMaxWidth().height(220.dp)) {
+            // Y-axis: 12am at top, 12am at bottom (full 24h)
+            Column(
+                modifier = Modifier
+                    .width(36.dp)
+                    .fillMaxHeight()
+                    .padding(end = 4.dp),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.End
+            ) {
+                listOf("12am", "6am", "12pm", "6pm", "12am").forEach { label ->
+                    Text(label, style = labelStyle, color = labelColor, textAlign = TextAlign.End)
+                }
+            }
+
+            Canvas(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                val w = size.width
+                val h = size.height
+
+                // Horizontal grid lines at 6, 12, 18 hours
+                for (gridHour in listOf(6f, 12f, 18f)) {
+                    val y = gridHour / 24f * h
+                    drawLine(outline.copy(alpha = 0.3f), Offset(0f, y), Offset(w, y), 0.5.dp.toPx())
+                }
+                // Axes
+                drawLine(outline, Offset(0f, 0f), Offset(0f, h), 1.5.dp.toPx())
+                drawLine(outline, Offset(0f, h), Offset(w, h), 1.5.dp.toPx())
+
+                val dotRadius = 4.dp.toPx()
+                val td = data.totalDays.toFloat()
+
+                fun toX(dayOffset: Int) = if (td <= 0f) w / 2f else dayOffset / td * w
+                fun toY(hour: Float) = hour / 24f * h
+
+                // Cat2 first so cat1 draws on top
+                data.points2.forEach { pt ->
+                    drawCircle(color2.copy(alpha = 0.65f), dotRadius, Offset(toX(pt.dayOffset), toY(pt.hourFraction)))
+                }
+                data.points1.forEach { pt ->
+                    drawCircle(color1.copy(alpha = 0.8f), dotRadius, Offset(toX(pt.dayOffset), toY(pt.hourFraction)))
+                }
+            }
+        }
+
+        Text(
+            text = "Time  →",
+            style = labelStyle,
+            color = labelColor,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 2.dp, start = 36.dp)
+        )
+    }
+}

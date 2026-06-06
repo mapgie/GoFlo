@@ -40,8 +40,11 @@ import com.mapgie.goflo.ui.screens.stats.PieChart
 import com.mapgie.goflo.ui.screens.stats.PinnedStat
 import com.mapgie.goflo.ui.screens.stats.ScatterPlot
 import com.mapgie.goflo.ui.screens.stats.StatsChartData
+import com.mapgie.goflo.ui.screens.stats.TimeCorrelationChart
+import com.mapgie.goflo.ui.screens.stats.TimeOfDayChart
 import com.mapgie.goflo.ui.screens.stats.TimeScatterChart
 import com.mapgie.goflo.ui.screens.stats.TrendsChart
+import com.mapgie.goflo.ui.screens.stats.WeekdayChart
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,6 +248,18 @@ private fun PinnedChartCard(
 
                     is StatsChartData.PhaseSummaryData -> {
                         // Phase summary is only shown in the Stats screen, not pinned to the dashboard
+                    }
+
+                    is StatsChartData.WeekdayData -> {
+                        WeekdayChart(data = data, modifier = Modifier.fillMaxWidth())
+                    }
+
+                    is StatsChartData.TimeOfDayData -> {
+                        TimeOfDayChart(data = data, modifier = Modifier.fillMaxWidth())
+                    }
+
+                    is StatsChartData.TimeCorrelationData -> {
+                        TimeCorrelationChart(data = data, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }

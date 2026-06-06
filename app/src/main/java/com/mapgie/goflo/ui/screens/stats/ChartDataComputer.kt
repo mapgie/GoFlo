@@ -4,7 +4,9 @@ import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingLog
 import com.mapgie.goflo.data.repository.TrackingRepository
 import com.mapgie.goflo.ui.util.decodeScaleLabels
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -205,6 +207,116 @@ internal suspend fun computeChartData(
         }
 
         ChartType.PHASE_SUMMARY -> StatsChartData.Empty
+
+        ChartType.WEEKDAY -> {
+            val logs = repository.getLogsForCategoryInRange(category1.id, start, end)
+            if (logs.isEmpty()) {
+                StatsChartData.Empty
+            } else {
+                val dayOrder = listOf(
+                    DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+                    DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY
+                )
+                val dayLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                val bars = if (category1.isNumeric) {
+                    val byDay = mutableMapOf<DayOfWeek, MutableList<Float>>()
+                    for (log in logs) {
+                        val dow = LocalDate.parse(log.date).dayOfWeek
+                        val value = repository.getValuesForLog(log.id).firstOrNull()?.toFloatOrNull() ?: continue
+                        byDay.getOrPut(dow) { mutableListOf() }.add(value)
+                    }
+                    dayOrder.zip(dayLabels).map { (dow, label) ->
+                        val values = byDay[dow] ?: emptyList()
+                        WeekdayBar(label, values.size, if (values.isEmpty()) null else values.average().toFloat())
+                    }
+                } else {
+                    val byDay = logs.groupBy { LocalDate.parse(it.date).dayOfWeek }
+                    dayOrder.zip(dayLabels).map { (dow, label) ->
+                        WeekdayBar(label, byDay[dow]?.size ?: 0, null)
+                    }
+                }
+                if (bars.all { it.count == 0 }) StatsChartData.Empty
+                else StatsChartData.WeekdayData(bars, category1.name, category1.isNumeric)
+            }
+        }
+
+        ChartType.TIME_OF_DAY -> {
+            val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+            val logs = repository.getLogsForCategoryInRange(category1.id, start, end)
+                .filter { it.loggedAt.isNotEmpty() }
+            if (logs.isEmpty()) {
+                StatsChartData.Empty
+            } else {
+                val bars = if (category1.isNumeric) {
+                    val byBucket = mutableMapOf<Int, MutableList<Float>>()
+                    for (log in logs) {
+                        val bucket = runCatching { LocalTime.parse(log.loggedAt, timeFmt).hour / 2 }.getOrNull() ?: continue
+                        val value = repository.getValuesForLog(log.id).firstOrNull()?.toFloatOrNull() ?: continue
+                        byBucket.getOrPut(bucket) { mutableListOf() }.add(value)
+                    }
+                    (0 until 12).map { b ->
+                        val values = byBucket[b] ?: emptyList()
+                        TimeOfDayBar(chartHourBucketLabel(b), values.size, if (values.isEmpty()) null else values.average().toFloat())
+                    }
+                } else {
+                    val counts = IntArray(12)
+                    for (log in logs) {
+                        val bucket = runCatching { LocalTime.parse(log.loggedAt, timeFmt).hour / 2 }.getOrNull() ?: continue
+                        counts[bucket]++
+                    }
+                    (0 until 12).map { b -> TimeOfDayBar(chartHourBucketLabel(b), counts[b], null) }
+                }
+                if (bars.all { it.count == 0 }) StatsChartData.Empty
+                else StatsChartData.TimeOfDayData(bars, category1.name, category1.isNumeric)
+            }
+        }
+
+        ChartType.TIME_CORRELATION -> {
+            if (category2 == null) {
+                StatsChartData.Empty
+            } else {
+                val timeFmt = DateTimeFormatter.ofPattern("HH:mm")
+                val dateFmt = DateTimeFormatter.ofPattern("d MMM")
+                fun logsToPoints(logs: List<TrackingLog>): List<TimeLogPoint> =
+                    logs.filter { it.loggedAt.isNotEmpty() }.mapNotNull { log ->
+                        val hour = runCatching {
+                            val t = LocalTime.parse(log.loggedAt, timeFmt)
+                            t.hour + t.minute / 60f
+                        }.getOrNull() ?: return@mapNotNull null
+                        val date = LocalDate.parse(log.date)
+                        TimeLogPoint(
+                            dayOffset    = ChronoUnit.DAYS.between(start, date).toInt(),
+                            hourFraction = hour,
+                            dateLabel    = date.format(dateFmt),
+                        )
+                    }
+                val points1 = logsToPoints(repository.getLogsForCategoryInRange(category1.id, start, end))
+                val points2 = logsToPoints(repository.getLogsForCategoryInRange(category2.id, start, end))
+                if (points1.isEmpty() && points2.isEmpty()) {
+                    StatsChartData.Empty
+                } else {
+                    StatsChartData.TimeCorrelationData(
+                        points1     = points1,
+                        points2     = points2,
+                        cat1Name    = category1.name,
+                        cat2Name    = category2.name,
+                        colorToken1 = category1.colorToken,
+                        colorToken2 = category2.colorToken,
+                        totalDays   = ChronoUnit.DAYS.between(start, end).toInt().coerceAtLeast(1),
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun chartHourBucketLabel(bucket: Int): String {
+    val h = bucket * 2
+    return when {
+        h == 0  -> "12am"
+        h == 12 -> "12pm"
+        h < 12  -> "${h}am"
+        else    -> "${h - 12}pm"
     }
 }
 

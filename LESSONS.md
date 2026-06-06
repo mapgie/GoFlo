@@ -29,6 +29,9 @@ When a SmallFloatingActionButton contains an Icon with `contentDescription = nul
 **`ModalBottomSheetProperties` requires all parameters explicitly in Material3 1.2.x**
 The constructor has no default values in this version — passing only `shouldDismissOnBackPress` fails to compile. Always supply all three: `securePolicy = SecureFlagPolicy.Inherit, isFocusable = true, shouldDismissOnBackPress = false`. `SecureFlagPolicy` also needs an explicit import from `androidx.compose.ui.window`.
 
+**Parallel write paths must each respect every category setting**
+When two code paths write to the same store (e.g. `LogPeriodViewModel.syncSymptomsToTrackingLog` and `LogCategoryViewModel.save` both writing to `tracking_logs`), each path must independently read and apply every relevant category flag. If a new flag is added (like `trackAgainstTime`) and only one path is updated, the other silently ignores the setting. When adding a per-category behaviour flag, grep for all call sites of the underlying `saveLog` / `updateLogInPlace` and confirm they all handle the new flag.
+
 **Room generates no SQLite DEFAULTs without `@ColumnInfo(defaultValue=…)` — fresh-install seeds rot as the schema grows**
 Room emits `NOT NULL` with no SQL `DEFAULT` for every entity field that lacks a `@ColumnInfo(defaultValue=…)` annotation. Migrations protect existing users because `ALTER TABLE … ADD COLUMN … DEFAULT …` always supplies a value. The `onCreate` seed INSERT is hand-written and must list every column explicitly — omitting any `NOT NULL` column causes a constraint violation on first open, crashing the app before any screen is shown. Two defences: (1) enumerate all non-PK columns in seed INSERTs; (2) annotate every entity field with `@ColumnInfo(defaultValue=…)` so Room's generated DDL also includes SQL `DEFAULT` clauses and the two stay in sync automatically.
 
