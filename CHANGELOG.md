@@ -18,6 +18,13 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.42.0-beta.1] - 2026-06-05
+
+### Added
+- Custom theme colour picker: tapping a colour dot for Primary, Secondary, or Tertiary now opens a full HSV square picker with a hue bar and HEX input field, so any colour can be dialled in precisely.
+- Navigation bar active indicator now uses the theme's primary colour (solid fill with on-primary icon), making the selected tab clearly visible in all themes including Max Contrast.
+
+---
 ## [0.41.2-beta.1] - 2026-06-05
 
 ### Fixed

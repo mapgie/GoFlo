@@ -53,6 +53,12 @@ If `SheetState` (or similar stateful objects) is created inside a composable, it
 **Never hardcode colours in TextStyle / typography**
 Hardcoded colours in `TextStyle` entries override Material3's `LocalContentColor`, breaking contrast in non-default themes. Always omit `color` from `TextStyle` and let the theme propagate it.
 
+**Alias `android.graphics.Color` when mixing with Compose `Color`**
+Both `android.graphics.Color` and `androidx.compose.ui.graphics.Color` are named `Color`, causing an unresolvable conflict. Always import the Android one with an alias: `import android.graphics.Color as AndroidColor`. Use `AndroidColor.colorToHSV(argb, hsvArray)` and `AndroidColor.HSVToColor(hsvArray)` for HSV conversion; Compose's `Color(argb: Int)` constructor wraps the result into a Compose `Color`. This pattern is the idiomatic way to build custom HSV colour pickers in Compose.
+
+**M3 `NavigationBarItem` default indicator is `secondaryContainer` — use `primary` in High Contrast themes**
+The default `indicatorColor` for `NavigationBarItem` is `secondaryContainer`, which in high-contrast colour schemes may have almost no contrast against the `NavigationBar` surface. Override it with `NavigationBarItemDefaults.colors(indicatorColor = colorScheme.primary, selectedIconColor = colorScheme.onPrimary, selectedTextColor = colorScheme.primary)` to ensure the active tab is clearly visible in all themes.
+
 ---
 
 ### UI / UX
