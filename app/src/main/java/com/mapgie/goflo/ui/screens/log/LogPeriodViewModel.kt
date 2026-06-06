@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingValue
+import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.widget.GoFloWidget
 import com.mapgie.goflo.data.repository.PeriodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,7 +65,8 @@ class LogPeriodViewModel(
     private val periodId: Long,
     private val prefilledDate: LocalDate? = null,
     private val trackingRepository: com.mapgie.goflo.data.repository.TrackingRepository? = null,
-    private val application: Application? = null
+    private val application: Application? = null,
+    private val preferencesStore: AppPreferencesStore? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LogPeriodUiState(startDate = prefilledDate ?: LocalDate.now()))
@@ -357,6 +359,10 @@ class LogPeriodViewModel(
             }
         }
 
+    fun disablePeriodTracking() {
+        viewModelScope.launch { preferencesStore?.setPeriodTrackingEnabled(false) }
+    }
+
     fun delete() {
         val state = _uiState.value
         val id = state.existingId ?: return
@@ -377,11 +383,12 @@ class LogPeriodViewModel(
         private val periodId: Long,
         private val prefilledDate: LocalDate? = null,
         private val trackingRepository: com.mapgie.goflo.data.repository.TrackingRepository? = null,
-        private val application: Application? = null
+        private val application: Application? = null,
+        private val preferencesStore: AppPreferencesStore? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return LogPeriodViewModel(repository, periodId, prefilledDate, trackingRepository, application) as T
+            return LogPeriodViewModel(repository, periodId, prefilledDate, trackingRepository, application, preferencesStore) as T
         }
     }
 

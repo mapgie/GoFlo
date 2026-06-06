@@ -17,6 +17,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.FavoriteBorder
@@ -26,6 +27,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Switch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -83,9 +85,36 @@ fun ModesScreen(
 
     var pendingActivate  by rememberSaveable { mutableStateOf<String?>(null) }
     var pendingDeactivate by rememberSaveable { mutableStateOf<String?>(null) }
+    var showPregnancyWarning by rememberSaveable { mutableStateOf(false) }
 
     val modeToActivate   = pendingActivate?.let { AppMode.fromId(it) }
     val modeToDeactivate = pendingDeactivate?.let { AppMode.fromId(it) }
+
+    // ── Pregnancy warning dialog ──────────────────────────────────────────────
+
+    if (showPregnancyWarning) {
+        AlertDialog(
+            onDismissRequest = { showPregnancyWarning = false },
+            title = { Text("Period logging will be paused") },
+            text = {
+                Text(
+                    "While Pregnancy Tracking is on, period logging is paused. " +
+                    "Any categories you log with your period will be archived. " +
+                    "You can unarchive them later, or remove them from period logging first."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.disablePeriodAndArchiveCategories()
+                    showPregnancyWarning = false
+                    pendingActivate = AppMode.PREGNANCY.id
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPregnancyWarning = false }) { Text("Cancel") }
+            }
+        )
+    }
 
     // ── Deactivation dialog ───────────────────────────────────────────────────
 
@@ -168,19 +197,86 @@ fun ModesScreen(
                 )
             }
 
+            item {
+                PeriodTrackingCard(
+                    enabled = state.periodTrackingEnabled,
+                    onToggle = { viewModel.setPeriodTrackingEnabled(!state.periodTrackingEnabled) }
+                )
+            }
+
             items(AppMode.entries, key = { it.id }) { mode ->
                 val isActive = mode in state.activeModes
                 ModeCard(
                     mode     = mode,
                     isActive = isActive,
                     onClick  = {
-                        if (isActive) pendingDeactivate = mode.id
-                        else          pendingActivate   = mode.id
+                        if (isActive) {
+                            pendingDeactivate = mode.id
+                        } else if (mode == AppMode.PREGNANCY && state.periodTrackingEnabled) {
+                            showPregnancyWarning = true
+                        } else {
+                            pendingActivate = mode.id
+                        }
                     }
                 )
             }
 
             item { Spacer(Modifier.height(16.dp)) }
+        }
+    }
+}
+
+// ── Period tracking card ──────────────────────────────────────────────────────
+
+@Composable
+private fun PeriodTrackingCard(
+    enabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    val containerColor = if (enabled)
+        MaterialTheme.colorScheme.secondaryContainer
+    else
+        MaterialTheme.colorScheme.surfaceVariant
+
+    Card(
+        onClick  = onToggle,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics {
+                role = Role.Switch
+                stateDescription = if (enabled) "On" else "Off"
+            },
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector        = Icons.Filled.DateRange,
+                contentDescription = null,
+                tint               = MaterialTheme.colorScheme.primary,
+                modifier           = Modifier.size(28.dp),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text  = "Track period",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text  = "Log period dates, flow, and symptoms. Turn off to hide all period features.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Switch(
+                checked         = enabled,
+                onCheckedChange = null,
+            )
         }
     }
 }

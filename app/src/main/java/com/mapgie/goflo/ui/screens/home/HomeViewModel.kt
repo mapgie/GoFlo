@@ -52,6 +52,8 @@ data class HomeUiState(
     val onboardingBannerDismissed: Boolean = false,
     /** Non-null when pregnancy mode is active and a valid date has been entered. */
     val pregnancyInfo: PregnancyInfo? = null,
+    /** Whether period logging is enabled. */
+    val periodTrackingEnabled: Boolean = true,
 )
 
 data class PregnancyInfo(
@@ -146,6 +148,7 @@ class HomeViewModel(
             quickLogCategoryId          = prefs.quickLogCategoryId,
             onboardingBannerDismissed   = prefs.onboardingBannerDismissed,
             pregnancyInfo               = pregnancyInfo,
+            periodTrackingEnabled       = prefs.periodTrackingEnabled,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 

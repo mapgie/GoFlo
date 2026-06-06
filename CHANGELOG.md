@@ -18,6 +18,14 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.47.0-beta.1] - 2026-06-06
+
+### Added
+- Period tracking can now be enabled or disabled from Tracking Modes. It is on by default and controls all period-related functionality (Log Period button, period logging screen).
+- The period logging screen has a three-dot overflow menu with a "Disable period logging" option, mirroring the Tracking Modes toggle.
+- Activating Pregnancy Tracking now prompts you to confirm that period logging will be paused and any categories you log with your period will be archived. You can unarchive them later or remove them from period logging first.
+
+---
 ## [0.46.0-beta.1] - 2026-06-06
 
 ### Added

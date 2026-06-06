@@ -38,6 +38,9 @@ class TrackingRepository(
     suspend fun getAllCategoriesOnce(): List<TrackingCategory> =
         categoryDao.getAllCategoriesOnce()
 
+    suspend fun getShowInLogPeriodCategoriesOnce(): List<TrackingCategory> =
+        categoryDao.getShowInLogPeriodCategoriesOnce()
+
     fun getCategoryById(id: Long): Flow<TrackingCategory?> =
         categoryDao.getCategoryById(id)
 

@@ -23,6 +23,7 @@ data class ModesUiState(
     val existingModeKeys: Set<String> = emptySet(),
     val temperatureUnitCelsius: Boolean = true,
     val latestPeriodDate: LocalDate? = null,
+    val periodTrackingEnabled: Boolean = true,
 )
 
 class ModesViewModel(
@@ -39,10 +40,11 @@ class ModesViewModel(
         val latestPeriodDate = periods.maxByOrNull { it.startDate }
             ?.startDate?.let { LocalDate.parse(it) }
         ModesUiState(
-            activeModes           = prefs.activeModes.toActiveModeSet(),
-            existingModeKeys      = cats.filter { it.modeKey.isNotEmpty() }.map { it.modeKey }.toSet(),
+            activeModes            = prefs.activeModes.toActiveModeSet(),
+            existingModeKeys       = cats.filter { it.modeKey.isNotEmpty() }.map { it.modeKey }.toSet(),
             temperatureUnitCelsius = prefs.temperatureUnitCelsius,
-            latestPeriodDate      = latestPeriodDate,
+            latestPeriodDate       = latestPeriodDate,
+            periodTrackingEnabled  = prefs.periodTrackingEnabled,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ModesUiState())
 
@@ -108,6 +110,19 @@ class ModesViewModel(
             val current = store.preferences.first().activeModes.toActiveModeSet().toMutableSet()
             current.remove(mode)
             store.setActiveModes(current.toActiveModeString())
+        }
+    }
+
+    fun setPeriodTrackingEnabled(enabled: Boolean) {
+        viewModelScope.launch { store.setPeriodTrackingEnabled(enabled) }
+    }
+
+    fun disablePeriodAndArchiveCategories() {
+        viewModelScope.launch {
+            store.setPeriodTrackingEnabled(false)
+            trackingRepository.getShowInLogPeriodCategoriesOnce().forEach { cat ->
+                trackingRepository.archiveCategory(cat.id)
+            }
         }
     }
 
