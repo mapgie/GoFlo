@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.44.1-beta.1] - 2026-06-06
+
+### Changed
+- Day sheet: the period and everything logged alongside it (the categories set to "Log with period", such as Flow and Symptoms) now sit together in a single Period box, so they read as one entry instead of being split into a separate Tracked list. Categories not logged with the period still appear under Tracked as before.
+
+---
 ## [0.44.0-beta.1] - 2026-06-06
 
 ### Fixed
