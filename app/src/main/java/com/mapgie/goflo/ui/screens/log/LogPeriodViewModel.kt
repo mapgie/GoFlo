@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 data class LogPeriodUiState(
     val isLoading: Boolean = true,
@@ -305,12 +307,16 @@ class LogPeriodViewModel(
             val existing = tr.getExistingLog(state.startDate, symptomsCategory.id) ?: return
             tr.deleteLog(existing.log)
         } else {
+            val loggedAt = if (symptomsCategory.trackAgainstTime) {
+                LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+            } else ""
             tr.saveLog(
                 date           = state.startDate,
                 categoryId     = symptomsCategory.id,
                 selectedValues = state.symptoms,
                 notes          = "",
                 allowMultiple  = false,
+                loggedAt       = loggedAt,
             )
         }
     }

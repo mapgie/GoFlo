@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.45.1-beta.1] - 2026-06-06
+
+### Fixed
+- Symptoms logged from the period log screen now record the time when the Symptoms category has "Track against time" enabled.
+
+---
 ## [0.45.0-beta.1] - 2026-06-06
 
 ### Changed
