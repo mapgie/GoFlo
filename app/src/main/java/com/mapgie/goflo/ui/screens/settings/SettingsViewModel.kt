@@ -99,6 +99,9 @@ class SettingsViewModel(
     fun setCustomSecondaryArgb(argb: Int) = viewModelScope.launch { store.setCustomSecondaryArgb(argb) }
     fun setCustomTertiaryArgb(argb: Int)  = viewModelScope.launch { store.setCustomTertiaryArgb(argb) }
 
+    fun setCustomThemeName(name: String)      = viewModelScope.launch { store.setCustomThemeName(name) }
+    fun setCustomThemePickedForDark(dark: Boolean) = viewModelScope.launch { store.setCustomThemePickedForDark(dark) }
+
     // ── App icon ───────────────────────────────────────────────────────────────
 
     /**
