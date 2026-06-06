@@ -145,7 +145,6 @@ fun HomeScreen(
                 logMenuTargetDate = data.date
                 showLogMenu = true
             },
-            symptomsCategoryName = data.symptomsCategoryName,
         )
     }
 
