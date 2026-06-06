@@ -2,6 +2,11 @@
 
 When fixing a bug or solving a non-obvious problem, check `LESSONS.md` for prior art. If the fix produces a transferable lesson, add it to `LESSONS.md` in the same commit.
 
+## Working in the web/remote environment
+
+- This container has no Android SDK and no Gradle wrapper jar, so the app cannot be compiled here. Do not attempt Gradle builds, and do not report build failures caused by the missing toolchain. CI is the build check.
+- Do not include "I couldn't compile, so I verified by inspection instead" style disclaimers in chat replies or PR descriptions. The reader already knows this environment can't build. Just make the change and state what it does.
+
 ## Versioning
 
 Every PR **must** include a version bump and a changelog entry. No exceptions.
