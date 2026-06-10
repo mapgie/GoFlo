@@ -107,6 +107,9 @@ A flag like `allowMultiple` controls whether saving a log upserts an existing ro
 **Remap all foreign keys on data import**
 When importing data that generates new primary IDs (e.g. JSON/CSV restore), every foreign key referencing those IDs must also be remapped. Importing parent records with new IDs but leaving child records pointing at old IDs silently breaks relational integrity.
 
+**A `null` "not yet interacted" state must not be read as "no value to save"**
+When a UI shows a default value (e.g. a slider rendered at `numericMin` via `value ?: min`) but the backing state field stays `null` until the user actively changes it, a save handler that does `val v = state.value ?: return` silently no-ops for anyone who accepts the displayed default without touching the control. The UI looks identical (same value shown) whether or not the user interacted, so there's no visual cue that "Save" did nothing. Fix at the save site by falling back to the same default the UI displays (`state.value ?: category.min`), not by requiring interaction.
+
 **Store the per-event delta on the event record, not only in the running aggregate**
 When an action adds to a running total (points, balance, count), store the per-event amount on the event itself. Every deletion and undo path can then read and subtract that stored delta, keeping the aggregate in sync. An aggregate that's only ever incremented drifts away from the true value over time — the only reliable fix is a symmetric decrement path that reads from the event record.
 

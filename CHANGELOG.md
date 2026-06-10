@@ -18,16 +18,22 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.47.2-beta.3] - 2026-06-10
+
+### Fixed
+- One-time data fixup: existing period entries with overlapping date ranges (e.g. duplicates created by the bug fixed in 0.47.2-beta.2) are automatically merged into a single entry on next app launch, combining notes and symptoms.
+
+---
 ## [0.47.2-beta.2] - 2026-06-10
 
 ### Fixed
-- One-time data fixup: existing period entries with overlapping date ranges (e.g. duplicates created by the bug fixed in 0.47.2-beta.1) are automatically merged into a single entry on next app launch, combining notes and symptoms.
+- Logging a period for a date that already falls within an existing (or ongoing) period now opens that period for editing instead of creating a new, overlapping entry. Previously, tapping "Log Period" for a date covered by an ongoing period created a duplicate period record.
 
 ---
 ## [0.47.2-beta.1] - 2026-06-10
 
 ### Fixed
-- Logging a period for a date that already falls within an existing (or ongoing) period now opens that period for editing instead of creating a new, overlapping entry. Previously, tapping "Log Period" for a date covered by an ongoing period created a duplicate period record.
+- Logging a slider tracker without dragging it now saves using the slider's displayed default value, instead of silently doing nothing.
 
 ---
 ## [0.47.1-beta.1] - 2026-06-06
