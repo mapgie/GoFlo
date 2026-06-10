@@ -65,6 +65,8 @@ data class AppPreferences(
     val flowBackfillDone: Boolean = false,
     /** True once the one-time migration of period symptoms into TrackingLog has been completed. */
     val symptomsBackfillDone: Boolean = false,
+    /** True once the one-time merge of overlapping/duplicate period entries has been completed. */
+    val periodOverlapMergeDone: Boolean = false,
     /**
      * When true, the GoFlo Status home-screen widget shows live cycle data even
      * if a PIN is set.  Users who trust their home screen can opt in; the default
@@ -150,6 +152,7 @@ class AppPreferencesStore(private val context: Context) {
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
         val SYMPTOMS_BACKFILL_DONE = booleanPreferencesKey("symptoms_backfill_done")
+        val PERIOD_OVERLAP_MERGE_DONE = booleanPreferencesKey("period_overlap_merge_done")
         val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
         val DASHBOARD_ENABLED = booleanPreferencesKey("dashboard_enabled")
         val PINNED_STATS = stringPreferencesKey("pinned_stats")
@@ -192,6 +195,7 @@ class AppPreferencesStore(private val context: Context) {
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
             symptomsBackfillDone = prefs[Keys.SYMPTOMS_BACKFILL_DONE] ?: false,
+            periodOverlapMergeDone = prefs[Keys.PERIOD_OVERLAP_MERGE_DONE] ?: false,
             widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
             dashboardEnabled = prefs[Keys.DASHBOARD_ENABLED] ?: false,
             pinnedStats = prefs[Keys.PINNED_STATS] ?: "",
@@ -320,6 +324,10 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setSymptomsBackfillDone(done: Boolean) {
         context.dataStore.edit { it[Keys.SYMPTOMS_BACKFILL_DONE] = done }
+    }
+
+    suspend fun setPeriodOverlapMergeDone(done: Boolean) {
+        context.dataStore.edit { it[Keys.PERIOD_OVERLAP_MERGE_DONE] = done }
     }
 
     suspend fun setWidgetDataVisible(visible: Boolean) {

@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.47.2-beta.2] - 2026-06-10
+
+### Fixed
+- One-time data fixup: existing period entries with overlapping date ranges (e.g. duplicates created by the bug fixed in 0.47.2-beta.1) are automatically merged into a single entry on next app launch, combining notes and symptoms.
+
+---
 ## [0.47.2-beta.1] - 2026-06-10
 
 ### Fixed
