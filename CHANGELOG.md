@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.47.2-beta.1] - 2026-06-10
+
+### Fixed
+- Logging a period for a date that already falls within an existing (or ongoing) period now opens that period for editing instead of creating a new, overlapping entry. Previously, tapping "Log Period" for a date covered by an ongoing period created a duplicate period record.
+
+---
 ## [0.47.1-beta.1] - 2026-06-06
 
 ### Changed

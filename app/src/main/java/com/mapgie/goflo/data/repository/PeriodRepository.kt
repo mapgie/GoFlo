@@ -289,6 +289,17 @@ class PeriodRepository(
         fun activePeriod(periods: List<PeriodEntry>): PeriodEntry? =
             periods.firstOrNull { it.endDate == null }
 
+        /**
+         * Returns the period whose date range covers [date], if any.
+         * An ongoing period (endDate == null) is treated as extending through today.
+         */
+        fun periodForDate(periods: List<PeriodEntry>, date: LocalDate): PeriodEntry? =
+            periods.firstOrNull { entry ->
+                val start = LocalDate.parse(entry.startDate)
+                val end = entry.endDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
+                !date.isBefore(start) && !date.isAfter(end)
+            }
+
         fun cycleDay(periods: List<PeriodEntry>): Int? {
             val last = periods.maxByOrNull { it.startDate } ?: return null
             val start = LocalDate.parse(last.startDate)
