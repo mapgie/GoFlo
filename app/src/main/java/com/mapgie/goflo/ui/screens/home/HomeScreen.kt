@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.BuildConfig
+import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
@@ -110,6 +111,18 @@ fun HomeScreen(
 
     // ── Quick Log helper ──────────────────────────────────────────────────────
 
+    // If [date] already falls within an existing period's range (including an
+    // ongoing period, which extends through today), edit that period instead of
+    // creating a new, overlapping entry.
+    fun navigateToLogPeriod(date: LocalDate) {
+        val existing = PeriodRepository.periodForDate(state.periods, date)
+        if (existing != null) {
+            onNavigate(Screen.LogPeriod.withId(existing.id))
+        } else {
+            onNavigate(Screen.LogPeriod.newEntryForDate(date))
+        }
+    }
+
     fun handleQuickLog(date: LocalDate) {
         val id = state.quickLogCategoryId
         val cat = state.trackingCategories.firstOrNull { it.id == id }
@@ -118,7 +131,7 @@ fun HomeScreen(
                 showLogMenu = true
             }
             id == -1L ->
-                onNavigate(Screen.LogPeriod.newEntryForDate(date))
+                navigateToLogPeriod(date)
             cat?.categoryType == "increment" ->
                 // Instantly add one for the tapped day; no screen navigation.
                 viewModel.incrementCategory(id, date)
@@ -202,7 +215,7 @@ fun HomeScreen(
                 onLogPeriod = {
                     showLogMenu = false
                     logMenuTargetDate = null
-                    onNavigate(Screen.LogPeriod.newEntryForDate(targetDate))
+                    navigateToLogPeriod(targetDate)
                 },
                 periodTrackingEnabled = state.periodTrackingEnabled,
                 categories = state.trackingCategories,

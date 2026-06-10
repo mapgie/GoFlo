@@ -65,6 +65,63 @@ class PeriodRepository(
         periodDao.deletePeriod(entry)
     }
 
+    /**
+     * One-time data fixup: merges period entries whose date ranges overlap into a
+     * single entry. An ongoing period (endDate == null) is treated as extending
+     * through today when checking for overlap.
+     *
+     * Periods are processed in start-date order. When a period's start date falls
+     * within the running merged range, it is folded into that range (notes are
+     * concatenated, symptoms moved over, and the duplicate entry deleted).
+     *
+     * @return the number of duplicate entries removed.
+     */
+    suspend fun mergeOverlappingPeriods(): Int {
+        val periods = periodDao.getAllPeriodsOnce()
+        if (periods.size < 2) return 0
+
+        var merged = 0
+        var current = periods.first()
+        var currentEnd = current.endDate?.let { LocalDate.parse(it) }
+
+        for (next in periods.drop(1)) {
+            val currentEffectiveEnd = currentEnd ?: LocalDate.now()
+            val nextStart = LocalDate.parse(next.startDate)
+
+            if (!nextStart.isAfter(currentEffectiveEnd)) {
+                val nextEnd = next.endDate?.let { LocalDate.parse(it) }
+                currentEnd = when {
+                    currentEnd == null || nextEnd == null -> null
+                    nextEnd.isAfter(currentEnd) -> nextEnd
+                    else -> currentEnd
+                }
+
+                val currentSymptoms = symptomDao.getSymptomsForPeriodOnce(current.id).map { it.symptomType }.toSet()
+                symptomDao.getSymptomsForPeriodOnce(next.id)
+                    .map { it.symptomType }
+                    .filter { it.isNotBlank() && it !in currentSymptoms }
+                    .forEach { symptomDao.insertSymptom(SymptomEntry(periodId = current.id, symptomType = it)) }
+
+                current = current.copy(endDate = currentEnd?.toString(), notes = mergeNotes(current.notes, next.notes))
+                periodDao.updatePeriod(current)
+                periodDao.deletePeriod(next)
+                merged++
+            } else {
+                current = next
+                currentEnd = next.endDate?.let { LocalDate.parse(it) }
+            }
+        }
+
+        return merged
+    }
+
+    private fun mergeNotes(a: String, b: String): String = when {
+        b.isBlank() -> a
+        a.isBlank() -> b
+        a.contains(b) -> a
+        else -> "$a\n$b"
+    }
+
     // ── Symptom read operations ───────────────────────────────────────────────
 
     /** Returns all symptom labels for a period as a flat set of strings. */
@@ -288,6 +345,17 @@ class PeriodRepository(
 
         fun activePeriod(periods: List<PeriodEntry>): PeriodEntry? =
             periods.firstOrNull { it.endDate == null }
+
+        /**
+         * Returns the period whose date range covers [date], if any.
+         * An ongoing period (endDate == null) is treated as extending through today.
+         */
+        fun periodForDate(periods: List<PeriodEntry>, date: LocalDate): PeriodEntry? =
+            periods.firstOrNull { entry ->
+                val start = LocalDate.parse(entry.startDate)
+                val end = entry.endDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
+                !date.isBefore(start) && !date.isAfter(end)
+            }
 
         fun cycleDay(periods: List<PeriodEntry>): Int? {
             val last = periods.maxByOrNull { it.startDate } ?: return null

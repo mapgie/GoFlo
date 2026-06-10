@@ -97,6 +97,9 @@ A prediction window (e.g. a 5-day expected period) should remain visible as long
 **Don't double-count with offset when SQLite immediately reflects inserts in aggregate queries**
 In a Room migration loop that inserts rows one-by-one, calling `MAX(displayOrder)+1` in a subquery correctly reflects all previously-inserted rows in the same transaction — SQLite is not a snapshot. Adding a separate `offset` counter on top of that result double-counts and produces gaps (e.g., displayOrder 7, 9, 11 instead of 7, 8, 9). Remove the offset variable and let the `MAX+1` subquery self-increment across the loop.
 
+**Date-range entities with an "ongoing" (null end) state need an existence check before quick-log entry points create a new record**
+When an entity represents a date range and a null end date means "ongoing, extends through today" (e.g. an active period), any UI shortcut that creates a *new* record for a tapped date (calendar tap, FAB, speed dial) must first check whether that date already falls within an existing record's range. Otherwise the user ends up with two overlapping "ongoing" records for what they consider a single continuous span. Add a shared `recordForDate(records, date)` helper that treats a null end as `today`, and route quick-log entry points through it: if a match exists, navigate to edit it; otherwise create new.
+
 
 **Insert/upsert flags need a separate edit-by-ID path**
 A flag like `allowMultiple` controls whether saving a log upserts an existing row (keyed by date + category) or always inserts a new one. Neither branch handles "update this specific existing row by ID." Routing an edit through `allowMultiple = false` works only when the existing row is uniquely keyed by the natural key; using `allowMultiple = true` creates a duplicate instead. The correct pattern is a dedicated `updateInPlace(existingLog, …)` method. Callers check `existingLog != null` and take this path directly, bypassing the insert/upsert decision entirely.

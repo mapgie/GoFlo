@@ -11,6 +11,7 @@ import com.mapgie.goflo.data.repository.CustomAlarmRepository
 import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingRepository
 import com.mapgie.goflo.notifications.ReminderScheduler
+import com.mapgie.goflo.widget.GoFloWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,6 +49,7 @@ class GoFloApplication : Application() {
         })
         appScope.launch { runFlowBackfillIfNeeded() }
         appScope.launch { runSymptomsBackfillIfNeeded() }
+        appScope.launch { runPeriodOverlapMergeIfNeeded() }
     }
 
     /**
@@ -114,5 +116,24 @@ class GoFloApplication : Application() {
         }
 
         preferencesStore.setSymptomsBackfillDone(true)
+    }
+
+    /**
+     * One-time data fixup: merges period entries whose date ranges overlap
+     * (e.g. a new period logged for a date already covered by an ongoing period
+     * before the entry-point fix existed) into a single entry.
+     *
+     * Only runs once — guarded by the [periodOverlapMergeDone] preference flag.
+     */
+    private suspend fun runPeriodOverlapMergeIfNeeded() {
+        val prefs = preferencesStore.preferences.first()
+        if (prefs.periodOverlapMergeDone) return
+
+        val mergedCount = repository.mergeOverlappingPeriods()
+        if (mergedCount > 0) {
+            GoFloWidget.updateAllWidgets(this)
+        }
+
+        preferencesStore.setPeriodOverlapMergeDone(true)
     }
 }
