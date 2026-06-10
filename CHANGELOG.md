@@ -18,6 +18,12 @@ Rules:
 - Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
 
 ---
+## [0.47.2-beta.1] - 2026-06-10
+
+### Fixed
+- Logging a slider tracker without dragging it now saves using the slider's displayed default value, instead of silently doing nothing.
+
+---
 ## [0.47.1-beta.1] - 2026-06-06
 
 ### Changed

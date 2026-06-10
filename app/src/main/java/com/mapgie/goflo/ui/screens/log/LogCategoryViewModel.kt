@@ -201,7 +201,9 @@ class LogCategoryViewModel(
         // Determine the values to persist
         val valuesToSave: Set<String> = when (cat?.categoryType) {
             "numeric_slider" -> {
-                val v = state.numericValue ?: return   // nothing to save yet
+                // Null means the user hasn't dragged the slider; fall back to its
+                // displayed default (numericMin) rather than blocking the save.
+                val v = state.numericValue ?: cat.numericMin
                 setOf(formatNumericValue(v, cat.allowDecimals))
             }
             "numeric_free" -> {
