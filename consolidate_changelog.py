@@ -11,6 +11,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from check_changelog_fragment import validate
+
 ROOT = Path(__file__).resolve().parent
 FRAGMENTS_DIR = ROOT / "changelog" / "unreleased"
 CHANGELOG = ROOT / "CHANGELOG.md"
@@ -100,6 +102,13 @@ def main():
     if not fragments:
         print("status=no_fragments")
         return 0
+
+    errors = [error for path, _ in fragments for error in [validate(path)] if error]
+    if errors:
+        for error in errors:
+            print(f"::error::{error}")
+        print("Fix or remove the invalid fragment(s) above before re-running this workflow.")
+        return 1
 
     bump = highest_bump(fragments)
     text, current_code, current_name = read_current_version()
