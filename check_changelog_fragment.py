@@ -83,18 +83,35 @@ def validate(path):
 
 def main():
     base_ref = sys.argv[1] if len(sys.argv) > 1 else "origin/main"
+    changed_paths = {path for _, path in changed_files(base_ref)}
     added = added_fragment_files(base_ref)
+    has_fragment = bool(added)
+    is_release_edit = "CHANGELOG.md" in changed_paths and "app/build.gradle.kts" in changed_paths
 
-    if not added:
-        if not touches_app_code(base_ref):
-            print("No app code changes in this PR; changelog fragment not required.")
+    if touches_app_code(base_ref):
+        if is_release_edit and has_fragment:
+            print(
+                "::error::This PR both edits CHANGELOG.md/app/build.gradle.kts directly and adds "
+                "a changelog/unreleased fragment. Release PRs (from the 'Prepare release' "
+                "workflow) should only do the former; other PRs should only do the latter "
+                "(see changelog/unreleased/README.md)."
+            )
+            return 1
+
+        if not is_release_edit and not has_fragment:
+            print(
+                "::error::No new changelog fragment found. Add a file at "
+                "changelog/unreleased/<slug>.json describing this change "
+                "(see changelog/unreleased/README.md)."
+            )
+            return 1
+
+        if is_release_edit:
+            print("CHANGELOG.md and app/build.gradle.kts updated directly; changelog fragment not required.")
             return 0
-        print(
-            "::error::No new changelog fragment found. Add a file at "
-            "changelog/unreleased/<slug>.json describing this change "
-            "(see changelog/unreleased/README.md)."
-        )
-        return 1
+    elif not has_fragment:
+        print("No app code changes in this PR; changelog fragment not required.")
+        return 0
 
     # Validate every pending fragment, not just the ones this PR adds, so a
     # hand-edit that breaks an existing fragment is caught here rather than
