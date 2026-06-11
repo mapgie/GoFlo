@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validates that a PR adds exactly one well-formed changelog fragment.
+"""Validates that a PR adds one or more well-formed changelog fragments.
 
 Used by .github/workflows/changelog-check.yml.
 """

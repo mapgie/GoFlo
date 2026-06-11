@@ -1,6 +1,6 @@
 # Unreleased changelog fragments
 
-Every PR that changes app code must add **one** new file here, named
+Every PR that changes app code must add at least one new file here, named
 `changelog/unreleased/<short-slug>.json`, instead of editing `CHANGELOG.md` or
 bumping the version in `app/build.gradle.kts` directly. New files never
 conflict with each other, so this avoids merge conflicts between PRs.
