@@ -4,6 +4,7 @@
 Used by .github/workflows/changelog-check.yml.
 """
 
+import fnmatch
 import json
 import subprocess
 import sys
@@ -12,22 +13,46 @@ from pathlib import Path
 VALID_BUMPS = {"patch", "minor", "major"}
 VALID_SECTIONS = {"added", "changed", "fixed"}
 
+# Mirrors the path filter on build.yml's pull_request trigger: a changelog
+# fragment is only required when a PR touches files that affect the app build.
+APP_CODE_PATTERNS = [
+    "*.kt",
+    "*.xml",
+    "*.gradle.kts",
+    "gradle/libs.versions.toml",
+    "gradle/wrapper/*",
+    "gradle.properties",
+]
+
 
 FRAGMENTS_DIR = Path("changelog/unreleased")
 
 
-def added_fragment_files(base_ref):
+def changed_files(base_ref):
     diff = subprocess.run(
         ["git", "diff", "--name-status", f"{base_ref}...HEAD"],
         capture_output=True, text=True, check=True,
     ).stdout
 
-    added = []
+    files = []
     for line in diff.splitlines():
         status, _, path = line.partition("\t")
-        if status == "A" and path.startswith("changelog/unreleased/") and path.endswith(".json"):
-            added.append(path)
-    return added
+        files.append((status, path))
+    return files
+
+
+def added_fragment_files(base_ref):
+    return [
+        path for status, path in changed_files(base_ref)
+        if status == "A" and path.startswith("changelog/unreleased/") and path.endswith(".json")
+    ]
+
+
+def touches_app_code(base_ref):
+    return any(
+        any(fnmatch.fnmatch(path, pattern) for pattern in APP_CODE_PATTERNS)
+        for _, path in changed_files(base_ref)
+    )
 
 
 def all_fragment_files():
@@ -58,15 +83,35 @@ def validate(path):
 
 def main():
     base_ref = sys.argv[1] if len(sys.argv) > 1 else "origin/main"
+    changed_paths = {path for _, path in changed_files(base_ref)}
     added = added_fragment_files(base_ref)
+    has_fragment = bool(added)
+    is_release_edit = "CHANGELOG.md" in changed_paths and "app/build.gradle.kts" in changed_paths
 
-    if not added:
-        print(
-            "::error::No new changelog fragment found. Add a file at "
-            "changelog/unreleased/<slug>.json describing this change "
-            "(see changelog/unreleased/README.md)."
-        )
-        return 1
+    if touches_app_code(base_ref):
+        if is_release_edit and has_fragment:
+            print(
+                "::error::This PR both edits CHANGELOG.md/app/build.gradle.kts directly and adds "
+                "a changelog/unreleased fragment. Release PRs (from the 'Prepare release' "
+                "workflow) should only do the former; other PRs should only do the latter "
+                "(see changelog/unreleased/README.md)."
+            )
+            return 1
+
+        if not is_release_edit and not has_fragment:
+            print(
+                "::error::No new changelog fragment found. Add a file at "
+                "changelog/unreleased/<slug>.json describing this change "
+                "(see changelog/unreleased/README.md)."
+            )
+            return 1
+
+        if is_release_edit:
+            print("CHANGELOG.md and app/build.gradle.kts updated directly; changelog fragment not required.")
+            return 0
+    elif not has_fragment:
+        print("No app code changes in this PR; changelog fragment not required.")
+        return 0
 
     # Validate every pending fragment, not just the ones this PR adds, so a
     # hand-edit that breaks an existing fragment is caught here rather than

@@ -20,8 +20,14 @@ jobs:
       - name: Consolidate changelog fragments
         id: consolidate
         run: |
+          set +e
           OUTPUT=$(python3 consolidate_changelog.py)
+          STATUS=$?
+          set -e
           echo "$OUTPUT"
+          if [ "$STATUS" -ne 0 ]; then
+            exit 1
+          fi
           if echo "$OUTPUT" | grep -q '^status=no_fragments'; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -37,7 +43,7 @@ jobs:
           BRANCH="release/v${VERSION}"
 
           if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
-            echo "::error::Branch $BRANCH already exists — there is likely already an open release PR. Merge or close it before running this workflow again."
+            echo "::error::Branch $BRANCH already exists. There is likely already an open release PR. Merge or close it before running this workflow again."
             exit 1
           fi
 
@@ -49,4 +55,4 @@ jobs:
           git push -u origin "$BRANCH"
           gh pr create --base main --head "$BRANCH" \
             --title "Release v${VERSION}" \
-            --body "Consolidates pending changelog fragments and bumps the app version to v${VERSION}."
+            --body "Consolidates pending changelog fragments and bumps the app version to v${VERSION}. CI will build, test, and lint this PR before it can be merged."
