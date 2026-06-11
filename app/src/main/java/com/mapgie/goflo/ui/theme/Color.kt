@@ -1373,10 +1373,9 @@ private fun standardColorSchemeFor(theme: AppTheme, systemIsDark: Boolean): Colo
 /**
  * Builds a full Material 3 colour scheme from three HSL hue values (0–360°).
  *
- * When [primaryArgb]/[secondaryArgb]/[tertiaryArgb] are non-zero AND [isDark] matches
- * [pickedForDark], the actual picked ARGB is used directly as the semantic role colour so
- * the theme reflects exactly what the user chose. The complementary mode (light↔dark) is
- * always hue-derived so it remains readable without any user effort.
+ * When [primaryArgb]/[secondaryArgb]/[tertiaryArgb] are non-zero the actual picked ARGB
+ * is used directly for both light and dark — surfaces adapt around the fixed colour.
+ * On-colours are WCAG-computed from the ARGB luminance.
  */
 fun buildCustomColorScheme(
     primaryHue:    Float,
@@ -1386,17 +1385,13 @@ fun buildCustomColorScheme(
     secondaryArgb: Int = 0,
     tertiaryArgb:  Int = 0,
     isDark:        Boolean,
-    pickedForDark: Boolean = false,
 ): ColorScheme {
-    // Only use the actual picked ARGB when building the mode the user designed for.
-    val useActual = isDark == pickedForDark
-
     fun resolveColor(argb: Int, hue: Float, darkS: Float, darkL: Float, lightS: Float, lightL: Float): Color {
-        if (useActual && argb != 0) return Color(argb)
+        if (argb != 0) return Color(argb)
         return if (isDark) Color.hsl(hue, darkS, darkL) else Color.hsl(hue, lightS, lightL)
     }
 
-    // WCAG-safe on-color for an actual picked ARGB: near-black on bright, white on dark.
+    // WCAG-safe on-color: near-black on bright colours, white on dark colours.
     fun onArgb(argb: Int): Color {
         val r = ((argb shr 16) and 0xFF) / 255.0
         val g = ((argb shr 8)  and 0xFF) / 255.0
@@ -1411,19 +1406,19 @@ fun buildCustomColorScheme(
     val tertiary  = resolveColor(tertiaryArgb,  tertiaryHue,  0.55f, 0.70f, 0.45f, 0.35f)
 
     val onPrimary   = when {
-        useActual && primaryArgb   != 0 -> onArgb(primaryArgb)
-        isDark                          -> Color.hsl(primaryHue,   0.75f, 0.10f)
-        else                            -> Color.White
+        primaryArgb   != 0 -> onArgb(primaryArgb)
+        isDark             -> Color.hsl(primaryHue,   0.75f, 0.10f)
+        else               -> Color.White
     }
     val onSecondary = when {
-        useActual && secondaryArgb != 0 -> onArgb(secondaryArgb)
-        isDark                          -> Color.hsl(secondaryHue, 0.55f, 0.10f)
-        else                            -> Color.White
+        secondaryArgb != 0 -> onArgb(secondaryArgb)
+        isDark             -> Color.hsl(secondaryHue, 0.55f, 0.10f)
+        else               -> Color.White
     }
     val onTertiary  = when {
-        useActual && tertiaryArgb  != 0 -> onArgb(tertiaryArgb)
-        isDark                          -> Color.hsl(tertiaryHue,  0.55f, 0.10f)
-        else                            -> Color.White
+        tertiaryArgb  != 0 -> onArgb(tertiaryArgb)
+        isDark             -> Color.hsl(tertiaryHue,  0.55f, 0.10f)
+        else               -> Color.White
     }
 
     return if (isDark) {
@@ -1440,9 +1435,9 @@ fun buildCustomColorScheme(
             onTertiary          = onTertiary,
             tertiaryContainer   = Color.hsl(tertiaryHue,  0.40f, 0.25f),
             onTertiaryContainer = Color.hsl(tertiaryHue,  0.40f, 0.90f),
-            background          = Color.hsl(primaryHue, 0.05f, 0.10f),
+            background          = Color.hsl(primaryHue, 0.02f, 0.08f),
             onBackground        = Color.hsl(primaryHue, 0.10f, 0.90f),
-            surface             = Color.hsl(primaryHue, 0.05f, 0.12f),
+            surface             = Color.hsl(primaryHue, 0.02f, 0.10f),
             onSurface           = Color.hsl(primaryHue, 0.10f, 0.90f),
             surfaceVariant      = Color.hsl(primaryHue, 0.15f, 0.20f),
             onSurfaceVariant    = Color.hsl(primaryHue, 0.10f, 0.75f),

@@ -27,6 +27,7 @@ class GoFloApplication : Application() {
         TrackingRepository(database.trackingCategoryDao(), database.trackingLogDao(), database.symptomDao())
     }
     val customAlarmRepository by lazy { CustomAlarmRepository(database.customAlarmDao()) }
+    val colorProfileDao by lazy { database.colorProfileDao() }
     val preferencesStore by lazy { AppPreferencesStore(this) }
     val securityPreferences by lazy { SecurityPreferences(this) }
 
