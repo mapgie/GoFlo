@@ -7,6 +7,10 @@ permissions:
   contents: write
   pull-requests: write
 
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -24,10 +28,22 @@ jobs:
           fi
           echo "version=$(echo "$OUTPUT" | grep '^version=' | cut -d= -f2)" >> "$GITHUB_OUTPUT"
 
+      - name: Fail if this version was already tagged
+        if: steps.consolidate.outputs.skip != 'true'
+        run: |
+          VERSION="${{ steps.consolidate.outputs.version }}"
+          if git ls-remote --exit-code origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::Tag v${VERSION} already exists. The computed next version collides with an existing tag — this should only happen if a tag was created by hand. Resolve the tag before preparing a release."
+            exit 1
+          fi
+          echo "v${VERSION} is unused — good."
+
       - name: Open release PR
         if: steps.consolidate.outputs.skip != 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional RELEASE_PR_TOKEN (a PAT or GitHub App token): PRs opened
+          # with the default GITHUB_TOKEN do not trigger CI workflows.
+          GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.consolidate.outputs.version }}"
           BRANCH="release/v${VERSION}"
@@ -39,4 +55,6 @@ jobs:
           git push -u origin "$BRANCH"
           gh pr create --base main --head "$BRANCH" \
             --title "Release v${VERSION}" \
-            --body "Consolidates pending changelog fragments and bumps the app version to v${VERSION}."
+            --body "Consolidates pending changelog fragments and bumps the app version to v${VERSION}.
+
+          **Merging this PR publishes the release**: the publish-release workflow tags \`v${VERSION}\`, builds the APK, and creates the GitHub release automatically."

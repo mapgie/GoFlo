@@ -46,21 +46,30 @@ the main source of merge conflicts. Instead, add **one** fragment file at
 `bump` is required (`patch`/`minor`/`major`); include only the `added`/`changed`/`fixed`
 sections that apply, each a list of one-line user-facing descriptions. CI
 (`changelog-check.yml`, via `check_changelog_fragment.py`) fails the PR if no valid
-fragment is added. See `changelog/unreleased/README.md` for details.
+fragment is added, and also fails any non-release PR that edits
+`versionCode`/`versionName`. See `changelog/unreleased/README.md` for details.
 
 ### Cutting a release
 
 The "Prepare release" GitHub Actions workflow (`workflow_dispatch`,
 `.github/workflows/prepare-release.yml`) runs `consolidate_changelog.py`, which:
-- gathers all fragments in `changelog/unreleased/`
+- re-validates and gathers all fragments in `changelog/unreleased/`
 - computes the overall bump as the highest severity among them
 - bumps `versionCode` (+1) and `versionName` in `app/build.gradle.kts` — a `patch`-level
   release increments `beta.N`; `minor`/`major` reset to `beta.1`
 - writes one consolidated entry at the top of `CHANGELOG.md`
 - deletes the consumed fragments
-- opens a `Release vX.Y.Z` PR for review
+- opens a `Release vX.Y.Z` PR for review (after failing fast if the computed version
+  already has a git tag)
 
-Promoting out of beta (dropping the `-beta.N` suffix) remains a manual edit.
+**Merging the Release PR publishes the release automatically.** The publish-release
+workflow (`.github/workflows/publish-release.yml`) detects the version change on `main`,
+creates the `vX.Y.Z` tag, builds the APK, and creates the GitHub release. The tag is the
+duplicate gate — tag creation is atomic at the remote, so a version can only ever be
+published once. There is no manual publish dispatch; do not re-add one.
+
+Promoting out of beta (dropping the `-beta.N` suffix) remains a manual edit, done via a
+`release/*` branch (CI blocks version edits on any other branch).
 
 ### Changelog immutability rules — NO EXCEPTIONS
 

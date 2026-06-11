@@ -155,6 +155,16 @@ A function may accept a flag (`wcag: Boolean = false`) and correctly wire it thr
 
 ---
 
+### CI / Release Engineering
+
+**"Check then act" version guards still allow duplicate publish attempts — make an atomic artifact the lock**
+A release pipeline that validates "this version is new" in one step and publishes in a later, separately triggered step can go stale between check and act, and a manually dispatched publish can run against an already-released main. Instead, key publishing off the event that changes the version (the merge of the release PR) and use `git push origin <tag>` as the gate: tag creation is atomic at the remote, so exactly one publish per version can ever proceed. Pair it with a CI rule that blocks version edits outside release branches, so the automation is the only writer of the version. Duplicates then stop being a failure mode that checks must catch.
+
+**Pushes and PRs created with the default `GITHUB_TOKEN` do not trigger workflows**
+GitHub deliberately suppresses workflow runs for events created by the default Actions token, so a bot-opened release PR shows no CI at all and is unmergeable when checks are required. Either create the PR with a PAT/App token, or design the pipeline so validation happens elsewhere: feature-PR CI before merge plus a post-merge publish workflow, which does fire because the human performing the merge is the triggering actor.
+
+---
+
 ### Auth
 
 **Auth state transitions need explicit guards**

@@ -14,11 +14,23 @@ permissions:
 
 jobs:
   check:
+    # Release PRs (created by the "Prepare release" workflow) are the one
+    # place where CHANGELOG.md and the version are edited directly, and they
+    # delete fragments rather than add them.
+    if: ${{ !startsWith(github.head_ref, 'release/') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Block manual version edits
+        run: |
+          if git diff origin/${{ github.base_ref }}...HEAD -- app/build.gradle.kts | grep -E '^[+-][^+-].*(versionCode|versionName)'; then
+            echo "::error::versionCode/versionName must not be edited in feature PRs. The release automation owns them (see 'Cutting a release' in CHANGELOG.md). Revert the version change and add a changelog fragment instead."
+            exit 1
+          fi
+          echo "No manual version edits — good."
 
       - name: Check for a changelog fragment
         run: python3 check_changelog_fragment.py origin/${{ github.base_ref }}

@@ -11,6 +11,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from check_changelog_fragment import validate
+
 ROOT = Path(__file__).resolve().parent
 FRAGMENTS_DIR = ROOT / "changelog" / "unreleased"
 CHANGELOG = ROOT / "CHANGELOG.md"
@@ -99,11 +101,18 @@ def insert_entry(entry):
 
 
 def main():
-    fragments = load_fragments()
-    if not fragments:
+    paths = sorted(FRAGMENTS_DIR.glob("*.json"))
+    if not paths:
         print("status=no_fragments")
         return 0
 
+    errors = [error for path in paths for error in [validate(path)] if error]
+    if errors:
+        for error in errors:
+            print(f"Invalid fragment: {error}", file=sys.stderr)
+        return 1
+
+    fragments = load_fragments()
     bump = highest_bump(fragments)
     text, current_code, current_name = read_current_version()
     new_code = current_code + 1

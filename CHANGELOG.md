@@ -26,9 +26,20 @@ format. New fragment files never conflict between PRs.
 Run the "Prepare release" GitHub Actions workflow (`workflow_dispatch`). It consolidates
 all pending fragments in `changelog/unreleased/` into a single new entry below, bumps
 `versionCode` (+1) and `versionName` accordingly, removes the consumed fragments, and opens
-a PR for review. While the project is in `-beta.N`, a `patch`-level release increments
-`beta.N`; a `minor` or `major` release resets to `beta.1`. Promoting out of beta (dropping
-the `-beta.N` suffix) remains a manual edit.
+a `Release vX.Y.Z` PR for review. While the project is in `-beta.N`, a `patch`-level
+release increments `beta.N`; a `minor` or `major` release resets to `beta.1`. Promoting
+out of beta (dropping the `-beta.N` suffix) remains a manual edit, done on a `release/*`
+branch.
+
+**Merging the Release PR publishes the release.** The publish-release workflow detects
+the version change on `main`, creates the `vX.Y.Z` git tag, builds the APK, and creates
+the GitHub release. The tag is the duplicate gate: tag creation is atomic, so a version
+can only ever be published once. There is no manual publish step.
+
+Two guarantees back this up:
+- CI blocks any non-release PR that edits `versionCode`/`versionName`, so the release
+  automation is the only writer of the version.
+- "Prepare release" fails fast if the computed next version already has a tag.
 
 ---
 ## [0.47.2-beta.3] - 2026-06-10

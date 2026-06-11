@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Validates that a PR adds exactly one well-formed changelog fragment.
+"""Validates that a PR adds at least one well-formed changelog fragment.
 
-Used by .github/workflows/changelog-check.yml.
+Used by .github/workflows/changelog-check.yml; validate() is also reused by
+consolidate_changelog.py to re-check fragments before a release.
 """
 
 import json
@@ -28,7 +29,12 @@ def added_fragment_files(base_ref):
 
 
 def validate(path):
-    data = json.loads(Path(path).read_text())
+    try:
+        data = json.loads(Path(path).read_text())
+    except json.JSONDecodeError as exc:
+        return f"{path}: not valid JSON ({exc})"
+    if not isinstance(data, dict):
+        return f"{path}: top-level value must be a JSON object"
 
     bump = data.get("bump")
     if bump not in VALID_BUMPS:

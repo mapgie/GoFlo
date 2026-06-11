@@ -1,0 +1,95 @@
+name: Publish release
+
+# Publishes a GitHub release automatically when a Release PR (created by the
+# "Prepare release" workflow) merges to main. The git tag is the duplicate
+# gate: tag creation is atomic at the remote, so at most one publish per
+# version can ever proceed. There is no manual publish step.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/build.gradle.kts"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Decide whether this merge is a release
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=$(grep 'versionName' app/build.gradle.kts | grep -oP '"[^"]+"' | tr -d '"')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          PREVIOUS=$(git show HEAD^:app/build.gradle.kts | grep 'versionName' | grep -oP '"[^"]+"' | tr -d '"' || true)
+          if [ "$VERSION" = "$PREVIOUS" ]; then
+            echo "versionName unchanged (${VERSION}) — not a release merge, skipping."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if gh release view "v${VERSION}" &>/dev/null; then
+            echo "Release v${VERSION} already exists — nothing to do."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "publish=true" >> "$GITHUB_OUTPUT"
+
+      - name: Create release tag (atomic duplicate gate)
+        if: steps.gate.outputs.publish == 'true'
+        run: |
+          VERSION="${{ steps.gate.outputs.version }}"
+          if git ls-remote --exit-code origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists from an earlier run that failed before publishing — reusing it."
+          else
+            git tag "v${VERSION}"
+            git push origin "v${VERSION}"
+          fi
+
+      - name: Set up JDK 17
+        if: steps.gate.outputs.publish == 'true'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle 8.13
+        if: steps.gate.outputs.publish == 'true'
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.13'
+          cache-read-only: true
+
+      - name: Write local.properties
+        if: steps.gate.outputs.publish == 'true'
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+      - name: Build debug APK
+        if: steps.gate.outputs.publish == 'true'
+        run: gradle :app:assembleDebug --no-daemon
+
+      - name: Create GitHub Release
+        if: steps.gate.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.gate.outputs.version }}"
+          APK_NAME="GoFlo-${VERSION}-debug.apk"
+          mv app/build/outputs/apk/debug/app-debug.apk \
+             "app/build/outputs/apk/debug/${APK_NAME}"
+          gh release create "v${VERSION}" \
+            "app/build/outputs/apk/debug/${APK_NAME}" \
+            --title "GoFlo v${VERSION}" \
+            --notes "Debug build — enable 'Install unknown apps' in Android settings to sideload."

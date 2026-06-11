@@ -27,4 +27,10 @@ conflict with each other, so this avoids merge conflicts between PRs.
 Run the "Prepare release" workflow (`workflow_dispatch`). It consolidates all
 fragments in this directory into a single new `CHANGELOG.md` entry, bumps
 `versionCode` and `versionName` in `app/build.gradle.kts` accordingly, removes
-the consumed fragments, and opens a PR for review.
+the consumed fragments, and opens a `Release vX.Y.Z` PR for review.
+
+Merging that PR publishes the release automatically: the publish-release
+workflow tags `vX.Y.Z` (tag creation is atomic, so a version can never be
+published twice), builds the APK, and creates the GitHub release. CI also
+blocks any non-release PR that edits `versionCode`/`versionName`, so the
+release automation is the only writer of the version.
