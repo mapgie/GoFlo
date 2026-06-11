@@ -22,6 +22,10 @@ conflict with each other, so this avoids merge conflicts between PRs.
   descriptions. Include only the sections that apply, but at least one must
   be a non-empty list.
 
+CI validates every fragment in this directory on each PR (not just newly
+added ones), so an edit that breaks an existing fragment will fail that PR's
+checks rather than surfacing later at release time.
+
 ## Releasing
 
 Run the "Prepare release" workflow (`workflow_dispatch`). It consolidates all

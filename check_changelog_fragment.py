@@ -13,6 +13,9 @@ VALID_BUMPS = {"patch", "minor", "major"}
 VALID_SECTIONS = {"added", "changed", "fixed"}
 
 
+FRAGMENTS_DIR = Path("changelog/unreleased")
+
+
 def added_fragment_files(base_ref):
     diff = subprocess.run(
         ["git", "diff", "--name-status", f"{base_ref}...HEAD"],
@@ -25,6 +28,10 @@ def added_fragment_files(base_ref):
         if status == "A" and path.startswith("changelog/unreleased/") and path.endswith(".json"):
             added.append(path)
     return added
+
+
+def all_fragment_files():
+    return sorted(str(path) for path in FRAGMENTS_DIR.glob("*.json"))
 
 
 def validate(path):
@@ -51,9 +58,9 @@ def validate(path):
 
 def main():
     base_ref = sys.argv[1] if len(sys.argv) > 1 else "origin/main"
-    fragments = added_fragment_files(base_ref)
+    added = added_fragment_files(base_ref)
 
-    if not fragments:
+    if not added:
         print(
             "::error::No new changelog fragment found. Add a file at "
             "changelog/unreleased/<slug>.json describing this change "
@@ -61,13 +68,16 @@ def main():
         )
         return 1
 
-    errors = [error for path in fragments for error in [validate(path)] if error]
+    # Validate every pending fragment, not just the ones this PR adds, so a
+    # hand-edit that breaks an existing fragment is caught here rather than
+    # at release time.
+    errors = [error for path in all_fragment_files() for error in [validate(path)] if error]
     if errors:
         for error in errors:
             print(f"::error::{error}")
         return 1
 
-    for path in fragments:
+    for path in added:
         print(f"{path}: OK")
     return 0
 
