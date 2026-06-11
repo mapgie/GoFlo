@@ -10,14 +10,19 @@ import androidx.core.view.WindowCompat
 
 @Composable
 fun GoFloTheme(
-    appTheme:           AppTheme = AppTheme.CORAL,
-    wcag:               Boolean  = false,
-    customHues:         Triple<Float, Float, Float>? = null,
-    customArgbs:        Triple<Int, Int, Int>? = null,
-    customPickedForDark: Boolean = false,
+    appTheme:        AppTheme = AppTheme.CORAL,
+    wcag:            Boolean  = false,
+    customHues:      Triple<Float, Float, Float>? = null,
+    customArgbs:     Triple<Int, Int, Int>? = null,
+    customThemeMode: String   = "LIGHT",
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
+    val customIsDark = when (customThemeMode) {
+        "DARK"   -> true
+        "SYSTEM" -> systemDark
+        else     -> false
+    }
     val colorScheme = if (appTheme == AppTheme.CUSTOM && customHues != null) {
         buildCustomColorScheme(
             primaryHue    = customHues.first,
@@ -26,19 +31,24 @@ fun GoFloTheme(
             primaryArgb   = customArgbs?.first  ?: 0,
             secondaryArgb = customArgbs?.second ?: 0,
             tertiaryArgb  = customArgbs?.third  ?: 0,
-            isDark        = systemDark,
-            pickedForDark = customPickedForDark,
+            isDark        = customIsDark,
         )
     } else {
         colorSchemeFor(appTheme, systemDark, wcag)
     }
 
+    val systemFollowingThemes = setOf(
+        AppTheme.SYSTEM, AppTheme.CORAL_SYSTEM, AppTheme.GREEN_SYSTEM,
+        AppTheme.SUMMER_CANDY_SYSTEM, AppTheme.BEACH_VIBES_SYSTEM, AppTheme.PEACH_MELBA_SYSTEM,
+        AppTheme.DISCO_SYSTEM, AppTheme.METAL_CHICK_SYSTEM, AppTheme.WHIMSY_SYSTEM,
+        AppTheme.COLOUR_HAPPY_SYSTEM, AppTheme.DRAGON_FIRE_SYSTEM, AppTheme.MIDNIGHT_NEON_SYSTEM,
+    )
+
     // Derived "is dark" flag accounts for all system-following themes.
-    val effectivelyDark = when (appTheme) {
-        AppTheme.SYSTEM,
-        AppTheme.CORAL_SYSTEM,
-        AppTheme.GREEN_SYSTEM -> systemDark
-        else                  -> appTheme.isDark
+    val effectivelyDark = when {
+        appTheme == AppTheme.CUSTOM       -> customIsDark
+        appTheme in systemFollowingThemes -> systemDark
+        else                              -> appTheme.isDark
     }
 
     // Flip status-bar icon contrast so they remain readable on dark surfaces.

@@ -116,8 +116,10 @@ data class AppPreferences(
     val customTertiaryArgb: Int = 0,
     /** Display name the user gave to their custom theme (empty = unnamed). */
     val customThemeName: String = "",
-    /** True when the picked colours are intended for dark mode; false = light mode (default). */
-    val customThemePickedForDark: Boolean = false,
+    /** Light/dark/auto mode for the custom theme: "LIGHT", "DARK", or "SYSTEM". */
+    val customThemeMode: String = "LIGHT",
+    /** ID of the active saved colour profile, or -1 if none selected. */
+    val customActiveProfileId: Long = -1L,
     /** Whether period logging is enabled. Defaults to true; can be toggled from Tracking Modes or the period log screen. */
     val periodTrackingEnabled: Boolean = true,
     /** Comma-separated list of active tracking mode IDs (e.g. "FERTILITY,PREGNANCY"). */
@@ -173,8 +175,9 @@ class AppPreferencesStore(private val context: Context) {
         val CUSTOM_PRIMARY_ARGB   = intPreferencesKey("custom_primary_argb")
         val CUSTOM_SECONDARY_ARGB = intPreferencesKey("custom_secondary_argb")
         val CUSTOM_TERTIARY_ARGB  = intPreferencesKey("custom_tertiary_argb")
-        val CUSTOM_THEME_NAME           = stringPreferencesKey("custom_theme_name")
-        val CUSTOM_THEME_PICKED_FOR_DARK = booleanPreferencesKey("custom_theme_picked_for_dark")
+        val CUSTOM_THEME_NAME         = stringPreferencesKey("custom_theme_name")
+        val CUSTOM_THEME_MODE         = stringPreferencesKey("custom_theme_mode")
+        val CUSTOM_ACTIVE_PROFILE_ID  = longPreferencesKey("custom_active_profile_id")
         val PERIOD_TRACKING_ENABLED   = booleanPreferencesKey("period_tracking_enabled")
         val ACTIVE_MODES              = stringPreferencesKey("active_modes")
         val PREGNANCY_DATE_STR        = stringPreferencesKey("pregnancy_date_str")
@@ -216,9 +219,10 @@ class AppPreferencesStore(private val context: Context) {
             customPrimaryArgb      = prefs[Keys.CUSTOM_PRIMARY_ARGB]         ?: 0,
             customSecondaryArgb    = prefs[Keys.CUSTOM_SECONDARY_ARGB]       ?: 0,
             customTertiaryArgb     = prefs[Keys.CUSTOM_TERTIARY_ARGB]        ?: 0,
-            customThemeName        = prefs[Keys.CUSTOM_THEME_NAME]           ?: "",
-            customThemePickedForDark = prefs[Keys.CUSTOM_THEME_PICKED_FOR_DARK] ?: false,
-            periodTrackingEnabled  = prefs[Keys.PERIOD_TRACKING_ENABLED]      ?: true,
+            customThemeName          = prefs[Keys.CUSTOM_THEME_NAME]          ?: "",
+            customThemeMode          = prefs[Keys.CUSTOM_THEME_MODE]          ?: "LIGHT",
+            customActiveProfileId    = prefs[Keys.CUSTOM_ACTIVE_PROFILE_ID]   ?: -1L,
+            periodTrackingEnabled    = prefs[Keys.PERIOD_TRACKING_ENABLED]    ?: true,
             activeModes            = prefs[Keys.ACTIVE_MODES]                ?: "",
             pregnancyDateStr       = prefs[Keys.PREGNANCY_DATE_STR]          ?: "",
             pregnancyStartType     = prefs[Keys.PREGNANCY_START_TYPE]        ?: "EDD",
@@ -414,8 +418,12 @@ class AppPreferencesStore(private val context: Context) {
         context.dataStore.edit { it[Keys.CUSTOM_THEME_NAME] = name }
     }
 
-    suspend fun setCustomThemePickedForDark(dark: Boolean) {
-        context.dataStore.edit { it[Keys.CUSTOM_THEME_PICKED_FOR_DARK] = dark }
+    suspend fun setCustomThemeMode(mode: String) {
+        context.dataStore.edit { it[Keys.CUSTOM_THEME_MODE] = mode }
+    }
+
+    suspend fun setCustomActiveProfileId(id: Long) {
+        context.dataStore.edit { it[Keys.CUSTOM_ACTIVE_PROFILE_ID] = id }
     }
 
     suspend fun setPeriodTrackingEnabled(enabled: Boolean) {

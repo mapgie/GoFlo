@@ -36,6 +36,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -102,7 +103,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.clip
@@ -120,7 +120,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -130,6 +129,7 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.filled.Archive
 import com.mapgie.goflo.BuildConfig
+import com.mapgie.goflo.data.database.entities.ColorProfile
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.export.DateRangePreset
 import com.mapgie.goflo.data.export.ExportConfig
@@ -1113,6 +1113,8 @@ private fun AppearanceSubScreen(
     onPickCustomImage: () -> Unit,
     onBack:            () -> Unit
 ) {
+    val colorProfiles by viewModel.colorProfiles.collectAsState()
+
     SettingsSubScreenScaffold(title = "Appearance", onBack = onBack) { padding ->
         Column(
             Modifier
@@ -1123,26 +1125,31 @@ private fun AppearanceSubScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             CompactThemePicker(
-                current                  = currentTheme,
-                wcagChecked              = prefs.wcagMode,
-                customPrimaryHue         = prefs.customPrimaryHue,
-                customSecondaryHue       = prefs.customSecondaryHue,
-                customTertiaryHue        = prefs.customTertiaryHue,
-                customPrimaryArgb        = prefs.customPrimaryArgb,
-                customSecondaryArgb      = prefs.customSecondaryArgb,
-                customTertiaryArgb       = prefs.customTertiaryArgb,
-                customThemeName          = prefs.customThemeName,
-                customPickedForDark      = prefs.customThemePickedForDark,
-                onSelect                 = { viewModel.setTheme(it.name) },
-                onWcagToggle             = { viewModel.setWcagMode(it) },
-                onCustomPrimaryHue       = { viewModel.setCustomPrimaryHue(it) },
-                onCustomSecondaryHue     = { viewModel.setCustomSecondaryHue(it) },
-                onCustomTertiaryHue      = { viewModel.setCustomTertiaryHue(it) },
-                onCustomPrimaryArgb      = { viewModel.setCustomPrimaryArgb(it) },
-                onCustomSecondaryArgb    = { viewModel.setCustomSecondaryArgb(it) },
-                onCustomTertiaryArgb     = { viewModel.setCustomTertiaryArgb(it) },
-                onCustomThemeName        = { viewModel.setCustomThemeName(it) },
-                onCustomPickedForDark    = { viewModel.setCustomThemePickedForDark(it) },
+                current              = currentTheme,
+                wcagChecked          = prefs.wcagMode,
+                customPrimaryHue     = prefs.customPrimaryHue,
+                customSecondaryHue   = prefs.customSecondaryHue,
+                customTertiaryHue    = prefs.customTertiaryHue,
+                customPrimaryArgb    = prefs.customPrimaryArgb,
+                customSecondaryArgb  = prefs.customSecondaryArgb,
+                customTertiaryArgb   = prefs.customTertiaryArgb,
+                customThemeName      = prefs.customThemeName,
+                customThemeMode      = prefs.customThemeMode,
+                customActiveProfileId = prefs.customActiveProfileId,
+                colorProfiles        = colorProfiles,
+                onSelect             = { viewModel.setTheme(it.name) },
+                onWcagToggle         = { viewModel.setWcagMode(it) },
+                onCustomPrimaryHue   = { viewModel.setCustomPrimaryHue(it) },
+                onCustomSecondaryHue = { viewModel.setCustomSecondaryHue(it) },
+                onCustomTertiaryHue  = { viewModel.setCustomTertiaryHue(it) },
+                onCustomPrimaryArgb  = { viewModel.setCustomPrimaryArgb(it) },
+                onCustomSecondaryArgb = { viewModel.setCustomSecondaryArgb(it) },
+                onCustomTertiaryArgb = { viewModel.setCustomTertiaryArgb(it) },
+                onCustomThemeName    = { viewModel.setCustomThemeName(it) },
+                onCustomThemeMode    = { viewModel.setCustomThemeMode(it) },
+                onSaveProfile        = { id, name, p, s, t -> viewModel.saveColorProfile(id, name, p, s, t) },
+                onLoadProfile        = { viewModel.loadColorProfile(it) },
+                onDeleteProfile      = { viewModel.deleteColorProfile(it) },
             )
 
             HorizontalDivider()
@@ -1828,6 +1835,7 @@ private fun SupportCard(
 
 // ── Compact theme picker ──────────────────────────────────────────────────────
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CompactThemePicker(
     current:                 AppTheme,
@@ -1839,7 +1847,9 @@ private fun CompactThemePicker(
     customSecondaryArgb:     Int,
     customTertiaryArgb:      Int,
     customThemeName:         String,
-    customPickedForDark:     Boolean,
+    customThemeMode:         String,
+    customActiveProfileId:   Long,
+    colorProfiles:           List<ColorProfile>,
     onSelect:                (AppTheme) -> Unit,
     onWcagToggle:            (Boolean) -> Unit,
     onCustomPrimaryHue:      (Float) -> Unit,
@@ -1849,7 +1859,10 @@ private fun CompactThemePicker(
     onCustomSecondaryArgb:   (Int) -> Unit,
     onCustomTertiaryArgb:    (Int) -> Unit,
     onCustomThemeName:       (String) -> Unit,
-    onCustomPickedForDark:   (Boolean) -> Unit,
+    onCustomThemeMode:       (String) -> Unit,
+    onSaveProfile:           (Long, String, Int, Int, Int) -> Unit,
+    onLoadProfile:           (ColorProfile) -> Unit,
+    onDeleteProfile:         (ColorProfile) -> Unit,
 ) {
     val currentMode    = current.themeMode
     val currentPalette = current.standardPalette
@@ -1869,11 +1882,10 @@ private fun CompactThemePicker(
                 .height(IntrinsicSize.Min)
                 .clip(RoundedCornerShape(8.dp))
                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                .alpha(if (isCustom) 0.38f else 1f)
         ) {
             val modes = listOf(ThemeMode.LIGHT, ThemeMode.DARK, ThemeMode.SYSTEM)
             modes.forEachIndexed { index, mode ->
-                val selected  = !isCustom && mode == currentMode
+                val selected  = if (isCustom) customThemeMode == mode.name else mode == currentMode
                 val modeIcon  = when (mode) {
                     ThemeMode.LIGHT  -> Icons.Outlined.WbSunny
                     ThemeMode.DARK   -> Icons.Outlined.DarkMode
@@ -1888,19 +1900,23 @@ private fun CompactThemePicker(
                             else Color.Transparent
                         )
                         .semantics { role = Role.RadioButton }
-                        .clickable(enabled = !isCustom) {
-                            when (mode) {
-                                ThemeMode.SYSTEM -> {
-                                    val palette = currentPalette ?: StandardPalette.TEAL
-                                    onSelect(palette.systemTheme)
-                                }
-                                ThemeMode.LIGHT  -> {
-                                    val palette = currentPalette ?: StandardPalette.CORAL
-                                    onSelect(palette.lightTheme)
-                                }
-                                ThemeMode.DARK -> {
-                                    val palette = currentPalette ?: StandardPalette.CORAL
-                                    onSelect(palette.darkTheme)
+                        .clickable {
+                            if (isCustom) {
+                                onCustomThemeMode(mode.name)
+                            } else {
+                                when (mode) {
+                                    ThemeMode.SYSTEM -> {
+                                        val palette = currentPalette ?: StandardPalette.TEAL
+                                        onSelect(palette.systemTheme)
+                                    }
+                                    ThemeMode.LIGHT  -> {
+                                        val palette = currentPalette ?: StandardPalette.CORAL
+                                        onSelect(palette.lightTheme)
+                                    }
+                                    ThemeMode.DARK -> {
+                                        val palette = currentPalette ?: StandardPalette.CORAL
+                                        onSelect(palette.darkTheme)
+                                    }
                                 }
                             }
                         }
@@ -2034,8 +2050,7 @@ private fun CompactThemePicker(
                                 customTertiaryArgb  to customTertiaryHue,
                             ).forEach { (argb, hue) ->
                                 val previewColor = if (argb != 0) Color(argb)
-                                                  else Color.hsl(hue, if (customPickedForDark) 0.75f else 0.60f,
-                                                                      if (customPickedForDark) 0.75f else 0.35f)
+                                                  else Color.hsl(hue, 0.60f, 0.35f)
                                 Box(
                                     modifier = Modifier
                                         .size(20.dp)
@@ -2061,61 +2076,55 @@ private fun CompactThemePicker(
                 }
 
                 if (customColorsExpanded) {
-                    // Optional theme name
-                    OutlinedTextField(
-                        value         = customThemeName,
-                        onValueChange = onCustomThemeName,
-                        label         = { Text("Theme name (optional)") },
-                        singleLine    = true,
-                        modifier      = Modifier.fillMaxWidth(),
-                    )
+                    var localName by remember(customThemeName) { mutableStateOf(customThemeName) }
 
-                    // Light / dark mode declaration
-                    Text(
-                        text  = "I'm defining colours for:",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(IntrinsicSize.Min)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                    ) {
-                        listOf(false to "Light mode", true to "Dark mode").forEachIndexed { index, (dark, label) ->
-                            val selected = customPickedForDark == dark
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent)
-                                    .semantics { role = Role.RadioButton; this.selected = selected }
-                                    .clickable { onCustomPickedForDark(dark) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    text  = label,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (selected) MaterialTheme.colorScheme.onPrimary
-                                            else MaterialTheme.colorScheme.onSurface,
-                                )
-                            }
-                            if (index == 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .fillMaxHeight()
-                                        .background(MaterialTheme.colorScheme.outline)
-                                )
+                    // Saved palettes
+                    if (colorProfiles.isNotEmpty()) {
+                        Text(
+                            text  = "Saved palettes",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement   = Arrangement.spacedBy(8.dp),
+                        ) {
+                            colorProfiles.forEach { profile ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val displayName = profile.name.ifBlank { "Unnamed" }
+                                    FilterChip(
+                                        selected = profile.id == customActiveProfileId,
+                                        onClick  = {
+                                            localName = profile.name
+                                            onLoadProfile(profile)
+                                        },
+                                        label    = { Text(displayName) },
+                                        modifier = Modifier.semantics { role = Role.RadioButton },
+                                    )
+                                    IconButton(
+                                        onClick  = { onDeleteProfile(profile) },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .semantics { contentDescription = "Delete $displayName palette" },
+                                    ) {
+                                        Icon(
+                                            imageVector        = Icons.Default.Close,
+                                            contentDescription = null,
+                                            modifier           = Modifier.size(18.dp),
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
-                    Text(
-                        text  = "The other mode's colours are derived from your hue automatically.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+
+                    // Optional palette name (local state avoids cursor reset on every keystroke)
+                    OutlinedTextField(
+                        value         = localName,
+                        onValueChange = { localName = it },
+                        label         = { Text("Palette name (optional)") },
+                        singleLine    = true,
+                        modifier      = Modifier.fillMaxWidth(),
                     )
 
                     CustomColorRow(
@@ -2140,12 +2149,20 @@ private fun CompactThemePicker(
                         onArgbChange = onCustomTertiaryArgb,
                     )
 
-                    // Done collapses the pickers
+                    // Save the working colours as a palette, or collapse the pickers
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     ) {
-                        FilledTonalButton(onClick = { customColorsExpanded = false }) {
+                        OutlinedButton(onClick = {
+                            onSaveProfile(customActiveProfileId, localName, customPrimaryArgb, customSecondaryArgb, customTertiaryArgb)
+                        }) {
+                            Text("Save palette")
+                        }
+                        FilledTonalButton(onClick = {
+                            onCustomThemeName(localName)
+                            customColorsExpanded = false
+                        }) {
                             Text("Done")
                         }
                     }

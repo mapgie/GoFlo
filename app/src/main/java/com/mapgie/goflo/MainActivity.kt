@@ -147,11 +147,11 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             } else null
 
             GoFloTheme(
-                appTheme            = currentTheme,
-                wcag                = appPrefs.wcagMode,
-                customHues          = customHues,
-                customArgbs         = customArgbs,
-                customPickedForDark = appPrefs.customThemePickedForDark,
+                appTheme        = currentTheme,
+                wcag            = appPrefs.wcagMode,
+                customHues      = customHues,
+                customArgbs     = customArgbs,
+                customThemeMode = appPrefs.customThemeMode,
             ) {
                 when (appState) {
                     AppState.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -337,6 +337,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         repository = app.repository,
                         trackingRepository = app.trackingRepository,
                         alarmRepository = app.customAlarmRepository,
+                        colorProfileDao = app.colorProfileDao,
                         context = app.applicationContext
                     )
                 )
@@ -435,6 +436,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         repository           = app.repository,
                         trackingRepository   = app.trackingRepository,
                         alarmRepository      = app.customAlarmRepository,
+                        colorProfileDao      = app.colorProfileDao,
                         context              = app.applicationContext
                     )
                 )
@@ -452,6 +454,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         repository           = app.repository,
                         trackingRepository   = app.trackingRepository,
                         alarmRepository      = app.customAlarmRepository,
+                        colorProfileDao      = app.colorProfileDao,
                         context              = app.applicationContext
                     )
                 )
@@ -469,6 +472,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                         repository           = app.repository,
                         trackingRepository   = app.trackingRepository,
                         alarmRepository      = app.customAlarmRepository,
+                        colorProfileDao      = app.colorProfileDao,
                         context              = app.applicationContext
                     )
                 )

@@ -16,6 +16,9 @@ import kotlinx.coroutines.withContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import android.graphics.Color as AndroidColor
+import com.mapgie.goflo.data.database.dao.ColorProfileDao
+import com.mapgie.goflo.data.database.entities.ColorProfile
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.export.DataExporter
@@ -49,6 +52,7 @@ class SettingsViewModel(
     private val repository: PeriodRepository,
     private val trackingRepository: TrackingRepository,
     private val alarmRepository: CustomAlarmRepository,
+    private val colorProfileDao: ColorProfileDao,
     private val context: Context
 ) : ViewModel() {
 
@@ -57,6 +61,9 @@ class SettingsViewModel(
 
     val securitySettings: StateFlow<SecuritySettings> = securityPreferences.settings
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SecuritySettings())
+
+    val colorProfiles: StateFlow<List<ColorProfile>> = colorProfileDao.getAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val trackingCategories: StateFlow<List<TrackingCategory>> =
         trackingRepository.getActiveCategories()
@@ -99,8 +106,39 @@ class SettingsViewModel(
     fun setCustomSecondaryArgb(argb: Int) = viewModelScope.launch { store.setCustomSecondaryArgb(argb) }
     fun setCustomTertiaryArgb(argb: Int)  = viewModelScope.launch { store.setCustomTertiaryArgb(argb) }
 
-    fun setCustomThemeName(name: String)      = viewModelScope.launch { store.setCustomThemeName(name) }
-    fun setCustomThemePickedForDark(dark: Boolean) = viewModelScope.launch { store.setCustomThemePickedForDark(dark) }
+    fun setCustomThemeName(name: String) = viewModelScope.launch { store.setCustomThemeName(name) }
+    fun setCustomThemeMode(mode: String) = viewModelScope.launch { store.setCustomThemeMode(mode) }
+    fun setCustomActiveProfileId(id: Long) = viewModelScope.launch { store.setCustomActiveProfileId(id) }
+
+    fun saveColorProfile(id: Long, name: String, primaryArgb: Int, secondaryArgb: Int, tertiaryArgb: Int) {
+        viewModelScope.launch {
+            val savedId = colorProfileDao.upsert(ColorProfile(id, name, primaryArgb, secondaryArgb, tertiaryArgb))
+            store.setCustomActiveProfileId(savedId)
+        }
+    }
+
+    fun loadColorProfile(profile: ColorProfile) {
+        viewModelScope.launch {
+            fun hueOf(argb: Int): Float {
+                if (argb == 0) return 0f
+                val hsv = FloatArray(3)
+                AndroidColor.colorToHSV(argb, hsv)
+                return hsv[0]
+            }
+            store.setCustomPrimaryArgb(profile.primaryArgb)
+            store.setCustomSecondaryArgb(profile.secondaryArgb)
+            store.setCustomTertiaryArgb(profile.tertiaryArgb)
+            if (profile.primaryArgb != 0)   store.setCustomPrimaryHue(hueOf(profile.primaryArgb))
+            if (profile.secondaryArgb != 0) store.setCustomSecondaryHue(hueOf(profile.secondaryArgb))
+            if (profile.tertiaryArgb != 0)  store.setCustomTertiaryHue(hueOf(profile.tertiaryArgb))
+            store.setCustomThemeName(profile.name)
+            store.setCustomActiveProfileId(profile.id)
+        }
+    }
+
+    fun deleteColorProfile(profile: ColorProfile) {
+        viewModelScope.launch { colorProfileDao.delete(profile) }
+    }
 
     // ── App icon ───────────────────────────────────────────────────────────────
 
@@ -447,6 +485,8 @@ class SettingsViewModel(
                 put("customPrimaryArgb", prefs.customPrimaryArgb)
                 put("customSecondaryArgb", prefs.customSecondaryArgb)
                 put("customTertiaryArgb", prefs.customTertiaryArgb)
+                put("customThemeMode", prefs.customThemeMode)
+                put("customActiveProfileId", prefs.customActiveProfileId)
                 put("activeModes", prefs.activeModes)
                 put("pregnancyDateStr", prefs.pregnancyDateStr)
                 put("pregnancyStartType", prefs.pregnancyStartType)
@@ -486,6 +526,19 @@ class SettingsViewModel(
                 alarmsArray.put(alarmObj)
             }
             if (alarmsArray.length() > 0) root.put("alarms", alarmsArray)
+
+            // Color profiles
+            val profilesArray = JSONArray()
+            colorProfileDao.getAll().first().forEach { profile ->
+                val profileObj = JSONObject()
+                profileObj.put("id", profile.id)
+                profileObj.put("name", profile.name)
+                profileObj.put("primaryArgb", profile.primaryArgb)
+                profileObj.put("secondaryArgb", profile.secondaryArgb)
+                profileObj.put("tertiaryArgb", profile.tertiaryArgb)
+                profilesArray.put(profileObj)
+            }
+            if (profilesArray.length() > 0) root.put("colorProfiles", profilesArray)
         }
 
         if (config.includePeriods) {
@@ -683,6 +736,8 @@ class SettingsViewModel(
                             store.setCustomPrimaryArgb(settingsObj.optInt("customPrimaryArgb", 0))
                             store.setCustomSecondaryArgb(settingsObj.optInt("customSecondaryArgb", 0))
                             store.setCustomTertiaryArgb(settingsObj.optInt("customTertiaryArgb", 0))
+                            store.setCustomThemeMode(settingsObj.optString("customThemeMode", "LIGHT"))
+                            store.setCustomActiveProfileId(settingsObj.optLong("customActiveProfileId", -1L))
                             store.setActiveModes(settingsObj.optString("activeModes", ""))
                             store.setPregnancyDate(
                                 settingsObj.optString("pregnancyDateStr", ""),
@@ -704,6 +759,22 @@ class SettingsViewModel(
                         val alarmsArray = root.optJSONArray("alarms")
                         if (alarmsArray != null) {
                             importCustomAlarms(alarmsArray, replace)
+                        }
+                        // Restore color profiles if present.
+                        val profilesArray = root.optJSONArray("colorProfiles")
+                        if (profilesArray != null) {
+                            if (replace) {
+                                colorProfileDao.getAll().first().forEach { colorProfileDao.delete(it) }
+                            }
+                            for (i in 0 until profilesArray.length()) {
+                                val obj = profilesArray.getJSONObject(i)
+                                colorProfileDao.upsert(ColorProfile(
+                                    name         = obj.optString("name", ""),
+                                    primaryArgb  = obj.optInt("primaryArgb", 0),
+                                    secondaryArgb = obj.optInt("secondaryArgb", 0),
+                                    tertiaryArgb = obj.optInt("tertiaryArgb", 0),
+                                ))
+                            }
                         }
                     }
                 } // import errors are non-fatal; period result still reported
@@ -918,11 +989,12 @@ class SettingsViewModel(
         private val repository: PeriodRepository,
         private val trackingRepository: TrackingRepository,
         private val alarmRepository: CustomAlarmRepository,
+        private val colorProfileDao: ColorProfileDao,
         private val context: Context
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return SettingsViewModel(store, securityPreferences, repository, trackingRepository, alarmRepository, context) as T
+            return SettingsViewModel(store, securityPreferences, repository, trackingRepository, alarmRepository, colorProfileDao, context) as T
         }
     }
 }
