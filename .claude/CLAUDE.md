@@ -7,9 +7,9 @@ When fixing a bug or solving a non-obvious problem, check `LESSONS.md` for prior
 - This container has no Android SDK and no Gradle wrapper jar, so the app cannot be compiled here. Do not attempt Gradle builds, and do not report build failures caused by the missing toolchain. CI is the build check.
 - Do not include "I couldn't compile, so I verified by inspection instead" style disclaimers in chat replies or PR descriptions. The reader already knows this environment can't build. Just make the change and state what it does.
 
-## Versioning
+## Versioning and changelog
 
-Every PR **must** include a version bump and a changelog entry. No exceptions.
+Every PR that touches app code **must** add a changelog fragment. No exceptions.
 
 ### Scheme: `MAJOR.MINOR.PATCH[-prerelease]`
 
@@ -21,39 +21,53 @@ Version numbers communicate **compatibility risk**, not effort or importance.
 | MINOR | Backward-compatible addition: new feature, new screen, new setting, deprecation of existing behaviour |
 | PATCH | Backward-compatible fix: bug fix, copy change, performance improvement, internal refactor with no user-visible impact |
 
-Rules:
-- Releasing a MINOR resets PATCH to 0 (`1.4.2 → 1.5.0`)
-- Releasing a MAJOR resets MINOR and PATCH to 0 (`1.4.2 → 2.0.0`)
-- Released versions are immutable — never re-tag or amend a released version
-- When in doubt between MINOR and MAJOR, ask: can a user who doesn't update continue using their exported data without loss? If yes → MINOR.
+When in doubt between MINOR and MAJOR, ask: can a user who doesn't update continue using
+their exported data without loss? If yes → MINOR.
 
-Pre-release suffix: `-beta.N` (increment N for each beta on the same base version).
+Pre-release suffix: `-beta.N`. Current status: **beta** — all versions carry `-beta.N`
+until explicitly promoted.
 
-Current status: **beta** — all versions carry `-beta.N` until explicitly promoted.
+### How to record a change (every PR)
 
-### How to bump
+Do **not** edit `CHANGELOG.md` or `app/build.gradle.kts`'s `versionCode`/`versionName`
+directly — these are owned by the release automation and editing them in a feature PR is
+the main source of merge conflicts. Instead, add **one** fragment file at
+`changelog/unreleased/<short-slug>.json`:
 
-1. Update `versionCode` (always increment by 1) and `versionName` in `app/build.gradle.kts`
-2. Add a new entry at the top of `CHANGELOG.md` following the existing `## [version] - date` format
-3. Include both changes in the same commit as the feature/fix
+```json
+{
+  "bump": "patch",
+  "added": ["..."],
+  "changed": ["..."],
+  "fixed": ["..."]
+}
+```
+
+`bump` is required (`patch`/`minor`/`major`); include only the `added`/`changed`/`fixed`
+sections that apply, each a list of one-line user-facing descriptions. CI
+(`changelog-check.yml`, via `check_changelog_fragment.py`) fails the PR if no valid
+fragment is added. See `changelog/unreleased/README.md` for details.
+
+### Cutting a release
+
+The "Prepare release" GitHub Actions workflow (`workflow_dispatch`,
+`.github/workflows/prepare-release.yml`) runs `consolidate_changelog.py`, which:
+- gathers all fragments in `changelog/unreleased/`
+- computes the overall bump as the highest severity among them
+- bumps `versionCode` (+1) and `versionName` in `app/build.gradle.kts` — increments the
+  PATCH/MINOR/MAJOR digit per the bump and resets `-beta.N` to `beta.1`
+- writes one consolidated entry at the top of `CHANGELOG.md`
+- deletes the consumed fragments
+- opens a `Release vX.Y.Z` PR for review
+
+Promoting out of beta (dropping the `-beta.N` suffix) remains a manual edit.
 
 ### Changelog immutability rules — NO EXCEPTIONS
 
 - **Never edit an existing entry.** Once a changelog entry is committed, its version string and change list are frozen. Treat them like a released tag.
-- **Never reuse a version string.** If a merge conflict tempts you to keep a version number that already exists in the file, bump to the next available number instead.
+- **Never reuse a version string.** Released versions are immutable — never re-tag, amend, or reuse a version string.
 - **Never delete an entry.** Even if a feature was reverted, keep the original entry and add a new entry at the top describing the revert.
-- **Merge conflicts in CHANGELOG.md must preserve both sides.** When resolving a conflict, keep all entries from both branches and order them by version number (newest at top). If two branches used the same version number, keep both entries and renumber the lower-priority one.
 - **The "What's New" dialog shows only the 5 most recent entries.** The full list in `CHANGELOG.md` is the permanent record; users see a summary.
-
-### Examples
-
-```
-Bug fix only           → 1.4.2-beta.1 → 1.4.3-beta.1   (versionCode +1)
-New feature            → 1.4.2-beta.1 → 1.5.0-beta.1   (versionCode +1)
-Breaking DB migration  → 1.4.2-beta.1 → 2.0.0-beta.1   (versionCode +1)
-Second beta iteration  → 1.4.2-beta.1 → 1.4.2-beta.2   (versionCode +1)
-Promote to release     → 1.4.2-beta.1 → 1.4.2           (versionCode +1)
-```
 
 ## Architecture Notes
 

@@ -45,6 +45,7 @@ jobs:
         run: gradle :app:assembleDebug --no-daemon
 
       - name: Check version is new
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

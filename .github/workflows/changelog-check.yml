@@ -20,12 +20,5 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fail if CHANGELOG.md was not updated
-        run: |
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
-          if echo "$CHANGED" | grep -q "^CHANGELOG.md$"; then
-            echo "CHANGELOG.md updated alongside code changes — good."
-          else
-            echo "::error::Code was changed but CHANGELOG.md was not updated. Add a changelog entry in CHANGELOG.md before merging."
-            exit 1
-          fi
+      - name: Check for a changelog fragment
+        run: python3 check_changelog_fragment.py origin/${{ github.base_ref }}

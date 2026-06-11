@@ -12,10 +12,23 @@ Format: `MAJOR.MINOR.PATCH-beta.N` (pre-release) or `MAJOR.MINOR.PATCH` (release
 
 Rules:
 - MINOR bump resets PATCH to 0 (`1.4.2 → 1.5.0`); MAJOR resets MINOR and PATCH (`1.4.2 → 2.0.0`)
-- Increment `versionCode` by 1 and update `versionName` in `app/build.gradle.kts` with every PR — no exceptions
-- Add a changelog entry in the same commit as the feature/fix
 - Released versions are immutable — never re-tag, never amend, never delete an entry
-- Merge conflicts must preserve both sides; if both branches used the same version string, renumber the lower-priority one upward
+
+### Contributing a change (every PR)
+
+Do **not** edit this file or bump `versionCode`/`versionName` in `app/build.gradle.kts`
+directly. Instead, add a fragment file at `changelog/unreleased/<short-slug>.json`
+describing the change and its bump level — see `changelog/unreleased/README.md` for the
+format. New fragment files never conflict between PRs.
+
+### Cutting a release
+
+Run the "Prepare release" GitHub Actions workflow (`workflow_dispatch`). It consolidates
+all pending fragments in `changelog/unreleased/` into a single new entry below, bumps
+`versionCode` (+1) and `versionName` accordingly, removes the consumed fragments, and opens
+a PR for review. The bump increments the corresponding version digit (PATCH/MINOR/MAJOR per
+the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (dropping the
+`-beta.N` suffix) remains a manual edit.
 
 ---
 ## [0.47.2-beta.3] - 2026-06-10
