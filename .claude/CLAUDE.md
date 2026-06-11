@@ -54,8 +54,8 @@ The "Prepare release" GitHub Actions workflow (`workflow_dispatch`,
 `.github/workflows/prepare-release.yml`) runs `consolidate_changelog.py`, which:
 - gathers all fragments in `changelog/unreleased/`
 - computes the overall bump as the highest severity among them
-- bumps `versionCode` (+1) and `versionName` in `app/build.gradle.kts` — a `patch`-level
-  release increments `beta.N`; `minor`/`major` reset to `beta.1`
+- bumps `versionCode` (+1) and `versionName` in `app/build.gradle.kts` — increments the
+  PATCH/MINOR/MAJOR digit per the bump and resets `-beta.N` to `beta.1`
 - writes one consolidated entry at the top of `CHANGELOG.md`
 - deletes the consumed fragments
 - opens a `Release vX.Y.Z` PR for review

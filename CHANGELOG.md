@@ -26,9 +26,9 @@ format. New fragment files never conflict between PRs.
 Run the "Prepare release" GitHub Actions workflow (`workflow_dispatch`). It consolidates
 all pending fragments in `changelog/unreleased/` into a single new entry below, bumps
 `versionCode` (+1) and `versionName` accordingly, removes the consumed fragments, and opens
-a PR for review. While the project is in `-beta.N`, a `patch`-level release increments
-`beta.N`; a `minor` or `major` release resets to `beta.1`. Promoting out of beta (dropping
-the `-beta.N` suffix) remains a manual edit.
+a PR for review. The bump increments the corresponding version digit (PATCH/MINOR/MAJOR per
+the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (dropping the
+`-beta.N` suffix) remains a manual edit.
 
 ---
 ## [0.47.2-beta.3] - 2026-06-10

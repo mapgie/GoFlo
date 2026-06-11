@@ -41,14 +41,11 @@ def bump_version(version_name, bump):
 
     if bump == "major":
         major, minor, patch = major + 1, 0, 0
-        beta = 1 if is_beta else None
     elif bump == "minor":
         minor, patch = minor + 1, 0
-        beta = 1 if is_beta else None
-    elif is_beta:
-        beta = int(beta) + 1
     else:
         patch += 1
+    beta = 1 if is_beta else None
 
     version = f"{major}.{minor}.{patch}"
     if beta is not None:
