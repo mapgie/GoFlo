@@ -107,6 +107,9 @@ A flag like `allowMultiple` controls whether saving a log upserts an existing ro
 **Remap all foreign keys on data import**
 When importing data that generates new primary IDs (e.g. JSON/CSV restore), every foreign key referencing those IDs must also be remapped. Importing parent records with new IDs but leaving child records pointing at old IDs silently breaks relational integrity.
 
+**Toggling a category's storage representation orphans previously logged values**
+When a category can switch modes (e.g. Flow's "default" chip mode vs "numeric_slider" mode), each mode stores `TrackingLogValue.valueLabel` differently: chip mode stores a label string ("Medium"), slider mode stores a numeric step ("3"). Any reader that assumes one representation (e.g. `toFloatOrNull()` for numeric categories) silently drops every log written under the old mode via `continue`/`?:`, making historical entries vanish from charts and grids without an error. When a numeric category has `scaleLabels` (step -> label), add a reverse-lookup fallback so old label strings still resolve to their numeric step.
+
 **A `null` "not yet interacted" state must not be read as "no value to save"**
 When a UI shows a default value (e.g. a slider rendered at `numericMin` via `value ?: min`) but the backing state field stays `null` until the user actively changes it, a save handler that does `val v = state.value ?: return` silently no-ops for anyone who accepts the displayed default without touching the control. The UI looks identical (same value shown) whether or not the user interacted, so there's no visual cue that "Save" did nothing. Fix at the save site by falling back to the same default the UI displays (`state.value ?: category.min`), not by requiring interaction.
 

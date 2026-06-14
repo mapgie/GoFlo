@@ -1,0 +1,6 @@
+{
+  "bump": "patch",
+  "fixed": [
+    "Fixed Flow entries logged before switching to slider mode not appearing in the Grid stats view"
+  ]
+}
