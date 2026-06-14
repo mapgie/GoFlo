@@ -14,6 +14,6 @@ permissions:
   contents: write
 jobs:
   build:
-    uses: mapgie/android-Actions/.github/workflows/android-build-release.yml@87b0b6408e7168235e4977377add51c312ebab71
+    uses: mapgie/android-Actions/.github/workflows/android-build-release.yml@14f72d0acca36d4ce4dcc643beac4c42ca6fe3ab
     with:
       app-name: GoFlo
