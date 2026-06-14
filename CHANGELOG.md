@@ -31,6 +31,21 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.48.0-beta.1] - 2026-06-14
+
+### Added
+- Saved colour palettes: name and save multiple custom palettes, switch between them with a chip row, and delete palettes individually. Saved palettes are included in backup export/import.
+
+### Changed
+- Internal: changelog and version bumps now use per-PR fragment files (changelog/unreleased/) consolidated into CHANGELOG.md by a release workflow, instead of every PR editing CHANGELOG.md and app/build.gradle.kts directly. No user-visible change.
+
+### Fixed
+- Custom theme mode now respects the Light / Dark / Auto selector. Previously the custom theme always rendered in dark mode regardless of what was picked, and the status bar icon contrast didn't match.
+- Dark custom theme surfaces no longer have a warm brown tint, so an orange or red primary colour now produces a neutral near-black background and surface.
+- The palette name field no longer resets the cursor or glitches while typing.
+- Removed the confusing "I'm defining colours for" toggle. The Mode row now controls light/dark/auto for custom themes directly.
+
+---
 ## [0.47.2-beta.3] - 2026-06-10
 
 ### Fixed
