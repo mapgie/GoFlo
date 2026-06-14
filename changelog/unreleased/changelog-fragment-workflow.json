@@ -1,6 +1,0 @@
-{
-  "bump": "patch",
-  "changed": [
-    "Internal: changelog and version bumps now use per-PR fragment files (changelog/unreleased/) consolidated into CHANGELOG.md by a release workflow, instead of every PR editing CHANGELOG.md and app/build.gradle.kts directly. No user-visible change."
-  ]
-}

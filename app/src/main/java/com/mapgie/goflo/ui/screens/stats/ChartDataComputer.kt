@@ -647,6 +647,14 @@ internal suspend fun computeHeatmapData(
                 repository.getValuesForCategoryOnce(category.id).associate { it.label to it.displayOrder }
             else emptyMap()
 
+        // Fallback for NUMERIC categories whose scaleLabels map steps to names (e.g. Flow's
+        // 1=Spotting/2=Light/3=Medium/4=Heavy): logs written before the category was switched
+        // to slider mode store the label itself rather than the numeric step.
+        val labelToScaleStep: Map<String, Int> =
+            if (kind == MagnitudeKind.NUMERIC)
+                category.scaleLabels.decodeScaleLabels().entries.associate { (step, label) -> label to step }
+            else emptyMap()
+
         val logs = repository.getLogsForCategoryInRange(category.id, start, end)
 
         // Accumulate per column: numeric/ordinal collect raw values; count sums entries.
@@ -658,7 +666,8 @@ internal suspend fun computeHeatmapData(
             val values = repository.getValuesForLog(log.id)
             when (kind) {
                 MagnitudeKind.NUMERIC -> {
-                    val v = values.firstOrNull()?.toFloatOrNull() ?: continue
+                    val raw = values.firstOrNull() ?: continue
+                    val v = raw.toFloatOrNull() ?: labelToScaleStep[raw]?.toFloat() ?: continue
                     val bucket = valuesPerColumn[colIdx] ?: mutableListOf<Float>().also { valuesPerColumn[colIdx] = it }
                     bucket.add(v)
                 }
