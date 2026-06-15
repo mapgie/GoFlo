@@ -31,6 +31,12 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.48.1-beta.1] - 2026-06-15
+
+### Fixed
+- Fixed Flow entries logged before switching to slider mode not appearing in the Grid stats view
+
+---
 ## [0.48.0-beta.1] - 2026-06-14
 
 ### Added
