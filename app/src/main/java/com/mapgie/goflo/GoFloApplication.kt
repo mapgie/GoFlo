@@ -4,12 +4,16 @@ import android.app.Application
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.mapgie.goflo.data.database.GoFloDatabase
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.preferences.SecurityPreferences
 import com.mapgie.goflo.data.repository.CustomAlarmRepository
 import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingRepository
+import com.mapgie.goflo.notifications.DailyCheckWorker
 import com.mapgie.goflo.notifications.ReminderScheduler
 import com.mapgie.goflo.widget.GoFloWidget
 import kotlinx.coroutines.CoroutineScope
@@ -18,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.util.concurrent.TimeUnit
 
 class GoFloApplication : Application() {
 
@@ -41,6 +46,11 @@ class GoFloApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         ReminderScheduler.createChannel(this)
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "daily_check",
+            ExistingPeriodicWorkPolicy.KEEP,
+            PeriodicWorkRequestBuilder<DailyCheckWorker>(1, TimeUnit.DAYS).build()
+        )
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStop(owner: LifecycleOwner) {
                 // Re-lock whenever the app is no longer visible. The lock screen

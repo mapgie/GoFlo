@@ -29,6 +29,7 @@ const val CHANNEL_SILENT_ID = "goflo_reminders_silent_v1"
 const val CHANNEL_CUSTOM_ALARM_ID = "goflo_custom_alarms_v1"
 const val CHANNEL_CUSTOM_DND_ID = "goflo_custom_alarms_dnd_v1"
 const val CHANNEL_CUSTOM_NOTIF_ID = "goflo_custom_notifs_v1"
+const val CHANNEL_DAILY_CHECK_ID = "goflo_daily_check_v1"
 
 const val EXTRA_USE_ALARM_CHANNEL = "use_alarm_channel"
 const val EXTRA_USE_SILENT_CHANNEL = "use_silent_channel"
@@ -129,6 +130,20 @@ object ReminderScheduler {
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
                     description = "Standard notifications for custom reminders"
+                }
+            )
+        }
+
+        if (manager.getNotificationChannel(CHANNEL_DAILY_CHECK_ID) == null) {
+            manager.createNotificationChannel(
+                NotificationChannel(
+                    CHANNEL_DAILY_CHECK_ID,
+                    "Daily check-ins",
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "Gentle daily reminders"
+                    setSound(null, null)
+                    enableVibration(false)
                 }
             )
         }

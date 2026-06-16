@@ -242,6 +242,10 @@ class SettingsViewModel(
         store.setAlarmLabel(label); reschedule()
     }
 
+    fun setDailyCheckEnabled(enabled: Boolean) = viewModelScope.launch {
+        store.setDailyCheckEnabled(enabled)
+    }
+
     // ── Cycle ─────────────────────────────────────────────────────────────────
 
     /** 0 clears the override (reverts to auto-calculated average from history). */

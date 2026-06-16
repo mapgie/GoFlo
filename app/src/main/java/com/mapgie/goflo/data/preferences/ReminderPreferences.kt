@@ -130,6 +130,11 @@ data class AppPreferences(
     val pregnancyStartType: String = "EDD",
     /** True when BBT temperature should be displayed in Celsius; false for Fahrenheit. */
     val temperatureUnitCelsius: Boolean = true,
+    /**
+     * When true, the daily check worker sends a gentle notification if a predicted
+     * period start date has passed without a period being logged.
+     */
+    val dailyCheckEnabled: Boolean = true,
 )
 
 class AppPreferencesStore(private val context: Context) {
@@ -183,6 +188,7 @@ class AppPreferencesStore(private val context: Context) {
         val PREGNANCY_DATE_STR        = stringPreferencesKey("pregnancy_date_str")
         val PREGNANCY_START_TYPE      = stringPreferencesKey("pregnancy_start_type")
         val TEMPERATURE_UNIT_CELSIUS  = booleanPreferencesKey("temperature_unit_celsius")
+        val DAILY_CHECK_ENABLED       = booleanPreferencesKey("daily_check_enabled")
     }
 
     val preferences: Flow<AppPreferences> = context.dataStore.data.map { prefs ->
@@ -227,6 +233,7 @@ class AppPreferencesStore(private val context: Context) {
             pregnancyDateStr       = prefs[Keys.PREGNANCY_DATE_STR]          ?: "",
             pregnancyStartType     = prefs[Keys.PREGNANCY_START_TYPE]        ?: "EDD",
             temperatureUnitCelsius = prefs[Keys.TEMPERATURE_UNIT_CELSIUS]    ?: true,
+            dailyCheckEnabled      = prefs[Keys.DAILY_CHECK_ENABLED]         ?: true,
             reminder = ReminderSettings(
                 preperiodEnabled = prefs[Keys.PREPERIOD_ENABLED] ?: false,
                 preperiodDaysBefore = prefs[Keys.PREPERIOD_DAYS] ?: 2,
@@ -443,5 +450,9 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setTemperatureUnitCelsius(celsius: Boolean) {
         context.dataStore.edit { it[Keys.TEMPERATURE_UNIT_CELSIUS] = celsius }
+    }
+
+    suspend fun setDailyCheckEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.DAILY_CHECK_ENABLED] = enabled }
     }
 }

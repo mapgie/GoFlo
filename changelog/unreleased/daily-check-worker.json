@@ -1,0 +1,8 @@
+{
+  "bump": "minor",
+  "added": [
+    "Daily check: sends a gentle notification if a predicted period start date has passed without being logged",
+    "Daily check: reminds you to log daily tracking categories if none have been logged today",
+    "Daily check-ins can be turned off in Reminders settings"
+  ]
+}
