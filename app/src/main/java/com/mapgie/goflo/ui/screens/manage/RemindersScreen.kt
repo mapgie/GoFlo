@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.ui.screens.settings.SettingsViewModel
@@ -248,6 +249,20 @@ fun RemindersScreen(
                 modifier          = Modifier
                     .clickable { viewModel.setDailyEnabled(!reminder.dailyDuringPeriodEnabled) }
                     .semantics { role = Role.Switch }
+            )
+
+            HorizontalDivider()
+
+            ListItem(
+                headlineContent   = { Text("Daily check-ins") },
+                supportingContent = { Text("Get a gentle reminder if a predicted period has passed or daily tracking is due") },
+                trailingContent   = { Switch(checked = prefs.dailyCheckEnabled, onCheckedChange = null) },
+                modifier          = Modifier
+                    .semantics {
+                        role = Role.Switch
+                        stateDescription = if (prefs.dailyCheckEnabled) "On" else "Off"
+                    }
+                    .clickable { viewModel.setDailyCheckEnabled(!prefs.dailyCheckEnabled) }
             )
 
             val anyEnabled = reminder.preperiodEnabled || reminder.ovulationEnabled || reminder.dailyDuringPeriodEnabled
