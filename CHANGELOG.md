@@ -31,6 +31,18 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.49.0-beta.1] - 2026-06-16
+
+### Added
+- Daily check: sends a gentle notification if a predicted period start date has passed without being logged
+- Daily check: reminds you to log daily tracking categories if none have been logged today
+- Daily check-ins can be turned off in Reminders settings
+- GitHub Actions workflow to generate 3 months of importable GoFlo test data on demand
+
+### Changed
+- Open-source license entries now link directly to their license texts
+
+---
 ## [0.48.1-beta.1] - 2026-06-15
 
 ### Fixed

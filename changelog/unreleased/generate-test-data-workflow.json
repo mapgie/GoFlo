@@ -1,4 +1,0 @@
-{
-  "bump": "patch",
-  "added": ["GitHub Actions workflow to generate 3 months of importable GoFlo test data on demand"]
-}
