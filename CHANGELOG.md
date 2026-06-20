@@ -31,6 +31,15 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.50.0-beta.1] - 2026-06-20
+
+### Added
+- Support for saving multiple named custom colour themes
+
+### Fixed
+- Saving a custom colour palette no longer overwrites the previously saved palette
+
+---
 ## [0.49.0-beta.1] - 2026-06-16
 
 ### Added
