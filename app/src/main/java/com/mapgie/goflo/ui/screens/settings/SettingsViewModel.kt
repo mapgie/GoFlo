@@ -110,10 +110,24 @@ class SettingsViewModel(
     fun setCustomThemeMode(mode: String) = viewModelScope.launch { store.setCustomThemeMode(mode) }
     fun setCustomActiveProfileId(id: Long) = viewModelScope.launch { store.setCustomActiveProfileId(id) }
 
-    fun saveColorProfile(id: Long, name: String, primaryArgb: Int, secondaryArgb: Int, tertiaryArgb: Int) {
+    /**
+     * Saves the current working colours as a **new** named profile (id = 0 so Room
+     * auto-generates a fresh primary key).  The newly created profile becomes the
+     * active profile.
+     */
+    fun saveColorProfile(name: String, primaryArgb: Int, secondaryArgb: Int, tertiaryArgb: Int) {
         viewModelScope.launch {
-            val savedId = colorProfileDao.upsert(ColorProfile(id, name, primaryArgb, secondaryArgb, tertiaryArgb))
+            val savedId = colorProfileDao.upsert(ColorProfile(0L, name, primaryArgb, secondaryArgb, tertiaryArgb))
             store.setCustomActiveProfileId(savedId)
+        }
+    }
+
+    /**
+     * Overwrites the name of an existing saved profile without changing its colours.
+     */
+    fun renameColorProfile(profile: ColorProfile, newName: String) {
+        viewModelScope.launch {
+            colorProfileDao.upsert(profile.copy(name = newName))
         }
     }
 

@@ -1147,7 +1147,7 @@ private fun AppearanceSubScreen(
                 onCustomTertiaryArgb = { viewModel.setCustomTertiaryArgb(it) },
                 onCustomThemeName    = { viewModel.setCustomThemeName(it) },
                 onCustomThemeMode    = { viewModel.setCustomThemeMode(it) },
-                onSaveProfile        = { id, name, p, s, t -> viewModel.saveColorProfile(id, name, p, s, t) },
+                onSaveProfile        = { name, p, s, t -> viewModel.saveColorProfile(name, p, s, t) },
                 onLoadProfile        = { viewModel.loadColorProfile(it) },
                 onDeleteProfile      = { viewModel.deleteColorProfile(it) },
             )
@@ -1860,7 +1860,7 @@ private fun CompactThemePicker(
     onCustomTertiaryArgb:    (Int) -> Unit,
     onCustomThemeName:       (String) -> Unit,
     onCustomThemeMode:       (String) -> Unit,
-    onSaveProfile:           (Long, String, Int, Int, Int) -> Unit,
+    onSaveProfile:           (String, Int, Int, Int) -> Unit,
     onLoadProfile:           (ColorProfile) -> Unit,
     onDeleteProfile:         (ColorProfile) -> Unit,
 ) {
@@ -2079,30 +2079,81 @@ private fun CompactThemePicker(
                     var localName by remember(customThemeName) { mutableStateOf(customThemeName) }
 
                     // Saved palettes
+                    var profileToDelete by remember { mutableStateOf<ColorProfile?>(null) }
+
+                    profileToDelete?.let { target ->
+                        val targetName = target.name.ifBlank { "Unnamed" }
+                        AlertDialog(
+                            onDismissRequest = { profileToDelete = null },
+                            title            = { Text("Delete palette?") },
+                            text             = { Text("\"$targetName\" will be permanently removed.") },
+                            confirmButton    = {
+                                TextButton(
+                                    onClick = { onDeleteProfile(target); profileToDelete = null },
+                                    colors  = ButtonDefaults.textButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.error
+                                    ),
+                                ) { Text("Delete") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { profileToDelete = null }) { Text("Cancel") }
+                            },
+                        )
+                    }
+
                     if (colorProfiles.isNotEmpty()) {
                         Text(
                             text  = "Saved palettes",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement   = Arrangement.spacedBy(8.dp),
-                        ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             colorProfiles.forEach { profile ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    val displayName = profile.name.ifBlank { "Unnamed" }
-                                    FilterChip(
-                                        selected = profile.id == customActiveProfileId,
-                                        onClick  = {
-                                            localName = profile.name
-                                            onLoadProfile(profile)
-                                        },
-                                        label    = { Text(displayName) },
-                                        modifier = Modifier.semantics { role = Role.RadioButton },
+                                val displayName = profile.name.ifBlank { "Unnamed" }
+                                val isActive    = profile.id == customActiveProfileId
+                                Row(
+                                    modifier          = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    // Three colour swatches
+                                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        listOf(profile.primaryArgb, profile.secondaryArgb, profile.tertiaryArgb).forEach { argb ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(16.dp)
+                                                    .clip(CircleShape)
+                                                    .background(if (argb != 0) Color(argb) else MaterialTheme.colorScheme.outlineVariant)
+                                                    .border(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), CircleShape)
+                                            )
+                                        }
+                                    }
+                                    // Profile name — tapping loads it
+                                    Text(
+                                        text     = displayName,
+                                        style    = MaterialTheme.typography.bodyMedium,
+                                        color    = if (isActive) MaterialTheme.colorScheme.primary
+                                                   else MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .semantics { role = Role.Button }
+                                            .clickable {
+                                                localName = profile.name
+                                                onLoadProfile(profile)
+                                            }
+                                            .padding(vertical = 8.dp),
                                     )
+                                    if (isActive) {
+                                        Icon(
+                                            imageVector        = Icons.Default.Check,
+                                            contentDescription = "Active",
+                                            tint               = MaterialTheme.colorScheme.primary,
+                                            modifier           = Modifier.size(16.dp),
+                                        )
+                                    }
+                                    // Delete button
                                     IconButton(
-                                        onClick  = { onDeleteProfile(profile) },
+                                        onClick  = { profileToDelete = profile },
                                         modifier = Modifier
                                             .size(36.dp)
                                             .semantics { contentDescription = "Delete $displayName palette" },
@@ -2155,7 +2206,7 @@ private fun CompactThemePicker(
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     ) {
                         OutlinedButton(onClick = {
-                            onSaveProfile(customActiveProfileId, localName, customPrimaryArgb, customSecondaryArgb, customTertiaryArgb)
+                            onSaveProfile(localName, customPrimaryArgb, customSecondaryArgb, customTertiaryArgb)
                         }) {
                             Text("Save palette")
                         }
