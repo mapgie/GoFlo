@@ -1,0 +1,5 @@
+{
+  "bump": "minor",
+  "added": ["Support for saving multiple named custom colour themes"],
+  "fixed": ["Saving a custom colour palette no longer overwrites the previously saved palette"]
+}
