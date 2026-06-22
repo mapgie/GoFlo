@@ -1141,7 +1141,6 @@ private fun RemindersSubScreen(
                     .semantics { role = Role.Switch }
             )
 
-            val anyEnabled = reminder.preperiodEnabled || reminder.ovulationEnabled || reminder.dailyDuringPeriodEnabled
             if (anyEnabled) {
                 HorizontalDivider()
                 ListItem(
