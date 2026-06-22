@@ -31,6 +31,12 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.50.1-beta.1] - 2026-06-22
+
+### Added
+- Warning banner and save-time dialog when notification or exact alarm permissions are missing while setting or viewing an alarm or reminder
+
+---
 ## [0.50.0-beta.1] - 2026-06-20
 
 ### Added

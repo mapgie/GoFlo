@@ -1,4 +1,0 @@
-{
-  "bump": "patch",
-  "added": ["Warning banner and save-time dialog when notification or exact alarm permissions are missing while setting or viewing an alarm or reminder"]
-}
