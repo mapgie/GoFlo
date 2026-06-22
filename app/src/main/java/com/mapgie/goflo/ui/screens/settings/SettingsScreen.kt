@@ -92,12 +92,17 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -970,11 +975,31 @@ private fun RemindersSubScreen(
     onBack:          () -> Unit
 ) {
     val context = LocalContext.current
-    val canScheduleExact = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            alarmManager.canScheduleExactAlarms()
-        } else true
+
+    var hasNotificationPermission by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
+    var hasExactAlarmPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+            else true
+        )
+    }
+
+    val remindersLifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(remindersLifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasNotificationPermission =
+                    NotificationManagerCompat.from(context).areNotificationsEnabled()
+                hasExactAlarmPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).canScheduleExactAlarms()
+                else true
+            }
+        }
+        remindersLifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { remindersLifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     SettingsSubScreenScaffold(title = "Reminders", onBack = onBack) { padding ->
@@ -984,12 +1009,18 @@ private fun RemindersSubScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            if (reminder.deliveryMode == "ALARM" && !canScheduleExact) {
+            val anyEnabled = reminder.preperiodEnabled || reminder.ovulationEnabled || reminder.dailyDuringPeriodEnabled
+            if (anyEnabled && !hasNotificationPermission) {
                 ListItem(
-                    headlineContent = { Text("Exact alarms require a permission") },
-                    supportingContent = { Text("Tap to grant the Alarms and reminders permission in Settings") },
+                    headlineContent = { Text("Notification permission required") },
+                    supportingContent = { Text("Tap to grant notification permission so reminders can fire.") },
                     leadingContent = {
-                        Icon(Icons.Outlined.NotificationImportant, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Icon(
+                            Icons.Outlined.NotificationImportant,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp),
+                        )
                     },
                     colors = ListItemDefaults.colors(
                         containerColor  = MaterialTheme.colorScheme.errorContainer,
@@ -997,6 +1028,36 @@ private fun RemindersSubScreen(
                         supportingColor = MaterialTheme.colorScheme.onErrorContainer,
                     ),
                     modifier = Modifier
+                        .semantics { role = Role.Button }
+                        .clickable {
+                            context.startActivity(
+                                Intent(AndroidSettings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                    .putExtra(AndroidSettings.EXTRA_APP_PACKAGE, context.packageName)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        }
+                )
+                HorizontalDivider()
+            }
+            if (reminder.deliveryMode == "ALARM" && !hasExactAlarmPermission) {
+                ListItem(
+                    headlineContent = { Text("Exact alarms require a permission") },
+                    supportingContent = { Text("Tap to grant the Alarms and reminders permission in Settings.") },
+                    leadingContent = {
+                        Icon(
+                            Icons.Outlined.NotificationImportant,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    },
+                    colors = ListItemDefaults.colors(
+                        containerColor  = MaterialTheme.colorScheme.errorContainer,
+                        headlineColor   = MaterialTheme.colorScheme.onErrorContainer,
+                        supportingColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
+                    modifier = Modifier
+                        .semantics { role = Role.Button }
                         .clickable {
                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                                 context.startActivity(
@@ -1005,7 +1066,6 @@ private fun RemindersSubScreen(
                                 )
                             }
                         }
-                        .semantics { role = Role.Button }
                 )
                 HorizontalDivider()
             }
