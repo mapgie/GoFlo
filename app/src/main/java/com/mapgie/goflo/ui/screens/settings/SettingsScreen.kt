@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
@@ -2069,9 +2070,12 @@ private fun CompactThemePicker(
                                 )
                             } else {
                                 CustomPaletteSlot(
-                                    isSelected = isCustom,
-                                    onClick    = { onSelect(AppTheme.CUSTOM) },
-                                    modifier   = Modifier.weight(1f),
+                                    isSelected     = isCustom,
+                                    primaryArgb    = customPrimaryArgb,
+                                    secondaryArgb  = customSecondaryArgb,
+                                    tertiaryArgb   = customTertiaryArgb,
+                                    onClick        = { onSelect(AppTheme.CUSTOM) },
+                                    modifier       = Modifier.weight(1f),
                                 )
                             }
                         }
@@ -2353,9 +2357,17 @@ private fun PaletteOption(
 // ── Custom palette slot ───────────────────────────────────────────────────────
 
 @Composable
-private fun CustomPaletteSlot(isSelected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun CustomPaletteSlot(
+    isSelected:    Boolean,
+    primaryArgb:   Int,
+    secondaryArgb: Int,
+    tertiaryArgb:  Int,
+    onClick:       () -> Unit,
+    modifier:      Modifier = Modifier,
+) {
     val selColor     = MaterialTheme.colorScheme.primary
     val outlineColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val hasColours   = primaryArgb != 0 || secondaryArgb != 0 || tertiaryArgb != 0
 
     Column(
         modifier            = modifier
@@ -2366,24 +2378,63 @@ private fun CustomPaletteSlot(isSelected: Boolean, onClick: () -> Unit, modifier
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(40.dp)) {
-                val r        = size.width / 2f
-                val strokePx = if (isSelected) 3.dp.toPx() else 1.5.dp.toPx()
-                drawCircle(
-                    color  = if (isSelected) selColor else outlineColor,
-                    radius = r - strokePx / 2f,
-                    style  = Stroke(
-                        width      = strokePx,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f),
-                    ),
+            if (hasColours) {
+                // Show 3 overlapping colour circles when custom colours have been set
+                Row(
+                    modifier              = Modifier.size(40.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment     = Alignment.CenterVertically,
+                ) {
+                    listOf(primaryArgb, secondaryArgb, tertiaryArgb).forEachIndexed { i, argb ->
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .offset(x = ((-i) * 3).dp)
+                                .clip(CircleShape)
+                                .background(Color(argb))
+                                .border(
+                                    width  = 1.dp,
+                                    color  = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                    shape  = CircleShape,
+                                )
+                        )
+                    }
+                }
+                // Selection ring
+                Canvas(modifier = Modifier.size(40.dp)) {
+                    val r        = size.width / 2f
+                    val strokePx = if (isSelected) 3.dp.toPx() else 1.5.dp.toPx()
+                    drawCircle(
+                        color  = if (isSelected) selColor else outlineColor,
+                        radius = r - strokePx / 2f,
+                        style  = Stroke(
+                            width      = strokePx,
+                            pathEffect = if (isSelected) null
+                                         else PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f),
+                        ),
+                    )
+                }
+            } else {
+                // No custom colours yet: show dashed circle + add icon
+                Canvas(modifier = Modifier.size(40.dp)) {
+                    val r        = size.width / 2f
+                    val strokePx = if (isSelected) 3.dp.toPx() else 1.5.dp.toPx()
+                    drawCircle(
+                        color  = if (isSelected) selColor else outlineColor,
+                        radius = r - strokePx / 2f,
+                        style  = Stroke(
+                            width      = strokePx,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 6f), 0f),
+                        ),
+                    )
+                }
+                Icon(
+                    imageVector        = Icons.Default.Add,
+                    contentDescription = null,
+                    tint               = if (isSelected) selColor else outlineColor,
+                    modifier           = Modifier.size(20.dp)
                 )
             }
-            Icon(
-                imageVector        = Icons.Default.Add,
-                contentDescription = null,
-                tint               = if (isSelected) selColor else outlineColor,
-                modifier           = Modifier.size(20.dp)
-            )
         }
         Text(
             text  = "Custom",
