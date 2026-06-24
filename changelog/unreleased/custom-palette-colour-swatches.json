@@ -1,6 +1,0 @@
-{
-  "bump": "patch",
-  "changed": [
-    "Custom palette slot in the theme grid now shows three colour swatches when custom colours have been set, so you can see your current palette at a glance without tapping into it"
-  ]
-}

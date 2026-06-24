@@ -31,6 +31,12 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.50.2-beta.1] - 2026-06-24
+
+### Changed
+- Custom palette slot in the theme grid now shows three colour swatches when custom colours have been set, so you can see your current palette at a glance without tapping into it
+
+---
 ## [0.50.1-beta.1] - 2026-06-22
 
 ### Added
