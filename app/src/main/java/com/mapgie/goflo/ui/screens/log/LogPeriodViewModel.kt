@@ -297,20 +297,26 @@ class LogPeriodViewModel(
     private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) {
         val tr = trackingRepository ?: return
         val flowCategory = tr.getSystemCategoryByKey("flow") ?: return
-        if (!flowCategory.showInLogPeriod || flowCategory.isArchived) return
+        if (flowCategory.isArchived) return
         val flowLabel = if (flowCategory.categoryType == "numeric_slider") {
             val v = state.flowSliderValue ?: flowLabelToSliderValue(state.selectedFlowLabel)
             v.toInt().toString()
         } else {
             state.selectedFlowLabel
         }
-        tr.syncFlowLogsForPeriod(flowCategory.id, listOf(state.startDate), flowLabel)
+        tr.saveLog(
+            date           = state.startDate,
+            categoryId     = flowCategory.id,
+            selectedValues = setOf(flowLabel),
+            notes          = "",
+            allowMultiple  = false,
+        )
     }
 
     private suspend fun syncSymptomsToTrackingLog(state: LogPeriodUiState) {
         val tr = trackingRepository ?: return
         val symptomsCategory = tr.getSystemCategoryByKey("symptoms") ?: return
-        if (!symptomsCategory.showInLogPeriod || symptomsCategory.isArchived) return
+        if (symptomsCategory.isArchived) return
         if (state.symptoms.isEmpty()) {
             val existing = tr.getExistingLog(state.startDate, symptomsCategory.id) ?: return
             tr.deleteLog(existing.log)
