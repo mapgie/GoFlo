@@ -354,7 +354,8 @@ class LogPeriodViewModel(
     private fun computePinnedValues(cat: TrackingCategory, state: LogPeriodUiState): Set<String>? =
         when (cat.categoryType) {
             "numeric_slider" -> {
-                val v = state.pinnedNumericValues[cat.id] ?: return null
+                // Fall back to numericMin so the slider's displayed position is always saved.
+                val v = state.pinnedNumericValues[cat.id] ?: cat.numericMin
                 setOf(if (cat.allowDecimals) "%.1f".format(v) else v.toInt().toString())
             }
             "numeric_free" -> {
@@ -362,8 +363,10 @@ class LogPeriodViewModel(
                 if (text.isEmpty()) null else setOf(text)
             }
             "increment" -> {
+                // Always save, including 0 — a zero count is meaningful data for a
+                // category the user chose to track alongside periods.
                 val count = state.pinnedNumericValues[cat.id]?.toInt() ?: 0
-                if (count <= 0) null else setOf(count.toString())
+                setOf(count.toString())
             }
             else -> {
                 val selected = state.pinnedCategorySelections[cat.id] ?: emptySet()
