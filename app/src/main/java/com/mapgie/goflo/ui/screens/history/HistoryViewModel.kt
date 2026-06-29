@@ -8,6 +8,8 @@ import com.mapgie.goflo.widget.GoFloWidget
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.repository.PeriodRepository
+import com.mapgie.goflo.data.repository.TrackingRepository
+import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +27,7 @@ data class PeriodWithSymptoms(
 class HistoryViewModel(
     private val repository: PeriodRepository,
     private val application: Application? = null,
+    private val trackingRepository: TrackingRepository? = null,
 ) : ViewModel() {
 
     // ── Pending-delete state ──────────────────────────────────────────────────
@@ -68,6 +71,10 @@ class HistoryViewModel(
             val symptoms = repository.getSymptomsParsed(period.id)
             pendingUndo[period.id] = UndoData(period, symptoms)
             _pendingDeleteIds.update { it + period.id }
+            trackingRepository?.deleteLogsForPeriod(
+                LocalDate.parse(period.startDate),
+                period.endDate?.let { LocalDate.parse(it) }
+            )
             repository.deletePeriod(period)
             application?.let { GoFloWidget.updateAllWidgets(it) }
         }
@@ -99,10 +106,11 @@ class HistoryViewModel(
     class Factory(
         private val repository: PeriodRepository,
         private val application: Application? = null,
+        private val trackingRepository: TrackingRepository? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return HistoryViewModel(repository, application) as T
+            return HistoryViewModel(repository, application, trackingRepository) as T
         }
     }
 }

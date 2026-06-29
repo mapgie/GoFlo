@@ -270,7 +270,7 @@ class LogPeriodViewModel(
                     id = state.existingId ?: 0,
                     startDate = state.startDate.toString(),
                     endDate = state.endDate?.toString(),
-                    flowLevel = "",
+                    flowLevel = state.selectedFlowLabel,
                     notes = state.notes
                 )
                 if (state.isEditing && state.existingId != null) {
@@ -384,6 +384,10 @@ class LogPeriodViewModel(
         viewModelScope.launch {
             try {
                 val period = repository.getPeriodById(id).first() ?: return@launch
+                trackingRepository?.deleteLogsForPeriod(
+                    LocalDate.parse(period.startDate),
+                    period.endDate?.let { LocalDate.parse(it) }
+                )
                 repository.deletePeriod(period)
                 application?.let { GoFloWidget.updateAllWidgets(it) }
                 _uiState.update { it.copy(deleted = true) }

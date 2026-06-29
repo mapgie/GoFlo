@@ -65,6 +65,11 @@ class PeriodRepository(
         periodDao.deletePeriod(entry)
     }
 
+    /** Updates only the flowLevel field of a period without touching its symptoms. */
+    suspend fun updateFlowLevel(period: PeriodEntry, flowLevel: String) {
+        periodDao.updatePeriod(period.copy(flowLevel = flowLevel))
+    }
+
     /**
      * One-time data fixup: merges period entries whose date ranges overlap into a
      * single entry. An ongoing period (endDate == null) is treated as extending
