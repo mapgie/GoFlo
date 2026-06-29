@@ -11,4 +11,4 @@ permissions:
   contents: read
 jobs:
   check:
-    uses: mapgie/android-Actions/.github/workflows/changelog-check.yml@14f72d0acca36d4ce4dcc643beac4c42ca6fe3ab
+    uses: mapgie/android-Actions/.github/workflows/changelog-check.yml@dd75ec70a809295343d167556395fc3cfddb0242
