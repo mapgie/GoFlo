@@ -31,6 +31,14 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.50.3-beta.1] - 2026-06-29
+
+### Fixed
+- Flow and Symptoms now always appear on the Log Period screen regardless of internal tracking settings.
+- Editing a period now correctly saves changes to the flow level instead of silently keeping the previous value.
+- Pinned tracking categories (slider and counter types) now always record an entry when saving a period, even when the user has not interacted with them.
+
+---
 ## [0.50.2-beta.1] - 2026-06-24
 
 ### Changed
