@@ -1,9 +1,0 @@
-{
-  "bump": "patch",
-  "fixed": [
-    "Full backup export now includes scale labels and slider-scale status for numeric slider categories",
-    "Deleting a period entry now also removes its associated flow, symptoms, and pinned category tracking logs",
-    "Flow level is now correctly saved to the period record when logging a period",
-    "Historic period entries with missing flow levels are repaired on app start using tracking log data"
-  ]
-}

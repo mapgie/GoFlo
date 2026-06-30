@@ -31,6 +31,15 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.50.4-beta.1] - 2026-06-30
+
+### Fixed
+- Full backup export now includes scale labels and slider-scale status for numeric slider categories
+- Deleting a period entry now also removes its associated flow, symptoms, and pinned category tracking logs
+- Flow level is now correctly saved to the period record when logging a period
+- Historic period entries with missing flow levels are repaired on app start using tracking log data
+
+---
 ## [0.50.3-beta.1] - 2026-06-29
 
 ### Fixed
