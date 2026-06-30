@@ -298,7 +298,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             }
 
             composable(Screen.History.route) {
-                val vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory(app.repository, app))
+                val vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory(app.repository, app, app.trackingRepository))
                 HistoryScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
             }
 

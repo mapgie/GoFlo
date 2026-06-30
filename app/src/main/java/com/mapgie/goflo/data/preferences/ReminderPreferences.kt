@@ -102,6 +102,12 @@ data class AppPreferences(
     val heatmapZoomLevel: Int = 1,
     /** True once the new-user onboarding banner has been dismissed. */
     val onboardingBannerDismissed: Boolean = false,
+    /**
+     * True once the one-time reverse migration that restores PeriodEntry.flowLevel from
+     * TrackingLog data has been completed. Repairs periods saved while the flow-save bug
+     * was active (flowLevel was being written as "").
+     */
+    val flowLevelRestoreDone: Boolean = false,
     /** Hue (0–360°) for the primary colour in the custom theme. */
     val customPrimaryHue: Float = 0f,
     /** Hue (0–360°) for the secondary colour in the custom theme. */
@@ -174,6 +180,7 @@ class AppPreferencesStore(private val context: Context) {
         val HEATMAP_AGGREGATION = stringPreferencesKey("heatmap_aggregation")
         val HEATMAP_ZOOM_LEVEL = intPreferencesKey("heatmap_zoom_level")
         val ONBOARDING_BANNER_DISMISSED = booleanPreferencesKey("onboarding_banner_dismissed")
+        val FLOW_LEVEL_RESTORE_DONE = booleanPreferencesKey("flow_level_restore_done")
         val CUSTOM_PRIMARY_HUE   = floatPreferencesKey("custom_primary_hue")
         val CUSTOM_SECONDARY_HUE = floatPreferencesKey("custom_secondary_hue")
         val CUSTOM_TERTIARY_HUE  = floatPreferencesKey("custom_tertiary_hue")
@@ -219,6 +226,7 @@ class AppPreferencesStore(private val context: Context) {
             heatmapAggregation = prefs[Keys.HEATMAP_AGGREGATION] ?: "AVERAGE",
             heatmapZoomLevel = prefs[Keys.HEATMAP_ZOOM_LEVEL] ?: 1,
             onboardingBannerDismissed = prefs[Keys.ONBOARDING_BANNER_DISMISSED] ?: false,
+            flowLevelRestoreDone = prefs[Keys.FLOW_LEVEL_RESTORE_DONE] ?: false,
             customPrimaryHue       = prefs[Keys.CUSTOM_PRIMARY_HUE]          ?: 0f,
             customSecondaryHue     = prefs[Keys.CUSTOM_SECONDARY_HUE]        ?: 200f,
             customTertiaryHue      = prefs[Keys.CUSTOM_TERTIARY_HUE]         ?: 330f,
@@ -395,6 +403,10 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setOnboardingBannerDismissed(dismissed: Boolean) {
         context.dataStore.edit { it[Keys.ONBOARDING_BANNER_DISMISSED] = dismissed }
+    }
+
+    suspend fun setFlowLevelRestoreDone(done: Boolean) {
+        context.dataStore.edit { it[Keys.FLOW_LEVEL_RESTORE_DONE] = done }
     }
 
     suspend fun setCustomPrimaryHue(hue: Float) {

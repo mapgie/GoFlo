@@ -122,6 +122,9 @@ In a Compose Navigation graph with a bottom nav bar, navigating between tabs des
 **SQL `:param IS NULL` in a parameterised `OR` condition matches every row when the param is null**
 A Room DAO query like `AND (:id IS NULL OR col = :id)` evaluates to `AND TRUE` when `:id` is null, returning all rows rather than only those where `col IS NULL`. This silently broadens the result set in ways that are hard to spot in testing. Fix by splitting into separate query methods — one for the null case and one for the non-null case — or handle the branch in application code before calling the DAO.
 
+**When a save bug corrupts a primary field, use its mirror store as the repair source**
+If a field is mirrored to a secondary store (e.g. `PeriodEntry.flowLevel` is also written to `TrackingLog`), a bug that writes a blank value to the primary record leaves the secondary intact. The forward backfill that populates the secondary from the primary will skip blank rows, so the secondary stays correct. A one-time reverse migration — reading the secondary and writing back to the primary — is the right repair: it is idempotent (skip if already non-blank), guarded by a preference flag, and requires no schema change. When mirroring data across stores, make sure the secondary write path is independent of the primary so it succeeds even when the primary is corrupted.
+
 **Non-reactive suspend calls inside a `combine` lambda silently break reactivity**
 Calling a `suspend` DAO function inside a `combine { }` transform reads data once at emission time and never again. If the queried table changes, the outer flow won't re-emit. Fix: promote the query to a `Flow` and include it as an additional `combine` argument so the pipeline re-fires on every table change.
 

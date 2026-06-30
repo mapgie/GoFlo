@@ -62,6 +62,7 @@ class TrackingRepository(
         numericMax: Float = 10f,
         allowDecimals: Boolean = false,
         numericUnit: String = "",
+        scaleLabels: String = "",
         allowMultiple: Boolean = false,
         showInLogPeriod: Boolean = false,
         trackAgainstTime: Boolean = false,
@@ -80,6 +81,7 @@ class TrackingRepository(
                 numericMax       = numericMax,
                 allowDecimals    = allowDecimals,
                 numericUnit      = numericUnit,
+                scaleLabels      = scaleLabels,
                 allowMultiple    = allowMultiple,
                 showInLogPeriod  = showInLogPeriod,
                 trackAgainstTime = trackAgainstTime,
@@ -120,6 +122,7 @@ class TrackingRepository(
         numericMax: Float,
         allowDecimals: Boolean,
         numericUnit: String = "",
+        scaleLabels: String = "",
         allowMultiple: Boolean = false,
         showInLogPeriod: Boolean = false,
         trackAgainstTime: Boolean = false,
@@ -136,6 +139,7 @@ class TrackingRepository(
                 numericMax       = numericMax,
                 allowDecimals    = allowDecimals,
                 numericUnit      = numericUnit,
+                scaleLabels      = scaleLabels,
                 allowMultiple    = allowMultiple,
                 showInLogPeriod  = showInLogPeriod,
                 trackAgainstTime = trackAgainstTime,
@@ -507,6 +511,29 @@ class TrackingRepository(
     suspend fun resetCategoryConfiguration() {
         categoryDao.deleteAllCustomCategories()
         categoryDao.unarchiveAllSystemCategories()
+    }
+
+    /**
+     * Deletes all tracking logs associated with a period's date range.
+     *
+     * Flow logs are deleted for every day from [startDate] to [endDate] (inclusive)
+     * because the backfill migration may have created one per day.
+     * Symptoms and pinned-category logs are deleted only for [startDate], which is
+     * the only date the Log Period screen writes to for those categories.
+     */
+    suspend fun deleteLogsForPeriod(startDate: LocalDate, endDate: LocalDate?) {
+        val end = endDate ?: startDate
+        val flowCategory = getSystemCategoryByKey("flow")
+        val symptomsCategory = getSystemCategoryByKey("symptoms")
+        if (flowCategory != null) {
+            logDao.deleteLogsForCategoryInRange(flowCategory.id, startDate.toString(), end.toString())
+        }
+        if (symptomsCategory != null) {
+            logDao.deleteLogsForCategoryOnDate(symptomsCategory.id, startDate.toString())
+        }
+        for (cat in categoryDao.getShowInLogPeriodCategoriesOnce().filter { !it.isSystem }) {
+            logDao.deleteLogsForCategoryOnDate(cat.id, startDate.toString())
+        }
     }
 
     /**

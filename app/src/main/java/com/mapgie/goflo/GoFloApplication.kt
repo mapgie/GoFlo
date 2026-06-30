@@ -61,6 +61,7 @@ class GoFloApplication : Application() {
         appScope.launch { runFlowBackfillIfNeeded() }
         appScope.launch { runSymptomsBackfillIfNeeded() }
         appScope.launch { runPeriodOverlapMergeIfNeeded() }
+        appScope.launch { runFlowLevelRestoreIfNeeded() }
     }
 
     /**
@@ -127,6 +128,44 @@ class GoFloApplication : Application() {
         }
 
         preferencesStore.setSymptomsBackfillDone(true)
+    }
+
+    /**
+     * One-time reverse migration: reads each period's flow TrackingLog entry and writes
+     * the resolved label back into PeriodEntry.flowLevel for periods that were saved with
+     * an empty flowLevel (due to the save bug that wrote "" instead of the selected label).
+     *
+     * Numeric slider values ("1"–"4") are mapped back to their text labels
+     * ("Spotting"/"Light"/"Medium"/"Heavy") so PeriodEntry.flowLevel is always a label.
+     * Periods that already have a non-blank flowLevel are skipped.
+     */
+    private suspend fun runFlowLevelRestoreIfNeeded() {
+        val prefs = preferencesStore.preferences.first()
+        if (prefs.flowLevelRestoreDone) return
+
+        val flowCategory = trackingRepository.getSystemCategoryByKey("flow") ?: run {
+            preferencesStore.setFlowLevelRestoreDone(true)
+            return
+        }
+
+        val periods = repository.getAllPeriodsOnce()
+        for (period in periods) {
+            if (period.flowLevel.isNotBlank()) continue
+            val startDate = runCatching { LocalDate.parse(period.startDate) }.getOrNull() ?: continue
+            val logValue = trackingRepository.getExistingLog(startDate, flowCategory.id)
+                ?.values?.firstOrNull() ?: continue
+            val label = when (logValue) {
+                "1"  -> "Spotting"
+                "2"  -> "Light"
+                "3"  -> "Medium"
+                "4"  -> "Heavy"
+                else -> logValue
+            }
+            if (label.isBlank()) continue
+            repository.updateFlowLevel(period, label)
+        }
+
+        preferencesStore.setFlowLevelRestoreDone(true)
     }
 
     /**

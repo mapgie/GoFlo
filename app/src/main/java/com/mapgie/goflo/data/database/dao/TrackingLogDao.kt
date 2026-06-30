@@ -110,6 +110,14 @@ interface TrackingLogDao {
     @Query("SELECT MAX(date) FROM tracking_logs")
     suspend fun getLatestLogDate(): String?
 
+    /** Removes all logs for [categoryId] whose date falls within the inclusive range [startDate]..[endDate]. Values cascade via FK. */
+    @Query("DELETE FROM tracking_logs WHERE categoryId = :categoryId AND date >= :startDate AND date <= :endDate")
+    suspend fun deleteLogsForCategoryInRange(categoryId: Long, startDate: String, endDate: String)
+
+    /** Removes the log(s) for [categoryId] on exactly [date]. Values cascade via FK. */
+    @Query("DELETE FROM tracking_logs WHERE categoryId = :categoryId AND date = :date")
+    suspend fun deleteLogsForCategoryOnDate(categoryId: Long, date: String)
+
     /** Permanently removes every tracking log row (values cascade via FK). */
     @Query("DELETE FROM tracking_logs")
     suspend fun deleteAllLogs()
