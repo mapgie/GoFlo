@@ -17,11 +17,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -141,12 +145,19 @@ fun HistoryScreen(
                         if (days in 15..60) put(a.id, days)
                     }
                 }
+                // Maps a period to its immediately preceding (chronologically earlier)
+                // period, if any — used to offer a "merge with previous period" action
+                // so fragmented history can be fixed up from the list itself.
+                val previousPeriodMap = buildMap<Long, PeriodEntry> {
+                    sortedByStart.zipWithNext { older, newer -> put(newer.id, older) }
+                }
 
                 items(periods, key = { it.id }) { period ->
                     SwipeablePeriodCard(
-                        period      = period,
-                        cycleLength = cycleLengthMap[period.id],
-                        onDelete    = {
+                        period         = period,
+                        cycleLength    = cycleLengthMap[period.id],
+                        previousPeriod = previousPeriodMap[period.id],
+                        onDelete       = {
                             // Stage the deletion — card disappears from the list immediately.
                             viewModel.stageDeletion(period)
                             // Show snackbar with Undo action from the screen-level scope
@@ -163,8 +174,9 @@ fun HistoryScreen(
                                 }
                             }
                         },
-                        onClick     = { onNavigate(Screen.LogPeriod.withId(period.id)) },
-                        modifier    = Modifier,
+                        onMerge        = { previous -> viewModel.mergePeriods(previous, period) },
+                        onClick        = { onNavigate(Screen.LogPeriod.withId(period.id)) },
+                        modifier       = Modifier,
                     )
                 }
                 item { Spacer(Modifier.height(4.dp)) }
@@ -199,7 +211,9 @@ fun HistoryScreen(
 private fun SwipeablePeriodCard(
     period: PeriodEntry,
     cycleLength: Int?,
+    previousPeriod: PeriodEntry?,
     onDelete: () -> Unit,
+    onMerge: (PeriodEntry) -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -265,17 +279,52 @@ private fun SwipeablePeriodCard(
             }
         },
     ) {
-        PeriodCard(period = period, cycleLength = cycleLength, onClick = onClick)
+        PeriodCard(
+            period         = period,
+            cycleLength    = cycleLength,
+            previousPeriod = previousPeriod,
+            onMerge        = onMerge,
+            onClick        = onClick,
+        )
     }
 }
 
 // ── Period card ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun PeriodCard(period: PeriodEntry, cycleLength: Int? = null, onClick: () -> Unit) {
+private fun PeriodCard(
+    period: PeriodEntry,
+    cycleLength: Int? = null,
+    previousPeriod: PeriodEntry? = null,
+    onMerge: (PeriodEntry) -> Unit = {},
+    onClick: () -> Unit,
+) {
     val start = LocalDate.parse(period.startDate)
     val end = period.endDate?.let { LocalDate.parse(it) }
     val duration = if (end != null) "${ChronoUnit.DAYS.between(start, end) + 1} days" else "Ongoing"
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    var showMergeConfirm by remember { mutableStateOf(false) }
+
+    if (showMergeConfirm && previousPeriod != null) {
+        val previousStart = LocalDate.parse(previousPeriod.startDate).format(displayFormat)
+        AlertDialog(
+            onDismissRequest = { showMergeConfirm = false },
+            title = { Text("Merge periods?") },
+            text  = {
+                Text(
+                    "This will combine this entry with the period starting $previousStart into a " +
+                    "single period. This can't be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { showMergeConfirm = false; onMerge(previousPeriod) }) {
+                    Text("Merge")
+                }
+            },
+            dismissButton = { TextButton(onClick = { showMergeConfirm = false }) { Text("Cancel") } }
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -285,10 +334,36 @@ private fun PeriodCard(period: PeriodEntry, cycleLength: Int? = null, onClick: (
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text  = start.format(displayFormat),
-                style = MaterialTheme.typography.titleMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text  = start.format(displayFormat),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (previousPeriod != null) {
+                    Box {
+                        IconButton(onClick = { showOverflowMenu = true }) {
+                            Icon(
+                                imageVector        = Icons.Default.MoreVert,
+                                contentDescription = "More options",
+                                tint               = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showOverflowMenu,
+                            onDismissRequest = { showOverflowMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Merge with previous period") },
+                                onClick = { showOverflowMenu = false; showMergeConfirm = true }
+                            )
+                        }
+                    }
+                }
+            }
             Text(
                 text  = if (end != null) "Until ${end.format(displayFormat)}  ·  $duration" else "Ongoing",
                 style = MaterialTheme.typography.bodyMedium,

@@ -1,0 +1,9 @@
+{
+  "bump": "minor",
+  "added": [
+    "History entries can now be merged with the previous period to fix up fragmented history"
+  ],
+  "fixed": [
+    "Logging consecutive days no longer splits a single period into disconnected entries with an unloggable gap in between"
+  ]
+}

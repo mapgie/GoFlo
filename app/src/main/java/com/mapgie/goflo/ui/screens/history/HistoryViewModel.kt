@@ -103,6 +103,20 @@ class HistoryViewModel(
         _pendingDeleteIds.update { it - period.id }
     }
 
+    // ── Manual merge ───────────────────────────────────────────────────────────
+
+    /**
+     * Merges [older] and [newer] into a single period entry, fixing up a
+     * fragmented history (e.g. two entries that should have been one
+     * continuous period). Keeps [older]'s id; [newer] is deleted.
+     */
+    fun mergePeriods(older: PeriodEntry, newer: PeriodEntry) {
+        viewModelScope.launch {
+            repository.mergePeriods(older, newer)
+            application?.let { GoFloWidget.updateAllWidgets(it) }
+        }
+    }
+
     class Factory(
         private val repository: PeriodRepository,
         private val application: Application? = null,

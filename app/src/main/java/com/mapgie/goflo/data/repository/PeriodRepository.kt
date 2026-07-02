@@ -71,6 +71,76 @@ class PeriodRepository(
     }
 
     /**
+     * Resolves which period should be opened when logging [date], extending or
+     * merging adjacent entries so consecutive-day logging never fragments into
+     * disjoint periods.
+     *
+     * - A date already covered by an existing period (including an ongoing
+     *   period, which extends through today) returns that period's id as-is.
+     * - A date exactly one day after one period's end AND one day before
+     *   another period's start bridges the gap between them: the two periods
+     *   are merged into one (see [mergePeriods]) and the merged id is returned.
+     * - A date exactly one day after a period's end extends that period's end
+     *   date to include it.
+     * - A date exactly one day before a period's start pulls that period's
+     *   start date back to include it.
+     *
+     * Returns null when none of the above apply — the caller should start a
+     * brand-new period entry for [date].
+     */
+    suspend fun resolvePeriodForLogging(date: LocalDate): Long? {
+        val periods = periodDao.getAllPeriodsOnce()
+        periodForDate(periods, date)?.let { return it.id }
+
+        val dateStr = date.toString()
+        val before = periods.firstOrNull { it.endDate == date.minusDays(1).toString() }
+        val after = periods.firstOrNull { it.startDate == date.plusDays(1).toString() }
+
+        return when {
+            before != null && after != null -> mergePeriods(before, after)
+            before != null -> {
+                periodDao.updatePeriod(before.copy(endDate = dateStr))
+                before.id
+            }
+            after != null -> {
+                periodDao.updatePeriod(after.copy(startDate = dateStr))
+                after.id
+            }
+            else -> null
+        }
+    }
+
+    /**
+     * Merges [later] into [earlier], keeping [earlier]'s id. The merged end
+     * date is whichever of the two is later, with an ongoing (null) end date
+     * always winning over a fixed one. Notes are concatenated and symptoms
+     * from both periods are combined onto [earlier] before [later] is deleted.
+     *
+     * @return [earlier]'s id.
+     */
+    suspend fun mergePeriods(earlier: PeriodEntry, later: PeriodEntry): Long {
+        val earlierEnd = earlier.endDate?.let { LocalDate.parse(it) }
+        val laterEnd = later.endDate?.let { LocalDate.parse(it) }
+        val mergedEnd = when {
+            earlierEnd == null || laterEnd == null -> null
+            laterEnd.isAfter(earlierEnd) -> laterEnd
+            else -> earlierEnd
+        }
+
+        val earlierSymptoms = symptomDao.getSymptomsForPeriodOnce(earlier.id).map { it.symptomType }.toSet()
+        symptomDao.getSymptomsForPeriodOnce(later.id)
+            .map { it.symptomType }
+            .filter { it.isNotBlank() && it !in earlierSymptoms }
+            .forEach { symptomDao.insertSymptom(SymptomEntry(periodId = earlier.id, symptomType = it)) }
+
+        periodDao.updatePeriod(
+            earlier.copy(endDate = mergedEnd?.toString(), notes = mergeNotes(earlier.notes, later.notes))
+        )
+        periodDao.deletePeriod(later)
+        return earlier.id
+    }
+
+    /**
      * One-time data fixup: merges period entries whose date ranges overlap into a
      * single entry. An ongoing period (endDate == null) is treated as extending
      * through today when checking for overlap.

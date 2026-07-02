@@ -187,6 +187,19 @@ class HomeViewModel(
     fun selectDay(date: LocalDate) { _selectedDay.value = date }
     fun clearSelectedDay() { _selectedDay.value = null }
 
+    /**
+     * Resolves which period id logging [date] should target, extending or
+     * merging adjacent entries as needed (see [PeriodRepository.resolvePeriodForLogging]),
+     * then hands the result to [onResolved]. A null result means no
+     * existing/adjacent period applies, so the caller should start a
+     * brand-new entry for [date].
+     */
+    fun resolveLogPeriodTarget(date: LocalDate, onResolved: (Long?) -> Unit) {
+        viewModelScope.launch {
+            onResolved(repository.resolvePeriodForLogging(date))
+        }
+    }
+
     // ── Quick increment (Plus One categories) ───────────────────────────────────
 
     /** Transient confirmation message after an instant increment; null when none pending. */
