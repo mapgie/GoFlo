@@ -14,14 +14,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
@@ -142,10 +146,16 @@ fun HistoryScreen(
                     }
                 }
 
-                items(periods, key = { it.id }) { period ->
+                // `periods` is DB-ordered by startDate DESC, so list neighbours are
+                // also chronological neighbours: the item above is more recent, the
+                // item below is older.
+                itemsIndexed(periods, key = { _, period -> period.id }) { index, period ->
                     SwipeablePeriodCard(
                         period      = period,
                         cycleLength = cycleLengthMap[period.id],
+                        newerNeighbor = periods.getOrNull(index - 1),
+                        olderNeighbor = periods.getOrNull(index + 1),
+                        onMerge     = { other -> viewModel.mergePeriods(period, other) },
                         onDelete    = {
                             // Stage the deletion — card disappears from the list immediately.
                             viewModel.stageDeletion(period)
@@ -199,6 +209,9 @@ fun HistoryScreen(
 private fun SwipeablePeriodCard(
     period: PeriodEntry,
     cycleLength: Int?,
+    newerNeighbor: PeriodEntry?,
+    olderNeighbor: PeriodEntry?,
+    onMerge: (PeriodEntry) -> Unit,
     onDelete: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -265,17 +278,58 @@ private fun SwipeablePeriodCard(
             }
         },
     ) {
-        PeriodCard(period = period, cycleLength = cycleLength, onClick = onClick)
+        PeriodCard(
+            period        = period,
+            cycleLength   = cycleLength,
+            newerNeighbor = newerNeighbor,
+            olderNeighbor = olderNeighbor,
+            onMerge       = onMerge,
+            onClick       = onClick,
+        )
     }
 }
 
 // ── Period card ───────────────────────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PeriodCard(period: PeriodEntry, cycleLength: Int? = null, onClick: () -> Unit) {
+private fun PeriodCard(
+    period: PeriodEntry,
+    cycleLength: Int? = null,
+    newerNeighbor: PeriodEntry? = null,
+    olderNeighbor: PeriodEntry? = null,
+    onMerge: (PeriodEntry) -> Unit = {},
+    onClick: () -> Unit,
+) {
     val start = LocalDate.parse(period.startDate)
     val end = period.endDate?.let { LocalDate.parse(it) }
     val duration = if (end != null) "${ChronoUnit.DAYS.between(start, end) + 1} days" else "Ongoing"
+
+    var showMenu by remember { mutableStateOf(false) }
+    var mergeTarget by remember { mutableStateOf<PeriodEntry?>(null) }
+
+    mergeTarget?.let { target ->
+        val targetStart = LocalDate.parse(target.startDate)
+        val (earlier, later) = if (start <= targetStart) start to targetStart else targetStart to start
+        AlertDialog(
+            onDismissRequest = { mergeTarget = null },
+            title = { Text("Merge periods?") },
+            text = {
+                Text(
+                    "This will combine them into one period from ${earlier.format(displayFormat)} " +
+                    "to ${later.format(displayFormat)}, keeping both entries' notes and symptoms. " +
+                    "This can't be undone."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { mergeTarget = null; onMerge(target) }) { Text("Merge") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mergeTarget = null }) { Text("Cancel") }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -285,10 +339,37 @@ private fun PeriodCard(period: PeriodEntry, cycleLength: Int? = null, onClick: (
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text  = start.format(displayFormat),
-                style = MaterialTheme.typography.titleMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text  = start.format(displayFormat),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (newerNeighbor != null || olderNeighbor != null) {
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                            newerNeighbor?.let { neighbor ->
+                                DropdownMenuItem(
+                                    text = { Text("Merge with ${LocalDate.parse(neighbor.startDate).format(displayFormat)} period") },
+                                    onClick = { showMenu = false; mergeTarget = neighbor }
+                                )
+                            }
+                            olderNeighbor?.let { neighbor ->
+                                DropdownMenuItem(
+                                    text = { Text("Merge with ${LocalDate.parse(neighbor.startDate).format(displayFormat)} period") },
+                                    onClick = { showMenu = false; mergeTarget = neighbor }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
             Text(
                 text  = if (end != null) "Until ${end.format(displayFormat)}  ·  $duration" else "Ongoing",
                 style = MaterialTheme.typography.bodyMedium,

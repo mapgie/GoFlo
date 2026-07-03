@@ -117,7 +117,7 @@ fun HomeScreen(
     fun navigateToLogPeriod(date: LocalDate) {
         val existing = PeriodRepository.periodForDate(state.periods, date)
         if (existing != null) {
-            onNavigate(Screen.LogPeriod.withId(existing.id))
+            onNavigate(Screen.LogPeriod.withId(existing.id, date))
         } else {
             onNavigate(Screen.LogPeriod.newEntryForDate(date))
         }
