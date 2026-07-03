@@ -188,15 +188,13 @@ class HomeViewModel(
     fun clearSelectedDay() { _selectedDay.value = null }
 
     /**
-     * Resolves which period id logging [date] should target, extending or
-     * merging adjacent entries as needed (see [PeriodRepository.resolvePeriodForLogging]),
-     * then hands the result to [onResolved]. A null result means no
-     * existing/adjacent period applies, so the caller should start a
-     * brand-new entry for [date].
+     * If [date] bridges a one-day gap between two existing periods, merges
+     * them (see [PeriodRepository.mergeGapAt]) and hands the merged id to
+     * [onResolved]; otherwise hands back [fallbackId] unchanged.
      */
-    fun resolveLogPeriodTarget(date: LocalDate, onResolved: (Long?) -> Unit) {
+    fun mergeGapAt(date: LocalDate, fallbackId: Long, onResolved: (Long) -> Unit) {
         viewModelScope.launch {
-            onResolved(repository.resolvePeriodForLogging(date))
+            onResolved(repository.mergeGapAt(date)?.id ?: fallbackId)
         }
     }
 

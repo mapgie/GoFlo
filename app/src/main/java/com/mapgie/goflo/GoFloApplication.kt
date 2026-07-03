@@ -196,14 +196,14 @@ class GoFloApplication : Application() {
     }
 
     /**
-     * One-time data fixup: merges period entries that sit exactly one day apart
-     * (e.g. a period closed with an explicit end date, then a new period logged
-     * for the very next day, before the entry-point fix existed) into a single
-     * entry.
+     * One-time data fixup: merges period entries that are touching or sit a
+     * single unlogged day apart (e.g. a period closed with an explicit end
+     * date, then a new period logged for the next day or the day after,
+     * before the entry-point fix existed) into a single entry.
      *
-     * Each absorbed period's own tracking-log entries (flow, symptoms, pinned
-     * categories) are removed too, mirroring the cleanup performed on delete —
-     * otherwise they'd linger, orphaned, under a date no longer tied to any period.
+     * The absorbed periods' own tracking-log entries (flow, symptoms, pinned
+     * categories) are deliberately left in place — they're still valid, dated
+     * records of what was logged, not orphaned data to discard.
      *
      * Only runs once — guarded by the [periodAdjacencyMergeDone] preference flag.
      */
@@ -212,12 +212,6 @@ class GoFloApplication : Application() {
         if (prefs.periodAdjacencyMergeDone) return
 
         val absorbed = repository.mergeAdjacentPeriods()
-        for (period in absorbed) {
-            trackingRepository.deleteLogsForPeriod(
-                LocalDate.parse(period.startDate),
-                period.endDate?.let { LocalDate.parse(it) }
-            )
-        }
         if (absorbed.isNotEmpty()) {
             GoFloWidget.updateAllWidgets(this)
         }

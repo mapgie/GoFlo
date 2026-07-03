@@ -1,0 +1,7 @@
+{
+  "bump": "patch",
+  "fixed": [
+    "Logging the single unlogged day between two period entries now joins them into one continuous period instead of leaving the gap unfixable without a separate manual merge",
+    "The one-time period-repair migration and manual History merge no longer delete the absorbed period's own flow/symptom history"
+  ]
+}

@@ -71,73 +71,25 @@ class PeriodRepository(
     }
 
     /**
-     * Resolves which period should be opened when logging [date], extending or
-     * merging adjacent entries so consecutive-day logging never fragments into
-     * disjoint periods.
+     * If [date] sits in the single-day gap between one period's end and the
+     * next period's start, merges the two into one continuous period.
      *
-     * - A date already covered by an existing period (including an ongoing
-     *   period, which extends through today) returns that period's id as-is.
-     * - A date exactly one day after one period's end AND one day before
-     *   another period's start bridges the gap between them: the two periods
-     *   are merged into one (see [mergePeriods]) and the merged id is returned.
-     * - A date exactly one day after a period's end extends that period's end
-     *   date to include it.
-     * - A date exactly one day before a period's start pulls that period's
-     *   start date back to include it.
+     * `periodForDate` already treats the day right after an explicit end date
+     * as covered by that period (see its doc), so tapping that day alone
+     * opens the earlier period for a deferred end-date extension. But when a
+     * *second*, separate period already starts the following day, extending
+     * the first one in isolation just leaves it newly touching the second —
+     * still two rows, now requiring a manual History merge to finish the
+     * job. Detecting and merging both immediately closes the gap in one step.
      *
-     * Returns null when none of the above apply — the caller should start a
-     * brand-new period entry for [date].
+     * @return the merged period if [date] bridged a gap, else null.
      */
-    suspend fun resolvePeriodForLogging(date: LocalDate): Long? {
+    suspend fun mergeGapAt(date: LocalDate): PeriodEntry? {
         val periods = periodDao.getAllPeriodsOnce()
-        periodForDate(periods, date)?.let { return it.id }
-
-        val dateStr = date.toString()
         val before = periods.firstOrNull { it.endDate == date.minusDays(1).toString() }
         val after = periods.firstOrNull { it.startDate == date.plusDays(1).toString() }
-
-        return when {
-            before != null && after != null -> mergePeriods(before, after)
-            before != null -> {
-                periodDao.updatePeriod(before.copy(endDate = dateStr))
-                before.id
-            }
-            after != null -> {
-                periodDao.updatePeriod(after.copy(startDate = dateStr))
-                after.id
-            }
-            else -> null
-        }
-    }
-
-    /**
-     * Merges [later] into [earlier], keeping [earlier]'s id. The merged end
-     * date is whichever of the two is later, with an ongoing (null) end date
-     * always winning over a fixed one. Notes are concatenated and symptoms
-     * from both periods are combined onto [earlier] before [later] is deleted.
-     *
-     * @return [earlier]'s id.
-     */
-    suspend fun mergePeriods(earlier: PeriodEntry, later: PeriodEntry): Long {
-        val earlierEnd = earlier.endDate?.let { LocalDate.parse(it) }
-        val laterEnd = later.endDate?.let { LocalDate.parse(it) }
-        val mergedEnd = when {
-            earlierEnd == null || laterEnd == null -> null
-            laterEnd.isAfter(earlierEnd) -> laterEnd
-            else -> earlierEnd
-        }
-
-        val earlierSymptoms = symptomDao.getSymptomsForPeriodOnce(earlier.id).map { it.symptomType }.toSet()
-        symptomDao.getSymptomsForPeriodOnce(later.id)
-            .map { it.symptomType }
-            .filter { it.isNotBlank() && it !in earlierSymptoms }
-            .forEach { symptomDao.insertSymptom(SymptomEntry(periodId = earlier.id, symptomType = it)) }
-
-        periodDao.updatePeriod(
-            earlier.copy(endDate = mergedEnd?.toString(), notes = mergeNotes(earlier.notes, later.notes))
-        )
-        periodDao.deletePeriod(later)
-        return earlier.id
+        if (before == null || after == null) return null
+        return mergePeriods(before, after)
     }
 
     /**
@@ -227,15 +179,20 @@ class PeriodRepository(
     }
 
     /**
-     * One-time data fixup: merges period entries that are adjacent — the day right
-     * after one period's explicit end date is exactly the start of the next — into
-     * a single entry.
+     * One-time data fixup: merges period entries that are at most one day
+     * apart — either touching (the day right after one period's explicit end
+     * date is exactly the start of the next) or separated by a single
+     * unlogged day (the next period starts two days after the previous one's
+     * end) — into a single entry.
      *
-     * This repairs periods fragmented by the entry-point bug where logging a day
-     * right after a period was closed with an explicit end date (rather than left
-     * ongoing) created a new, disconnected period instead of continuing the
-     * existing one. Only a one-day gap is merged; larger gaps are left alone since
-     * they represent a genuinely new cycle, not a fragmented one.
+     * This repairs periods fragmented by the entry-point bug where logging a
+     * day right after a period was closed with an explicit end date (rather
+     * than left ongoing) created a new, disconnected period instead of
+     * continuing the existing one — including the case where a third day was
+     * then logged before the gap day ever was, leaving that day orphaned
+     * between two separate entries. Only gaps of zero or one day are merged;
+     * larger gaps are left alone since they represent a genuinely new cycle,
+     * not a fragmented one.
      *
      * Periods are processed in start-date order, reusing [mergePeriods] for each
      * adjacent pair found.
@@ -253,7 +210,8 @@ class PeriodRepository(
         for (next in periods.drop(1)) {
             val currentEnd = current.endDate?.let { LocalDate.parse(it) }
             val nextStart = LocalDate.parse(next.startDate)
-            if (currentEnd != null && nextStart == currentEnd.plusDays(1)) {
+            val gapDays = currentEnd?.let { ChronoUnit.DAYS.between(it, nextStart) }
+            if (gapDays != null && gapDays in 1..2) {
                 absorbed.add(next)
                 current = mergePeriods(current, next)
             } else {
