@@ -10,7 +10,8 @@ sealed class Screen(val route: String) {
     data object StatsGrid : Screen("stats_grid")
     data object Settings : Screen("settings")
     data object LogPeriod : Screen("log_period?periodId={periodId}&startDate={startDate}") {
-        fun withId(periodId: Long) = "log_period?periodId=$periodId"
+        fun withId(periodId: Long, targetDate: LocalDate? = null) =
+            if (targetDate != null) "log_period?periodId=$periodId&startDate=$targetDate" else "log_period?periodId=$periodId"
         val newEntry = "log_period?periodId=-1"
         fun newEntryForDate(date: LocalDate) = "log_period?periodId=-1&startDate=$date"
     }

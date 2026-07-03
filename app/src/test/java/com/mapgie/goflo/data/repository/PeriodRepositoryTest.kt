@@ -132,4 +132,49 @@ class PeriodRepositoryTest {
     fun `activePeriod returns null for empty list`() {
         assertNull(PeriodRepository.activePeriod(emptyList()))
     }
+
+    // ── periodForDate ─────────────────────────────────────────────────────────
+
+    @Test
+    fun `periodForDate matches a date inside a closed range`() {
+        val period = entry("2024-01-01", "2024-01-05", id = 1)
+        assertEquals(period, PeriodRepository.periodForDate(listOf(period), LocalDate.of(2024, 1, 3)))
+    }
+
+    @Test
+    fun `periodForDate does not match a date before the start`() {
+        val period = entry("2024-01-01", "2024-01-05", id = 1)
+        assertNull(PeriodRepository.periodForDate(listOf(period), LocalDate.of(2023, 12, 31)))
+    }
+
+    @Test
+    fun `periodForDate matches any future date for an ongoing period, not just up to today`() {
+        // Regression: matching used to fall back to LocalDate.now(), so an ongoing
+        // period silently stopped covering new days once "today" moved past the
+        // last check — reopening the app on a later date created a duplicate
+        // period instead of continuing the ongoing one.
+        val ongoing = entry("2024-01-01", null, id = 1)
+        assertEquals(ongoing, PeriodRepository.periodForDate(listOf(ongoing), LocalDate.of(2030, 6, 15)))
+    }
+
+    @Test
+    fun `periodForDate matches the day immediately after an explicit end date`() {
+        // Regression: logging the day right after a period was closed (given an
+        // explicit end date rather than left ongoing) used to fall outside the
+        // range entirely and create a brand new, disconnected period.
+        val period = entry("2024-06-28", "2024-06-28", id = 1)
+        assertEquals(period, PeriodRepository.periodForDate(listOf(period), LocalDate.of(2024, 6, 29)))
+    }
+
+    @Test
+    fun `periodForDate does not match a date more than one day after an explicit end date`() {
+        val period = entry("2024-06-28", "2024-06-28", id = 1)
+        assertNull(PeriodRepository.periodForDate(listOf(period), LocalDate.of(2024, 6, 30)))
+    }
+
+    @Test
+    fun `periodForDate returns null when no period matches`() {
+        val periods = listOf(entry("2024-01-01", "2024-01-05", id = 1))
+        assertNull(PeriodRepository.periodForDate(periods, LocalDate.of(2024, 1, 10)))
+    }
 }

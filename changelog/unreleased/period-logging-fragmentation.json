@@ -1,0 +1,10 @@
+{
+  "bump": "minor",
+  "added": [
+    "History: merge two periods into one from a period's overflow menu, combining their notes and symptoms"
+  ],
+  "fixed": [
+    "Logging consecutive days no longer splits a period into disconnected entries when the previous day was saved with an explicit end date instead of left ongoing",
+    "An ongoing period now continues to cover new days after reopening the app on a later date, instead of only through the day it was last checked"
+  ]
+}
