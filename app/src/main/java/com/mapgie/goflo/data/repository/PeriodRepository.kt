@@ -156,6 +156,44 @@ class PeriodRepository(
         return merged
     }
 
+    /**
+     * One-time data fixup: merges period entries that are adjacent — the day right
+     * after one period's explicit end date is exactly the start of the next — into
+     * a single entry.
+     *
+     * This repairs periods fragmented by the entry-point bug where logging a day
+     * right after a period was closed with an explicit end date (rather than left
+     * ongoing) created a new, disconnected period instead of continuing the
+     * existing one. Only a one-day gap is merged; larger gaps are left alone since
+     * they represent a genuinely new cycle, not a fragmented one.
+     *
+     * Periods are processed in start-date order, reusing [mergePeriods] for each
+     * adjacent pair found.
+     *
+     * @return the periods that were absorbed (deleted) by a merge, so callers can
+     * clean up their tracking-log entries.
+     */
+    suspend fun mergeAdjacentPeriods(): List<PeriodEntry> {
+        val periods = periodDao.getAllPeriodsOnce()
+        if (periods.size < 2) return emptyList()
+
+        val absorbed = mutableListOf<PeriodEntry>()
+        var current = periods.first()
+
+        for (next in periods.drop(1)) {
+            val currentEnd = current.endDate?.let { LocalDate.parse(it) }
+            val nextStart = LocalDate.parse(next.startDate)
+            if (currentEnd != null && nextStart == currentEnd.plusDays(1)) {
+                absorbed.add(next)
+                current = mergePeriods(current, next)
+            } else {
+                current = next
+            }
+        }
+
+        return absorbed
+    }
+
     private fun mergeNotes(a: String, b: String): String = when {
         b.isBlank() -> a
         a.isBlank() -> b
