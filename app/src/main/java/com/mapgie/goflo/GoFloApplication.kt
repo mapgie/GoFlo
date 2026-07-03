@@ -60,8 +60,16 @@ class GoFloApplication : Application() {
         })
         appScope.launch { runFlowBackfillIfNeeded() }
         appScope.launch { runSymptomsBackfillIfNeeded() }
-        appScope.launch { runPeriodOverlapMergeIfNeeded() }
         appScope.launch { runFlowLevelRestoreIfNeeded() }
+        // Sequenced (not launched concurrently): the adjacency merge must see the
+        // period list *after* the overlap merge has resolved, since consolidating
+        // an overlap can change a period's end date such that it newly becomes
+        // adjacent to a third period. Running both against a live table at once
+        // would also race on the same rows.
+        appScope.launch {
+            runPeriodOverlapMergeIfNeeded()
+            runPeriodAdjacencyMergeIfNeeded()
+        }
     }
 
     /**
@@ -185,5 +193,35 @@ class GoFloApplication : Application() {
         }
 
         preferencesStore.setPeriodOverlapMergeDone(true)
+    }
+
+    /**
+     * One-time data fixup: merges period entries that sit exactly one day apart
+     * (e.g. a period closed with an explicit end date, then a new period logged
+     * for the very next day, before the entry-point fix existed) into a single
+     * entry.
+     *
+     * Each absorbed period's own tracking-log entries (flow, symptoms, pinned
+     * categories) are removed too, mirroring the cleanup performed on delete —
+     * otherwise they'd linger, orphaned, under a date no longer tied to any period.
+     *
+     * Only runs once — guarded by the [periodAdjacencyMergeDone] preference flag.
+     */
+    private suspend fun runPeriodAdjacencyMergeIfNeeded() {
+        val prefs = preferencesStore.preferences.first()
+        if (prefs.periodAdjacencyMergeDone) return
+
+        val absorbed = repository.mergeAdjacentPeriods()
+        for (period in absorbed) {
+            trackingRepository.deleteLogsForPeriod(
+                LocalDate.parse(period.startDate),
+                period.endDate?.let { LocalDate.parse(it) }
+            )
+        }
+        if (absorbed.isNotEmpty()) {
+            GoFloWidget.updateAllWidgets(this)
+        }
+
+        preferencesStore.setPeriodAdjacencyMergeDone(true)
     }
 }

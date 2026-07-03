@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.BuildConfig
+import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
@@ -112,16 +113,13 @@ fun HomeScreen(
 
     // If [date] already falls within an existing period's range (including an
     // ongoing period, which extends through today), edit that period instead of
-    // creating a new, overlapping entry. Dates immediately adjacent to an
-    // existing period extend it instead of starting a new, disconnected one;
-    // a date that bridges a one-day gap between two periods merges them.
+    // creating a new, overlapping entry.
     fun navigateToLogPeriod(date: LocalDate) {
-        viewModel.resolveLogPeriodTarget(date) { existingId ->
-            if (existingId != null) {
-                onNavigate(Screen.LogPeriod.withId(existingId))
-            } else {
-                onNavigate(Screen.LogPeriod.newEntryForDate(date))
-            }
+        val existing = PeriodRepository.periodForDate(state.periods, date)
+        if (existing != null) {
+            onNavigate(Screen.LogPeriod.withId(existing.id, date))
+        } else {
+            onNavigate(Screen.LogPeriod.newEntryForDate(date))
         }
     }
 

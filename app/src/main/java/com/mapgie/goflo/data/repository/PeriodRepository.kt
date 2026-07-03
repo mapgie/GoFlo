@@ -190,6 +190,80 @@ class PeriodRepository(
         return merged
     }
 
+    /**
+     * Merges [a] and [b] into a single period entry spanning both, combining their
+     * notes and symptoms. Used for the manual "Merge with…" action in History, so
+     * a user can join two entries that were split apart (e.g. by a logging bug, or
+     * by an accidental extra tap) back into one continuous period.
+     *
+     * The earlier period (by start date) is kept and updated in place; the later
+     * period is deleted. The merged result is ongoing only if the later period was
+     * ongoing — an ongoing period is always the most recent one, so an earlier
+     * period can never legitimately outlast it.
+     *
+     * @return the surviving, merged period entry.
+     */
+    suspend fun mergePeriods(a: PeriodEntry, b: PeriodEntry): PeriodEntry {
+        val (earlier, later) = if (a.startDate <= b.startDate) a to b else b to a
+
+        val laterEnd = later.endDate?.let { LocalDate.parse(it) }
+        val earlierEnd = earlier.endDate?.let { LocalDate.parse(it) }
+        val mergedEnd = when {
+            later.endDate == null -> null
+            earlierEnd != null && earlierEnd.isAfter(laterEnd) -> earlierEnd
+            else -> laterEnd
+        }
+
+        val earlierSymptoms = symptomDao.getSymptomsForPeriodOnce(earlier.id).map { it.symptomType }.toSet()
+        symptomDao.getSymptomsForPeriodOnce(later.id)
+            .map { it.symptomType }
+            .filter { it.isNotBlank() && it !in earlierSymptoms }
+            .forEach { symptomDao.insertSymptom(SymptomEntry(periodId = earlier.id, symptomType = it)) }
+
+        val merged = earlier.copy(endDate = mergedEnd?.toString(), notes = mergeNotes(earlier.notes, later.notes))
+        periodDao.updatePeriod(merged)
+        periodDao.deletePeriod(later)
+        return merged
+    }
+
+    /**
+     * One-time data fixup: merges period entries that are adjacent — the day right
+     * after one period's explicit end date is exactly the start of the next — into
+     * a single entry.
+     *
+     * This repairs periods fragmented by the entry-point bug where logging a day
+     * right after a period was closed with an explicit end date (rather than left
+     * ongoing) created a new, disconnected period instead of continuing the
+     * existing one. Only a one-day gap is merged; larger gaps are left alone since
+     * they represent a genuinely new cycle, not a fragmented one.
+     *
+     * Periods are processed in start-date order, reusing [mergePeriods] for each
+     * adjacent pair found.
+     *
+     * @return the periods that were absorbed (deleted) by a merge, so callers can
+     * clean up their tracking-log entries.
+     */
+    suspend fun mergeAdjacentPeriods(): List<PeriodEntry> {
+        val periods = periodDao.getAllPeriodsOnce()
+        if (periods.size < 2) return emptyList()
+
+        val absorbed = mutableListOf<PeriodEntry>()
+        var current = periods.first()
+
+        for (next in periods.drop(1)) {
+            val currentEnd = current.endDate?.let { LocalDate.parse(it) }
+            val nextStart = LocalDate.parse(next.startDate)
+            if (currentEnd != null && nextStart == currentEnd.plusDays(1)) {
+                absorbed.add(next)
+                current = mergePeriods(current, next)
+            } else {
+                current = next
+            }
+        }
+
+        return absorbed
+    }
+
     private fun mergeNotes(a: String, b: String): String = when {
         b.isBlank() -> a
         a.isBlank() -> b
@@ -422,14 +496,26 @@ class PeriodRepository(
             periods.firstOrNull { it.endDate == null }
 
         /**
-         * Returns the period whose date range covers [date], if any.
-         * An ongoing period (endDate == null) is treated as extending through today.
+         * Returns the period that logging [date] should be treated as part of, if any.
+         *
+         * An ongoing period (endDate == null) extends indefinitely into the future —
+         * any date on or after its start is covered, not just "up to today". Using
+         * today's wall-clock date as the cutoff meant an ongoing period silently
+         * stopped covering new days once the app was reopened on a later date,
+         * causing the next tap to create a duplicate period instead of continuing it.
+         *
+         * A period with an explicit end date also covers the day immediately after
+         * that end date, so logging the very next day continues the period instead
+         * of starting a new, disconnected one (the single most common way period
+         * entries get fragmented: closing a period each day with an explicit end
+         * date rather than leaving it ongoing).
          */
         fun periodForDate(periods: List<PeriodEntry>, date: LocalDate): PeriodEntry? =
             periods.firstOrNull { entry ->
                 val start = LocalDate.parse(entry.startDate)
-                val end = entry.endDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
-                !date.isBefore(start) && !date.isAfter(end)
+                if (date.isBefore(start)) return@firstOrNull false
+                val end = entry.endDate?.let { LocalDate.parse(it) } ?: return@firstOrNull true
+                !date.isAfter(end) || date == end.plusDays(1)
             }
 
         fun cycleDay(periods: List<PeriodEntry>): Int? {

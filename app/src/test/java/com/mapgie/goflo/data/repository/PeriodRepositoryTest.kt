@@ -1,71 +1,10 @@
 package com.mapgie.goflo.data.repository
 
-import com.mapgie.goflo.data.database.dao.PeriodDao
-import com.mapgie.goflo.data.database.dao.SymptomDao
 import com.mapgie.goflo.data.database.entities.PeriodEntry
-import com.mapgie.goflo.data.database.entities.SymptomEntry
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
-
-/** In-memory [PeriodDao] fake for exercising [PeriodRepository]'s suspend write paths. */
-private class FakePeriodDao : PeriodDao {
-    val periods = mutableListOf<PeriodEntry>()
-    private var nextId = 1L
-
-    override fun getAllPeriods(): Flow<List<PeriodEntry>> = flowOf(periods.sortedByDescending { it.startDate })
-    override suspend fun getAllPeriodsOnce(): List<PeriodEntry> = periods.sortedBy { it.startDate }
-    override fun getPeriodById(id: Long): Flow<PeriodEntry?> = flowOf(periods.firstOrNull { it.id == id })
-
-    override suspend fun insertPeriod(period: PeriodEntry): Long {
-        val id = if (period.id != 0L) period.id else nextId++
-        periods.removeAll { it.id == id }
-        periods.add(period.copy(id = id))
-        return id
-    }
-
-    override suspend fun updatePeriod(period: PeriodEntry) {
-        val index = periods.indexOfFirst { it.id == period.id }
-        if (index >= 0) periods[index] = period
-    }
-
-    override suspend fun deletePeriod(period: PeriodEntry) {
-        periods.removeAll { it.id == period.id }
-    }
-
-    override suspend fun deleteAllPeriods() { periods.clear() }
-    override suspend fun countPeriods(): Int = periods.size
-}
-
-/** In-memory [SymptomDao] fake for exercising [PeriodRepository]'s suspend write paths. */
-private class FakeSymptomDao : SymptomDao {
-    val symptoms = mutableListOf<SymptomEntry>()
-    private var nextId = 1L
-
-    override fun getSymptomsForPeriod(periodId: Long): Flow<List<SymptomEntry>> =
-        flowOf(symptoms.filter { it.periodId == periodId })
-    override suspend fun getSymptomsForPeriodOnce(periodId: Long): List<SymptomEntry> =
-        symptoms.filter { it.periodId == periodId }
-    override suspend fun insertSymptom(symptom: SymptomEntry) {
-        symptoms.add(symptom.copy(id = nextId++))
-    }
-    override suspend fun deleteSymptomsByPeriodId(periodId: Long) {
-        symptoms.removeAll { it.periodId == periodId }
-    }
-    override suspend fun deleteAllSymptoms() { symptoms.clear() }
-    override suspend fun getAllSymptoms(): List<SymptomEntry> = symptoms.toList()
-    override fun getAllSymptomsFlow(): Flow<List<SymptomEntry>> = flowOf(symptoms.toList())
-    override suspend fun bulkRenameSymptoms(oldLabel: String, newLabel: String) {
-        val renamed = symptoms.map { if (it.symptomType == oldLabel) it.copy(symptomType = newLabel) else it }
-        symptoms.clear()
-        symptoms.addAll(renamed)
-    }
-}
 
 class PeriodRepositoryTest {
 
@@ -194,77 +133,48 @@ class PeriodRepositoryTest {
         assertNull(PeriodRepository.activePeriod(emptyList()))
     }
 
-    // ── resolvePeriodForLogging / mergePeriods ───────────────────────────────
+    // ── periodForDate ─────────────────────────────────────────────────────────
 
-    private fun buildRepository(vararg seed: PeriodEntry): Triple<PeriodRepository, FakePeriodDao, FakeSymptomDao> {
-        val periodDao = FakePeriodDao()
-        val symptomDao = FakeSymptomDao()
-        seed.forEach { periodDao.periods.add(it) }
-        return Triple(PeriodRepository(periodDao, symptomDao), periodDao, symptomDao)
+    @Test
+    fun `periodForDate matches a date inside a closed range`() {
+        val period = entry("2024-01-01", "2024-01-05", id = 1)
+        assertEquals(period, PeriodRepository.periodForDate(listOf(period), LocalDate.of(2024, 1, 3)))
     }
 
     @Test
-    fun `resolvePeriodForLogging returns id of period already covering the date`() = runBlocking {
-        val (repo, _, _) = buildRepository(entry("2024-01-01", "2024-01-05", id = 1))
-        assertEquals(1L, repo.resolvePeriodForLogging(LocalDate.of(2024, 1, 3)))
+    fun `periodForDate does not match a date before the start`() {
+        val period = entry("2024-01-01", "2024-01-05", id = 1)
+        assertNull(PeriodRepository.periodForDate(listOf(period), LocalDate.of(2023, 12, 31)))
     }
 
     @Test
-    fun `resolvePeriodForLogging extends a period's end date to the following day`() = runBlocking {
-        val (repo, dao, _) = buildRepository(entry("2024-01-01", "2024-01-05", id = 1))
-        val result = repo.resolvePeriodForLogging(LocalDate.of(2024, 1, 6))
-        assertEquals(1L, result)
-        assertEquals("2024-01-06", dao.periods.first { it.id == 1L }.endDate)
+    fun `periodForDate matches any future date for an ongoing period, not just up to today`() {
+        // Regression: matching used to fall back to LocalDate.now(), so an ongoing
+        // period silently stopped covering new days once "today" moved past the
+        // last check — reopening the app on a later date created a duplicate
+        // period instead of continuing the ongoing one.
+        val ongoing = entry("2024-01-01", null, id = 1)
+        assertEquals(ongoing, PeriodRepository.periodForDate(listOf(ongoing), LocalDate.of(2030, 6, 15)))
     }
 
     @Test
-    fun `resolvePeriodForLogging pulls a period's start date back to the preceding day`() = runBlocking {
-        val (repo, dao, _) = buildRepository(entry("2024-01-05", "2024-01-08", id = 1))
-        val result = repo.resolvePeriodForLogging(LocalDate.of(2024, 1, 4))
-        assertEquals(1L, result)
-        assertEquals("2024-01-04", dao.periods.first { it.id == 1L }.startDate)
+    fun `periodForDate matches the day immediately after an explicit end date`() {
+        // Regression: logging the day right after a period was closed (given an
+        // explicit end date rather than left ongoing) used to fall outside the
+        // range entirely and create a brand new, disconnected period.
+        val period = entry("2024-06-28", "2024-06-28", id = 1)
+        assertEquals(period, PeriodRepository.periodForDate(listOf(period), LocalDate.of(2024, 6, 29)))
     }
 
     @Test
-    fun `resolvePeriodForLogging merges two periods when the date bridges a one-day gap`() = runBlocking {
-        // Reproduces the reported bug: a period ending 28 June and another starting
-        // 30 June should be joined into one continuous period by logging 29 June.
-        val (repo, dao, _) = buildRepository(
-            entry("2024-06-26", "2024-06-28", id = 1),
-            entry("2024-06-30", null, id = 2),
-        )
-        val result = repo.resolvePeriodForLogging(LocalDate.of(2024, 6, 29))
-        assertEquals(1L, result)
-        assertEquals(1, dao.periods.size)
-        val merged = dao.periods.single()
-        assertEquals("2024-06-26", merged.startDate)
-        assertNull(merged.endDate) // the later (ongoing) period's null end date wins
+    fun `periodForDate does not match a date more than one day after an explicit end date`() {
+        val period = entry("2024-06-28", "2024-06-28", id = 1)
+        assertNull(PeriodRepository.periodForDate(listOf(period), LocalDate.of(2024, 6, 30)))
     }
 
     @Test
-    fun `resolvePeriodForLogging returns null when no period is adjacent or covering`() = runBlocking {
-        val (repo, _, _) = buildRepository(entry("2024-01-01", "2024-01-05", id = 1))
-        assertNull(repo.resolvePeriodForLogging(LocalDate.of(2024, 1, 10)))
-    }
-
-    @Test
-    fun `mergePeriods keeps the earlier id, combines notes and symptoms, and deletes the later entry`() = runBlocking {
-        val earlier = entry("2024-06-26", "2024-06-28", id = 1).copy(notes = "cramps")
-        val later = entry("2024-06-30", "2024-07-01", id = 2).copy(notes = "headache")
-        val (repo, dao, symptomDao) = buildRepository(earlier, later)
-        symptomDao.symptoms.add(SymptomEntry(periodId = 1, symptomType = "Cramps"))
-        symptomDao.symptoms.add(SymptomEntry(periodId = 2, symptomType = "Fatigue"))
-
-        val mergedId = repo.mergePeriods(earlier, later)
-
-        assertEquals(1L, mergedId)
-        assertEquals(1, dao.periods.size)
-        val merged = dao.periods.single()
-        assertEquals("2024-06-26", merged.startDate)
-        assertEquals("2024-07-01", merged.endDate)
-        assertTrue(merged.notes.contains("cramps"))
-        assertTrue(merged.notes.contains("headache"))
-        val mergedSymptoms = symptomDao.symptoms.filter { it.periodId == 1L }.map { it.symptomType }.toSet()
-        assertEquals(setOf("Cramps", "Fatigue"), mergedSymptoms)
+    fun `periodForDate returns null when no period matches`() {
+        val periods = listOf(entry("2024-01-01", "2024-01-05", id = 1))
+        assertNull(PeriodRepository.periodForDate(periods, LocalDate.of(2024, 1, 10)))
     }
 }

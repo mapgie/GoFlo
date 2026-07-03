@@ -79,13 +79,24 @@ class LogPeriodViewModel(
             viewModelScope.launch {
                 val period = repository.getPeriodById(periodId).first()
                 if (period != null) {
+                    val storedEnd = period.endDate?.let { d -> LocalDate.parse(d) }
+                    // If this screen was opened for a date that continues the period
+                    // (the day right after its stored end date) rather than a date
+                    // already inside its range, extend the end date to that day so
+                    // saving naturally continues the period instead of leaving the
+                    // new day unaccounted for.
+                    val effectiveEnd = if (storedEnd != null && prefilledDate != null && prefilledDate.isAfter(storedEnd)) {
+                        prefilledDate
+                    } else {
+                        storedEnd
+                    }
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isEditing = true,
                             existingId = period.id,
                             startDate = LocalDate.parse(period.startDate),
-                            endDate = period.endDate?.let { d -> LocalDate.parse(d) },
+                            endDate = effectiveEnd,
                             notes = period.notes
                         )
                     }

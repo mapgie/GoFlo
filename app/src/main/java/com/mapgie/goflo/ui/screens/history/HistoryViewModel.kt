@@ -103,16 +103,21 @@ class HistoryViewModel(
         _pendingDeleteIds.update { it - period.id }
     }
 
-    // ── Manual merge ───────────────────────────────────────────────────────────
-
     /**
-     * Merges [older] and [newer] into a single period entry, fixing up a
-     * fragmented history (e.g. two entries that should have been one
-     * continuous period). Keeps [older]'s id; [newer] is deleted.
+     * Merges [first] and [second] into a single continuous period, combining their
+     * notes and symptoms. The tracking-log entries (flow, symptoms, pinned
+     * categories) belonging to whichever period is absorbed are also removed,
+     * mirroring the cleanup performed on delete — otherwise its flow/symptom
+     * entry would linger, orphaned, under a date no longer tied to any period.
      */
-    fun mergePeriods(older: PeriodEntry, newer: PeriodEntry) {
+    fun mergePeriods(first: PeriodEntry, second: PeriodEntry) {
         viewModelScope.launch {
-            repository.mergePeriods(older, newer)
+            val absorbed = if (first.startDate <= second.startDate) second else first
+            repository.mergePeriods(first, second)
+            trackingRepository?.deleteLogsForPeriod(
+                LocalDate.parse(absorbed.startDate),
+                absorbed.endDate?.let { LocalDate.parse(it) }
+            )
             application?.let { GoFloWidget.updateAllWidgets(it) }
         }
     }
