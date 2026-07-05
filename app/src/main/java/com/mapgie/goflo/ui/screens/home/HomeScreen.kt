@@ -113,11 +113,16 @@ fun HomeScreen(
 
     // If [date] already falls within an existing period's range (including an
     // ongoing period, which extends through today), edit that period instead of
-    // creating a new, overlapping entry.
+    // creating a new, overlapping entry. If [date] is also the single unlogged
+    // day between that period's end and a separate, later period's start,
+    // merge the two immediately so the gap doesn't need a second, manual
+    // History merge to close.
     fun navigateToLogPeriod(date: LocalDate) {
         val existing = PeriodRepository.periodForDate(state.periods, date)
         if (existing != null) {
-            onNavigate(Screen.LogPeriod.withId(existing.id, date))
+            viewModel.mergeGapAt(date, fallbackId = existing.id) { targetId ->
+                onNavigate(Screen.LogPeriod.withId(targetId, date))
+            }
         } else {
             onNavigate(Screen.LogPeriod.newEntryForDate(date))
         }

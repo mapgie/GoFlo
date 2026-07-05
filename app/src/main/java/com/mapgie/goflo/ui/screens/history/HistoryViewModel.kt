@@ -105,19 +105,17 @@ class HistoryViewModel(
 
     /**
      * Merges [first] and [second] into a single continuous period, combining their
-     * notes and symptoms. The tracking-log entries (flow, symptoms, pinned
-     * categories) belonging to whichever period is absorbed are also removed,
-     * mirroring the cleanup performed on delete — otherwise its flow/symptom
-     * entry would linger, orphaned, under a date no longer tied to any period.
+     * notes and symptoms. The absorbed period's own tracking-log entries (flow,
+     * symptoms, pinned categories) are deliberately left alone — they're still
+     * valid, dated records of what was logged that day, not orphaned data. They
+     * were previously deleted here on the assumption that they'd otherwise linger
+     * unattached, but `deleteLogsForPeriod` was written for actual period
+     * *deletion* and silently discarded real history that the user asked to
+     * combine, not remove.
      */
     fun mergePeriods(first: PeriodEntry, second: PeriodEntry) {
         viewModelScope.launch {
-            val absorbed = if (first.startDate <= second.startDate) second else first
             repository.mergePeriods(first, second)
-            trackingRepository?.deleteLogsForPeriod(
-                LocalDate.parse(absorbed.startDate),
-                absorbed.endDate?.let { LocalDate.parse(it) }
-            )
             application?.let { GoFloWidget.updateAllWidgets(it) }
         }
     }

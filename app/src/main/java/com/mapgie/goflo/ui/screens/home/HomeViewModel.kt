@@ -187,6 +187,17 @@ class HomeViewModel(
     fun selectDay(date: LocalDate) { _selectedDay.value = date }
     fun clearSelectedDay() { _selectedDay.value = null }
 
+    /**
+     * If [date] bridges a one-day gap between two existing periods, merges
+     * them (see [PeriodRepository.mergeGapAt]) and hands the merged id to
+     * [onResolved]; otherwise hands back [fallbackId] unchanged.
+     */
+    fun mergeGapAt(date: LocalDate, fallbackId: Long, onResolved: (Long) -> Unit) {
+        viewModelScope.launch {
+            onResolved(repository.mergeGapAt(date)?.id ?: fallbackId)
+        }
+    }
+
     // ── Quick increment (Plus One categories) ───────────────────────────────────
 
     /** Transient confirmation message after an instant increment; null when none pending. */
