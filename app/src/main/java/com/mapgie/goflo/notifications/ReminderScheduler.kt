@@ -9,10 +9,12 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import com.mapgie.goflo.GoFloApplication
 import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.preferences.ReminderSettings
 import com.mapgie.goflo.data.repository.PeriodRepository
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -37,6 +39,37 @@ const val EXTRA_ALARM_LABEL = "alarm_label"
 const val EXTRA_ALARM_ID = "alarm_id"
 
 object ReminderScheduler {
+
+    // Exact alarms need no permission below Android 12 (API 31); on 12+ they need
+    // canScheduleExactAlarms(). Gating on SDK >= S alone silently downgraded every
+    // pre-12 device to inexact, Doze-deferred delivery.
+    private fun canUseExactAlarms(alarmManager: AlarmManager): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()
+
+    internal fun setAlarm(context: Context, triggerAt: Long, pi: PendingIntent) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        if (canUseExactAlarms(alarmManager)) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        } else {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
+        }
+    }
+
+    /**
+     * Recomputes and re-arms the period-prediction reminders from current data.
+     *
+     * Prediction alarms are one-shot: each firing (and each period logged) changes the
+     * predicted dates, so ReminderReceiver and the period-logging screens call this to
+     * keep the chain alive. Without it, a pre-period or ovulation reminder fired once
+     * and the next cycle's reminder only existed again after a reboot or a visit to
+     * the reminder settings.
+     */
+    suspend fun refreshPredictionReminders(context: Context) {
+        val app = context.applicationContext as GoFloApplication
+        val periods = app.repository.getAllPeriods().first()
+        val settings = app.preferencesStore.preferences.first().reminder
+        rescheduleAll(context, periods, settings)
+    }
 
     fun createChannel(context: Context) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -176,7 +209,13 @@ object ReminderScheduler {
         if (settings.dailyDuringPeriodEnabled) {
             val active = PeriodRepository.activePeriod(periods)
             if (active != null) {
-                scheduleDailyRepeating(context, reminderHour, reminderMinute, useAlarm, alarmLabel, useSilent)
+                // One-shot exact alarm for the next occurrence; ReminderReceiver re-arms
+                // it on each firing while a period is active. setRepeating() is inexact
+                // and Doze-deferred, which made the daily reminder hours late or absent.
+                val now = LocalDateTime.now()
+                val todayAtTime = LocalDateTime.of(LocalDate.now(), LocalTime.of(reminderHour, reminderMinute))
+                val nextDate = if (todayAtTime.isAfter(now)) LocalDate.now() else LocalDate.now().plusDays(1)
+                scheduleAt(context, ACTION_DAILY, nextDate, reminderHour, reminderMinute, useAlarm, alarmLabel, useSilent)
             }
         }
     }
@@ -192,18 +231,15 @@ object ReminderScheduler {
     fun scheduleCustomAlarm(context: Context, alarm: CustomAlarm) {
         if (!alarm.isEnabled) return
         val triggerAt = nextTriggerMillis(alarm.hour, alarm.minute)
-        val pi = customAlarmPendingIntent(context, alarm.id)
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        } else {
-            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        }
+        setAlarm(context, triggerAt, customAlarmPendingIntent(context, alarm.id))
     }
 
     fun cancelCustomAlarm(context: Context, alarmId: Long) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.cancel(customAlarmPendingIntent(context, alarmId))
+        // A snoozed firing lives under its own PendingIntent identity: cancel it too,
+        // or a deleted/disabled alarm still fires once more after its snooze elapses.
+        alarmManager.cancel(customAlarmSnoozePendingIntent(context, alarmId))
     }
 
     fun rescheduleCustomAlarms(context: Context, alarms: List<CustomAlarm>) {
@@ -214,12 +250,12 @@ object ReminderScheduler {
     }
 
     private fun nextTriggerMillis(hour: Int, minute: Int): Long {
-        val now = System.currentTimeMillis()
-        val today = LocalDate.now()
-        var millis = LocalDateTime.of(today, LocalTime.of(hour, minute))
-            .atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        if (millis <= now) millis += 86_400_000L
-        return millis
+        // Resolve "next occurrence of HH:mm" in local time per day, not by adding
+        // 24h of millis: across a DST transition the flat offset lands an hour off.
+        val now = LocalDateTime.now()
+        val todayAtTime = LocalDateTime.of(LocalDate.now(), LocalTime.of(hour, minute))
+        val next = if (todayAtTime.isAfter(now)) todayAtTime else todayAtTime.plusDays(1)
+        return next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
     }
 
     fun customAlarmPendingIntent(context: Context, alarmId: Long): PendingIntent {
@@ -229,6 +265,21 @@ object ReminderScheduler {
         return PendingIntent.getBroadcast(
             context,
             (10000 + alarmId).toInt(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    // Identity of the alarm AlarmActionReceiver arms when the user taps Snooze.
+    // Kept here so scheduling (snooze) and cancellation (delete/disable) can never
+    // drift apart.
+    fun customAlarmSnoozePendingIntent(context: Context, alarmId: Long): PendingIntent {
+        val intent = Intent(context, ReminderReceiver::class.java)
+            .setAction(ACTION_CUSTOM_ALARM)
+            .putExtra(EXTRA_ALARM_ID, alarmId)
+        return PendingIntent.getBroadcast(
+            context,
+            (40000 + alarmId).toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -253,32 +304,7 @@ object ReminderScheduler {
 
         if (triggerAt <= System.currentTimeMillis()) return
 
-        val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val pi = pendingIntent(context, action, useAlarm, alarmLabel, useSilent)
-
-        if (useAlarm && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarm.canScheduleExactAlarms()) {
-            alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        } else {
-            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-        }
-    }
-
-    private fun scheduleDailyRepeating(context: Context, hour: Int, minute: Int, useAlarm: Boolean, alarmLabel: String = "", useSilent: Boolean = false) {
-        val now = System.currentTimeMillis()
-        val today = LocalDate.now()
-        var triggerAt = LocalDateTime.of(today.year, today.month, today.dayOfMonth, hour, minute)
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-        if (triggerAt <= now) triggerAt += 24 * 60 * 60 * 1000L
-
-        val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarm.setRepeating(
-            AlarmManager.RTC_WAKEUP,
-            triggerAt,
-            AlarmManager.INTERVAL_DAY,
-            pendingIntent(context, ACTION_DAILY, useAlarm, alarmLabel, useSilent)
-        )
+        setAlarm(context, triggerAt, pendingIntent(context, action, useAlarm, alarmLabel, useSilent))
     }
 
     private fun cancel(context: Context, action: String) {

@@ -30,6 +30,9 @@ class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         ReminderScheduler.createChannel(context)
         when (intent.action) {
+            // The three prediction reminders are one-shot alarms: after showing the
+            // notification, recompute and re-arm the next occurrences so the chain
+            // does not depend on a reboot or a settings visit.
             ACTION_PREPERIOD -> showNotification(
                 context,
                 id = 1,
@@ -59,6 +62,17 @@ class ReminderReceiver : BroadcastReceiver() {
             )
             ACTION_CUSTOM_ALARM -> handleCustomAlarm(context, intent)
         }
+
+        if (intent.action == ACTION_PREPERIOD || intent.action == ACTION_OVULATION || intent.action == ACTION_DAILY) {
+            val pendingResult = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    ReminderScheduler.refreshPredictionReminders(context)
+                } finally {
+                    pendingResult.finish()
+                }
+            }
+        }
     }
 
     private fun handleCustomAlarm(context: Context, intent: Intent) {
@@ -71,6 +85,17 @@ class ReminderReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val alarm = app.customAlarmRepository.getById(alarmId) ?: return@launch
+                // A snoozed firing can arrive after the user disabled the alarm; the
+                // regular chain is cancelled on disable, but state can also change
+                // between arming and firing.
+                if (!alarm.isEnabled) return@launch
+
+                // Re-arm the next occurrence before evaluating today's condition so an
+                // exception below (or a condition miss) can never break the daily chain.
+                if (alarm.isRecurring) {
+                    ReminderScheduler.scheduleCustomAlarm(context, alarm)
+                }
+
                 val periods = app.repository.getAllPeriods().first()
                 val avg = PeriodRepository.calculateAvgCycleLength(periods)
                 val today = LocalDate.now()
@@ -103,10 +128,6 @@ class ReminderReceiver : BroadcastReceiver() {
                 if (conditionMet) {
                     val categoryIds = app.customAlarmRepository.getCategoryIdsForAlarm(alarmId)
                     showCustomAlarmNotification(context, alarm, categoryIds)
-                }
-
-                if (alarm.isRecurring) {
-                    ReminderScheduler.scheduleCustomAlarm(context, alarm)
                 }
             } finally {
                 pendingResult.finish()

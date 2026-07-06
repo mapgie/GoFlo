@@ -1,12 +1,9 @@
 package com.mapgie.goflo.notifications
 
-import android.app.AlarmManager
 import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import com.mapgie.goflo.MainActivity
 
 // Handles Log and Snooze quick-action taps from custom alarm notifications.
@@ -32,22 +29,13 @@ class AlarmActionReceiver : BroadcastReceiver() {
             ACTION_CUSTOM_SNOOZE -> {
                 val snoozeMinutes = intent.getIntExtra(EXTRA_SNOOZE_MINUTES, 10)
                 val triggerAt = System.currentTimeMillis() + snoozeMinutes * 60_000L
-                val snoozeIntent = Intent(context, ReminderReceiver::class.java).apply {
-                    action = ACTION_CUSTOM_ALARM
-                    putExtra(EXTRA_ALARM_ID, alarmId)
-                }
-                val pi = PendingIntent.getBroadcast(
+                // Shared identity with cancelCustomAlarm, so deleting or disabling the
+                // alarm also cancels a pending snoozed firing.
+                ReminderScheduler.setAlarm(
                     context,
-                    (40000 + alarmId).toInt(),
-                    snoozeIntent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                    triggerAt,
+                    ReminderScheduler.customAlarmSnoozePendingIntent(context, alarmId)
                 )
-                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
-                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-                } else {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
-                }
             }
         }
     }

@@ -138,15 +138,22 @@
         </receiver>
 
         <!--
-            BootReceiver is a separate, minimal receiver that handles only BOOT_COMPLETED.
+            BootReceiver is a separate, minimal receiver that reschedules every alarm.
             Splitting it from ReminderReceiver ensures the alarm-notification receiver can
             remain unexported while boot rescheduling still works.
+            MY_PACKAGE_REPLACED: alarms from the previous app version are recomputed after
+            an update. TIMEZONE_CHANGED / TIME_SET: alarms are armed at absolute epochs
+            computed from local times and must be recomputed when the zone or clock moves.
+            All four actions are exempt from implicit broadcast restrictions.
         -->
         <receiver
             android:name=".notifications.BootReceiver"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
             </intent-filter>
         </receiver>
 

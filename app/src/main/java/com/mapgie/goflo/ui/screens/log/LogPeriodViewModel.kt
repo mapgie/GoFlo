@@ -8,6 +8,7 @@ import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingValue
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
+import com.mapgie.goflo.notifications.ReminderScheduler
 import com.mapgie.goflo.widget.GoFloWidget
 import com.mapgie.goflo.data.repository.PeriodRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -293,6 +294,10 @@ class LogPeriodViewModel(
                 syncSymptomsToTrackingLog(state)
                 syncPinnedCategoryLogs(state)
                 application?.let { GoFloWidget.updateAllWidgets(it) }
+                // Saving a period changes the cycle predictions, so the pre-period,
+                // ovulation, and daily reminders must be re-armed against the new dates.
+                // Failure must not report the (already successful) save as failed.
+                application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
                 _uiState.update { it.copy(saved = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Could not save entry. Please try again.") }
@@ -401,6 +406,7 @@ class LogPeriodViewModel(
                 )
                 repository.deletePeriod(period)
                 application?.let { GoFloWidget.updateAllWidgets(it) }
+                application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
                 _uiState.update { it.copy(deleted = true) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(error = "Could not delete entry. Please try again.") }
