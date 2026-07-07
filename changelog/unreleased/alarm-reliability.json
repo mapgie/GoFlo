@@ -1,0 +1,11 @@
+{
+  "bump": "patch",
+  "fixed": [
+    "Pre-period, ovulation, and daily reminders now re-arm themselves after firing and whenever a period is logged, edited, or deleted, instead of going silent until the next reboot or settings change",
+    "The daily during-period reminder now uses an exact alarm chain instead of an inexact repeating alarm that Doze could delay by hours",
+    "Reminders on Android 11 and older are now delivered exactly on time instead of being batched by the system",
+    "Deleting or disabling a custom alarm now also cancels a pending snoozed firing of that alarm",
+    "Alarms are now rescheduled after app updates and after timezone or clock changes, not only after reboot",
+    "Alarm times no longer drift by an hour across daylight saving transitions"
+  ]
+}

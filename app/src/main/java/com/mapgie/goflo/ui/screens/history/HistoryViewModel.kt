@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mapgie.goflo.notifications.ReminderScheduler
 import com.mapgie.goflo.widget.GoFloWidget
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
@@ -77,6 +78,8 @@ class HistoryViewModel(
             )
             repository.deletePeriod(period)
             application?.let { GoFloWidget.updateAllWidgets(it) }
+            // Deleting a period changes the cycle predictions the reminders are armed on.
+            application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
         }
     }
 
@@ -89,6 +92,7 @@ class HistoryViewModel(
             if (undo != null) {
                 repository.insertPeriod(undo.period, undo.symptoms.toList())
                 application?.let { GoFloWidget.updateAllWidgets(it) }
+                application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
             }
             _pendingDeleteIds.update { it - period.id }
         }
@@ -117,6 +121,7 @@ class HistoryViewModel(
         viewModelScope.launch {
             repository.mergePeriods(first, second)
             application?.let { GoFloWidget.updateAllWidgets(it) }
+            application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
         }
     }
 
