@@ -152,6 +152,8 @@ if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
                 customHues      = customHues,
                 customArgbs     = customArgbs,
                 customThemeMode = appPrefs.customThemeMode,
+                customLightBackgroundArgb = appPrefs.customLightBackgroundArgb,
+                customDarkBackgroundArgb  = appPrefs.customDarkBackgroundArgb,
             ) {
                 when (appState) {
                     AppState.LOADING -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

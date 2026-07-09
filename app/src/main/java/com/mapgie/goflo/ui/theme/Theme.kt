@@ -15,6 +15,8 @@ fun GoFloTheme(
     customHues:      Triple<Float, Float, Float>? = null,
     customArgbs:     Triple<Int, Int, Int>? = null,
     customThemeMode: String   = "LIGHT",
+    customLightBackgroundArgb: Int = 0,
+    customDarkBackgroundArgb:  Int = 0,
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -28,10 +30,11 @@ fun GoFloTheme(
             primaryHue    = customHues.first,
             secondaryHue  = customHues.second,
             tertiaryHue   = customHues.third,
-            primaryArgb   = customArgbs?.first  ?: 0,
-            secondaryArgb = customArgbs?.second ?: 0,
-            tertiaryArgb  = customArgbs?.third  ?: 0,
-            isDark        = customIsDark,
+            primaryArgb    = customArgbs?.first  ?: 0,
+            secondaryArgb  = customArgbs?.second ?: 0,
+            tertiaryArgb   = customArgbs?.third  ?: 0,
+            backgroundArgb = if (customIsDark) customDarkBackgroundArgb else customLightBackgroundArgb,
+            isDark         = customIsDark,
         )
     } else {
         colorSchemeFor(appTheme, systemDark, wcag)

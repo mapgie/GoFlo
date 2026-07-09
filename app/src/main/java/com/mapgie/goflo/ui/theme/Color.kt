@@ -4,6 +4,9 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.graphics.ColorUtils
 
 // ── Theme groups ─────────────────────────────────────────────────────────────
 
@@ -1378,13 +1381,14 @@ private fun standardColorSchemeFor(theme: AppTheme, systemIsDark: Boolean): Colo
  * On-colours are WCAG-computed from the ARGB luminance.
  */
 fun buildCustomColorScheme(
-    primaryHue:    Float,
-    secondaryHue:  Float,
-    tertiaryHue:   Float,
-    primaryArgb:   Int = 0,
-    secondaryArgb: Int = 0,
-    tertiaryArgb:  Int = 0,
-    isDark:        Boolean,
+    primaryHue:     Float,
+    secondaryHue:   Float,
+    tertiaryHue:    Float,
+    primaryArgb:    Int = 0,
+    secondaryArgb:  Int = 0,
+    tertiaryArgb:   Int = 0,
+    backgroundArgb: Int = 0,
+    isDark:         Boolean,
 ): ColorScheme {
     fun resolveColor(argb: Int, hue: Float, darkS: Float, darkL: Float, lightS: Float, lightL: Float): Color {
         if (argb != 0) return Color(argb)
@@ -1421,6 +1425,32 @@ fun buildCustomColorScheme(
         else               -> Color.White
     }
 
+    // Background override (0 = Auto): background/surface use the exact picked
+    // colour and the neutral tokens re-derive from it so text stays legible.
+    // When Auto, all tokens keep their existing hue-derived defaults below.
+    val bgOverride: Color?          = if (backgroundArgb != 0) Color(backgroundArgb) else null
+    val bgHsl                       = FloatArray(3).also { if (bgOverride != null) ColorUtils.colorToHSL(backgroundArgb, it) }
+    val bgIsLight                   = bgOverride != null && bgOverride.luminance() > 0.35f
+    val bgOnColor: Color?           = bgOverride?.let {
+        if (bgIsLight) Color.hsl(bgHsl[0], 0.25f, 0.10f) else Color.hsl(bgHsl[0], 0.10f, 0.90f)
+    }
+    val bgSurface: Color?           = bgOverride?.let {
+        if (isDark) Color.hsl(bgHsl[0], bgHsl[1], (bgHsl[2] + 0.02f).coerceIn(0f, 1f)) else it
+    }
+    val bgSurfaceVariant: Color?    = bgOverride?.let {
+        if (bgIsLight) Color.hsl(bgHsl[0], bgHsl[1].coerceIn(0.05f, 0.20f), (bgHsl[2] - 0.08f).coerceIn(0f, 1f))
+        else           Color.hsl(bgHsl[0], bgHsl[1].coerceAtMost(0.15f), (bgHsl[2] + 0.10f).coerceIn(0f, 1f))
+    }
+    val bgOnSurfaceVariant: Color?  = bgOverride?.let {
+        if (bgIsLight) Color.hsl(bgHsl[0], 0.15f, 0.30f) else Color.hsl(bgHsl[0], 0.10f, 0.75f)
+    }
+    val bgOutline: Color?           = bgOverride?.let {
+        if (bgIsLight) Color.hsl(bgHsl[0], 0.10f, 0.45f) else Color.hsl(bgHsl[0], 0.10f, 0.55f)
+    }
+    val bgOutlineVariant: Color?    = bgOverride?.let {
+        if (bgIsLight) Color.hsl(bgHsl[0], 0.08f, 0.80f) else Color.hsl(bgHsl[0], 0.08f, 0.30f)
+    }
+
     return if (isDark) {
         darkColorScheme(
             primary             = primary,
@@ -1435,14 +1465,14 @@ fun buildCustomColorScheme(
             onTertiary          = onTertiary,
             tertiaryContainer   = Color.hsl(tertiaryHue,  0.40f, 0.25f),
             onTertiaryContainer = Color.hsl(tertiaryHue,  0.40f, 0.90f),
-            background          = Color.hsl(primaryHue, 0.02f, 0.08f),
-            onBackground        = Color.hsl(primaryHue, 0.10f, 0.90f),
-            surface             = Color.hsl(primaryHue, 0.02f, 0.10f),
-            onSurface           = Color.hsl(primaryHue, 0.10f, 0.90f),
-            surfaceVariant      = Color.hsl(primaryHue, 0.15f, 0.20f),
-            onSurfaceVariant    = Color.hsl(primaryHue, 0.10f, 0.75f),
-            outline             = Color.hsl(primaryHue, 0.10f, 0.55f),
-            outlineVariant      = Color.hsl(primaryHue, 0.08f, 0.30f),
+            background          = bgOverride ?: Color.hsl(primaryHue, 0.02f, 0.08f),
+            onBackground        = bgOnColor ?: Color.hsl(primaryHue, 0.10f, 0.90f),
+            surface             = bgSurface ?: Color.hsl(primaryHue, 0.02f, 0.10f),
+            onSurface           = bgOnColor ?: Color.hsl(primaryHue, 0.10f, 0.90f),
+            surfaceVariant      = bgSurfaceVariant ?: Color.hsl(primaryHue, 0.15f, 0.20f),
+            onSurfaceVariant    = bgOnSurfaceVariant ?: Color.hsl(primaryHue, 0.10f, 0.75f),
+            outline             = bgOutline ?: Color.hsl(primaryHue, 0.10f, 0.55f),
+            outlineVariant      = bgOutlineVariant ?: Color.hsl(primaryHue, 0.08f, 0.30f),
             error               = Color(0xFFFFB4AB),
             onError             = Color(0xFF690005),
             errorContainer      = Color(0xFF93000A),
@@ -1467,14 +1497,14 @@ fun buildCustomColorScheme(
             onTertiary          = onTertiary,
             tertiaryContainer   = Color.hsl(tertiaryHue,  0.40f, 0.88f),
             onTertiaryContainer = Color.hsl(tertiaryHue,  0.40f, 0.10f),
-            background          = Color.hsl(primaryHue, 0.08f, 0.98f),
-            onBackground        = Color.hsl(primaryHue, 0.25f, 0.10f),
-            surface             = Color.hsl(primaryHue, 0.05f, 0.98f),
-            onSurface           = Color.hsl(primaryHue, 0.25f, 0.10f),
-            surfaceVariant      = Color.hsl(primaryHue, 0.20f, 0.90f),
-            onSurfaceVariant    = Color.hsl(primaryHue, 0.15f, 0.30f),
-            outline             = Color.hsl(primaryHue, 0.10f, 0.55f),
-            outlineVariant      = Color.hsl(primaryHue, 0.08f, 0.80f),
+            background          = bgOverride ?: Color.hsl(primaryHue, 0.08f, 0.98f),
+            onBackground        = bgOnColor ?: Color.hsl(primaryHue, 0.25f, 0.10f),
+            surface             = bgSurface ?: Color.hsl(primaryHue, 0.05f, 0.98f),
+            onSurface           = bgOnColor ?: Color.hsl(primaryHue, 0.25f, 0.10f),
+            surfaceVariant      = bgSurfaceVariant ?: Color.hsl(primaryHue, 0.20f, 0.90f),
+            onSurfaceVariant    = bgOnSurfaceVariant ?: Color.hsl(primaryHue, 0.15f, 0.30f),
+            outline             = bgOutline ?: Color.hsl(primaryHue, 0.10f, 0.55f),
+            outlineVariant      = bgOutlineVariant ?: Color.hsl(primaryHue, 0.08f, 0.80f),
             error               = Color(0xFFBA1A1A),
             onError             = Color.White,
             errorContainer      = Color(0xFFFFDAD6),

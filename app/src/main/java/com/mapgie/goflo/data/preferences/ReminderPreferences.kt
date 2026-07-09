@@ -122,6 +122,10 @@ data class AppPreferences(
     val customSecondaryArgb: Int = 0,
     /** Full ARGB colour picked for the tertiary slot in the custom theme (0 = derive from hue). */
     val customTertiaryArgb: Int = 0,
+    /** ARGB override for the custom theme's light background (0 = derive from primary). */
+    val customLightBackgroundArgb: Int = 0,
+    /** ARGB override for the custom theme's dark background (0 = derive from primary). */
+    val customDarkBackgroundArgb: Int = 0,
     /** Display name the user gave to their custom theme (empty = unnamed). */
     val customThemeName: String = "",
     /** Light/dark/auto mode for the custom theme: "LIGHT", "DARK", or "SYSTEM". */
@@ -190,6 +194,8 @@ class AppPreferencesStore(private val context: Context) {
         val CUSTOM_PRIMARY_ARGB   = intPreferencesKey("custom_primary_argb")
         val CUSTOM_SECONDARY_ARGB = intPreferencesKey("custom_secondary_argb")
         val CUSTOM_TERTIARY_ARGB  = intPreferencesKey("custom_tertiary_argb")
+        val CUSTOM_LIGHT_BG_ARGB  = intPreferencesKey("custom_light_bg_argb")
+        val CUSTOM_DARK_BG_ARGB   = intPreferencesKey("custom_dark_bg_argb")
         val CUSTOM_THEME_NAME         = stringPreferencesKey("custom_theme_name")
         val CUSTOM_THEME_MODE         = stringPreferencesKey("custom_theme_mode")
         val CUSTOM_ACTIVE_PROFILE_ID  = longPreferencesKey("custom_active_profile_id")
@@ -237,6 +243,8 @@ class AppPreferencesStore(private val context: Context) {
             customPrimaryArgb      = prefs[Keys.CUSTOM_PRIMARY_ARGB]         ?: 0,
             customSecondaryArgb    = prefs[Keys.CUSTOM_SECONDARY_ARGB]       ?: 0,
             customTertiaryArgb     = prefs[Keys.CUSTOM_TERTIARY_ARGB]        ?: 0,
+            customLightBackgroundArgb = prefs[Keys.CUSTOM_LIGHT_BG_ARGB]      ?: 0,
+            customDarkBackgroundArgb  = prefs[Keys.CUSTOM_DARK_BG_ARGB]       ?: 0,
             customThemeName          = prefs[Keys.CUSTOM_THEME_NAME]          ?: "",
             customThemeMode          = prefs[Keys.CUSTOM_THEME_MODE]          ?: "LIGHT",
             customActiveProfileId    = prefs[Keys.CUSTOM_ACTIVE_PROFILE_ID]   ?: -1L,
@@ -439,6 +447,13 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setCustomTertiaryArgb(argb: Int) {
         context.dataStore.edit { it[Keys.CUSTOM_TERTIARY_ARGB] = argb }
+    }
+
+    suspend fun setCustomBackgroundArgbs(lightArgb: Int, darkArgb: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.CUSTOM_LIGHT_BG_ARGB] = lightArgb
+            prefs[Keys.CUSTOM_DARK_BG_ARGB]  = darkArgb
+        }
     }
 
     suspend fun setCustomThemeName(name: String) {

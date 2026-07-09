@@ -38,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.AutoAwesome
@@ -56,6 +57,7 @@ import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.core.graphics.ColorUtils
 import android.graphics.Color as AndroidColor
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -1207,9 +1209,25 @@ private fun AppearanceSubScreen(
                 onCustomTertiaryArgb = { viewModel.setCustomTertiaryArgb(it) },
                 onCustomThemeName    = { viewModel.setCustomThemeName(it) },
                 onCustomThemeMode    = { viewModel.setCustomThemeMode(it) },
-                onSaveProfile        = { name, p, s, t -> viewModel.saveColorProfile(name, p, s, t) },
+                customLightBackgroundArgb = prefs.customLightBackgroundArgb,
+                customDarkBackgroundArgb  = prefs.customDarkBackgroundArgb,
+                onCustomBackgroundArgbs = { light, dark -> viewModel.setCustomBackgroundArgbs(light, dark) },
+                onSaveProfile        = { name, p, s, t ->
+                    viewModel.saveColorProfile(
+                        name, p, s, t,
+                        prefs.customLightBackgroundArgb, prefs.customDarkBackgroundArgb,
+                    )
+                },
+                onUpdateProfile      = { name, p, s, t ->
+                    viewModel.updateColorProfile(
+                        name, p, s, t,
+                        prefs.customLightBackgroundArgb, prefs.customDarkBackgroundArgb,
+                        activeProfileId = prefs.customActiveProfileId,
+                    )
+                },
                 onLoadProfile        = { viewModel.loadColorProfile(it) },
                 onDeleteProfile      = { viewModel.deleteColorProfile(it) },
+                onRenameProfile      = { profile, name -> viewModel.renameColorProfile(profile, name) },
             )
 
             HorizontalDivider()
@@ -1920,9 +1938,14 @@ private fun CompactThemePicker(
     onCustomTertiaryArgb:    (Int) -> Unit,
     onCustomThemeName:       (String) -> Unit,
     onCustomThemeMode:       (String) -> Unit,
+    customLightBackgroundArgb: Int,
+    customDarkBackgroundArgb:  Int,
+    onCustomBackgroundArgbs: (Int, Int) -> Unit,
     onSaveProfile:           (String, Int, Int, Int) -> Unit,
+    onUpdateProfile:         (String, Int, Int, Int) -> Unit,
     onLoadProfile:           (ColorProfile) -> Unit,
     onDeleteProfile:         (ColorProfile) -> Unit,
+    onRenameProfile:         (ColorProfile, String) -> Unit,
 ) {
     val currentMode    = current.themeMode
     val currentPalette = current.standardPalette
@@ -2143,6 +2166,36 @@ private fun CompactThemePicker(
 
                     // Saved palettes
                     var profileToDelete by remember { mutableStateOf<ColorProfile?>(null) }
+                    var profileToRename by remember { mutableStateOf<ColorProfile?>(null) }
+
+                    profileToRename?.let { target ->
+                        var renameText by remember(target.id) { mutableStateOf(target.name) }
+                        AlertDialog(
+                            onDismissRequest = { profileToRename = null },
+                            title            = { Text("Rename palette") },
+                            text             = {
+                                OutlinedTextField(
+                                    value         = renameText,
+                                    onValueChange = { renameText = it },
+                                    label         = { Text("Palette name") },
+                                    singleLine    = true,
+                                )
+                            },
+                            confirmButton = {
+                                TextButton(
+                                    onClick = {
+                                        val trimmed = renameText.trim()
+                                        if (trimmed.isNotEmpty()) onRenameProfile(target, trimmed)
+                                        profileToRename = null
+                                    },
+                                    enabled = renameText.isNotBlank(),
+                                ) { Text("Rename") }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { profileToRename = null }) { Text("Cancel") }
+                            },
+                        )
+                    }
 
                     profileToDelete?.let { target ->
                         val targetName = target.name.ifBlank { "Unnamed" }
@@ -2214,6 +2267,19 @@ private fun CompactThemePicker(
                                             modifier           = Modifier.size(16.dp),
                                         )
                                     }
+                                    // Rename button
+                                    IconButton(
+                                        onClick  = { profileToRename = profile },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .semantics { contentDescription = "Rename $displayName palette" },
+                                    ) {
+                                        Icon(
+                                            imageVector        = Icons.Default.Edit,
+                                            contentDescription = null,
+                                            modifier           = Modifier.size(18.dp),
+                                        )
+                                    }
                                     // Delete button
                                     IconButton(
                                         onClick  = { profileToDelete = profile },
@@ -2263,15 +2329,49 @@ private fun CompactThemePicker(
                         onArgbChange = onCustomTertiaryArgb,
                     )
 
-                    // Save the working colours as a palette, or collapse the pickers
+                    // Background overrides (0 = Auto: derived from the primary colour)
+                    val effectivePrimaryHue = if (customPrimaryArgb != 0) {
+                        FloatArray(3).also { AndroidColor.colorToHSV(customPrimaryArgb, it) }[0]
+                    } else customPrimaryHue
+                    BackgroundColorRow(
+                        label        = "Background (light)",
+                        argb         = customLightBackgroundArgb,
+                        autoArgb     = ColorUtils.HSLToColor(floatArrayOf(effectivePrimaryHue, 0.08f, 0.98f)),
+                        onArgbChange = { onCustomBackgroundArgbs(it, customDarkBackgroundArgb) },
+                        onReset      = { onCustomBackgroundArgbs(0, customDarkBackgroundArgb) },
+                    )
+                    BackgroundColorRow(
+                        label        = "Background (dark)",
+                        argb         = customDarkBackgroundArgb,
+                        autoArgb     = ColorUtils.HSLToColor(floatArrayOf(effectivePrimaryHue, 0.02f, 0.08f)),
+                        onArgbChange = { onCustomBackgroundArgbs(customLightBackgroundArgb, it) },
+                        onReset      = { onCustomBackgroundArgbs(customLightBackgroundArgb, 0) },
+                    )
+
+                    // Save the working colours as a palette, or collapse the pickers.
+                    // With an active saved palette, "Update" overwrites it in place
+                    // and "Save as new" creates a separate palette.
                     Row(
                         modifier              = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                     ) {
-                        OutlinedButton(onClick = {
-                            onSaveProfile(localName, customPrimaryArgb, customSecondaryArgb, customTertiaryArgb)
-                        }) {
-                            Text("Save palette")
+                        if (customActiveProfileId != -1L) {
+                            OutlinedButton(onClick = {
+                                onSaveProfile(localName, customPrimaryArgb, customSecondaryArgb, customTertiaryArgb)
+                            }) {
+                                Text("Save as new")
+                            }
+                            OutlinedButton(onClick = {
+                                onUpdateProfile(localName, customPrimaryArgb, customSecondaryArgb, customTertiaryArgb)
+                            }) {
+                                Text("Update")
+                            }
+                        } else {
+                            OutlinedButton(onClick = {
+                                onSaveProfile(localName, customPrimaryArgb, customSecondaryArgb, customTertiaryArgb)
+                            }) {
+                                Text("Save palette")
+                            }
                         }
                         FilledTonalButton(onClick = {
                             onCustomThemeName(localName)
@@ -2456,10 +2556,10 @@ private fun CustomColorRow(
     onArgbChange: (Int) -> Unit,
 ) {
     var showPicker by remember { mutableStateOf(false) }
-    val displayArgb = if (argb != 0) argb else {
-        val hsv = FloatArray(3)
-        AndroidColor.HSVToColor(hsv.also { it[0] = hue; it[1] = 1f; it[2] = 0.8f })
-    }
+    // Fallback matches buildCustomColorScheme's light-mode hue fallback so the
+    // swatch shows what an unpicked slot actually renders as.
+    val displayArgb = if (argb != 0) argb
+                      else ColorUtils.HSLToColor(floatArrayOf(hue, 0.60f, 0.35f))
 
     if (showPicker) {
         ColorPickerDialog(
@@ -2502,6 +2602,77 @@ private fun CustomColorRow(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Icon(
+            imageVector        = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint               = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Row for a background override. Shows "Auto" (with the derived colour swatch)
+ * until a colour is picked; a picked colour shows its hex and a reset action.
+ */
+@Composable
+private fun BackgroundColorRow(
+    label:        String,
+    argb:         Int,
+    autoArgb:     Int,
+    onArgbChange: (Int) -> Unit,
+    onReset:      () -> Unit,
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    val isAuto      = argb == 0
+    val displayArgb = if (isAuto) autoArgb else argb
+
+    if (showPicker) {
+        ColorPickerDialog(
+            label       = label,
+            currentArgb = displayArgb,
+            onDismiss   = { showPicker = false },
+            onConfirm   = { newArgb ->
+                onArgbChange(newArgb)
+                showPicker = false
+            },
+        )
+    }
+
+    Row(
+        modifier              = Modifier
+            .fillMaxWidth()
+            .semantics { role = Role.Button }
+            .clickable { showPicker = true }
+            .padding(vertical = 10.dp),
+        verticalAlignment     = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(Color(displayArgb))
+                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+        )
+        Text(
+            text     = label,
+            modifier = Modifier.weight(1f),
+            style    = MaterialTheme.typography.bodyMedium,
+        )
+        if (isAuto) {
+            Text(
+                text  = "Auto",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else {
+            Text(
+                text  = "#%06X".format(displayArgb and 0xFFFFFF),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onReset) { Text("Auto") }
+        }
         Icon(
             imageVector        = Icons.Default.ChevronRight,
             contentDescription = null,
