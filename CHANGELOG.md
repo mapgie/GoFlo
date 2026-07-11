@@ -31,6 +31,33 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.51.0-beta.1] - 2026-07-11
+
+### Added
+- Custom theme: light and dark background colours can now be set directly, with an Auto option that derives them from the primary colour
+- Saved palettes can be renamed from the palette list
+- With an active saved palette, an Update button overwrites it in place; Save as new creates a separate palette instead of always duplicating
+- History: merge two periods into one from a period's overflow menu, combining their notes and symptoms
+
+### Changed
+- Saved palettes now include the background overrides and restore them on load
+
+### Fixed
+- Pre-period, ovulation, and daily reminders now re-arm themselves after firing and whenever a period is logged, edited, or deleted, instead of going silent until the next reboot or settings change
+- The daily during-period reminder now uses an exact alarm chain instead of an inexact repeating alarm that Doze could delay by hours
+- Reminders on Android 11 and older are now delivered exactly on time instead of being batched by the system
+- Deleting or disabling a custom alarm now also cancels a pending snoozed firing of that alarm
+- Alarms are now rescheduled after app updates and after timezone or clock changes, not only after reboot
+- Alarm times no longer drift by an hour across daylight saving transitions
+- Deleting the active saved palette no longer leaves a stale active marker
+- Unpicked custom colour slots now preview the colour the theme actually uses instead of an oversaturated placeholder
+- Logging consecutive days no longer splits a period into disconnected entries when the previous day was saved with an explicit end date instead of left ongoing
+- An ongoing period now continues to cover new days after reopening the app on a later date, instead of only through the day it was last checked
+- One-time repair on app start automatically rejoins periods that were already split apart by the day-after-close bug
+- Logging the single unlogged day between two period entries now joins them into one continuous period instead of leaving the gap unfixable without a separate manual merge
+- The one-time period-repair migration and manual History merge no longer delete the absorbed period's own flow/symptom history
+
+---
 ## [0.50.4-beta.1] - 2026-06-30
 
 ### Fixed
