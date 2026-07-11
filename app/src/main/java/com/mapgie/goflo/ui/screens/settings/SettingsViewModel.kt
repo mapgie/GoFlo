@@ -107,6 +107,8 @@ class SettingsViewModel(
     fun setCustomTertiaryArgb(argb: Int)  = viewModelScope.launch { store.setCustomTertiaryArgb(argb) }
 
     fun setCustomThemeName(name: String) = viewModelScope.launch { store.setCustomThemeName(name) }
+    fun setCustomBackgroundArgbs(lightArgb: Int, darkArgb: Int) =
+        viewModelScope.launch { store.setCustomBackgroundArgbs(lightArgb, darkArgb) }
     fun setCustomThemeMode(mode: String) = viewModelScope.launch { store.setCustomThemeMode(mode) }
     fun setCustomActiveProfileId(id: Long) = viewModelScope.launch { store.setCustomActiveProfileId(id) }
 
@@ -115,10 +117,36 @@ class SettingsViewModel(
      * auto-generates a fresh primary key).  The newly created profile becomes the
      * active profile.
      */
-    fun saveColorProfile(name: String, primaryArgb: Int, secondaryArgb: Int, tertiaryArgb: Int) {
+    fun saveColorProfile(
+        name: String,
+        primaryArgb: Int, secondaryArgb: Int, tertiaryArgb: Int,
+        lightBackgroundArgb: Int = 0, darkBackgroundArgb: Int = 0,
+    ) {
         viewModelScope.launch {
-            val savedId = colorProfileDao.upsert(ColorProfile(0L, name, primaryArgb, secondaryArgb, tertiaryArgb))
+            val savedId = colorProfileDao.upsert(
+                ColorProfile(0L, name, primaryArgb, secondaryArgb, tertiaryArgb, lightBackgroundArgb, darkBackgroundArgb)
+            )
             store.setCustomActiveProfileId(savedId)
+        }
+    }
+
+    /**
+     * Overwrites the **active** saved profile in place with the current working
+     * colours and name. No-ops when no profile is active (use [saveColorProfile]
+     * to create one first).
+     */
+    fun updateColorProfile(
+        name: String,
+        primaryArgb: Int, secondaryArgb: Int, tertiaryArgb: Int,
+        lightBackgroundArgb: Int = 0, darkBackgroundArgb: Int = 0,
+        activeProfileId: Long,
+    ) {
+        viewModelScope.launch {
+            if (activeProfileId == -1L) return@launch
+            colorProfileDao.upsert(
+                ColorProfile(activeProfileId, name, primaryArgb, secondaryArgb, tertiaryArgb, lightBackgroundArgb, darkBackgroundArgb)
+            )
+            store.setCustomThemeName(name)
         }
     }
 
@@ -142,6 +170,7 @@ class SettingsViewModel(
             store.setCustomPrimaryArgb(profile.primaryArgb)
             store.setCustomSecondaryArgb(profile.secondaryArgb)
             store.setCustomTertiaryArgb(profile.tertiaryArgb)
+            store.setCustomBackgroundArgbs(profile.lightBackgroundArgb, profile.darkBackgroundArgb)
             if (profile.primaryArgb != 0)   store.setCustomPrimaryHue(hueOf(profile.primaryArgb))
             if (profile.secondaryArgb != 0) store.setCustomSecondaryHue(hueOf(profile.secondaryArgb))
             if (profile.tertiaryArgb != 0)  store.setCustomTertiaryHue(hueOf(profile.tertiaryArgb))
@@ -151,7 +180,14 @@ class SettingsViewModel(
     }
 
     fun deleteColorProfile(profile: ColorProfile) {
-        viewModelScope.launch { colorProfileDao.delete(profile) }
+        viewModelScope.launch {
+            colorProfileDao.delete(profile)
+            // Clear the active pointer if the active profile was deleted; the
+            // working colours stay applied (they live in DataStore, not the row).
+            if (prefs.value.customActiveProfileId == profile.id) {
+                store.setCustomActiveProfileId(-1L)
+            }
+        }
     }
 
     // ── App icon ───────────────────────────────────────────────────────────────

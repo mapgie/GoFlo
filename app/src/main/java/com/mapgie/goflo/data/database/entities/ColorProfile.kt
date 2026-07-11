@@ -11,4 +11,6 @@ data class ColorProfile(
     @ColumnInfo(defaultValue = "0") val primaryArgb: Int = 0,
     @ColumnInfo(defaultValue = "0") val secondaryArgb: Int = 0,
     @ColumnInfo(defaultValue = "0") val tertiaryArgb: Int = 0,
+    @ColumnInfo(defaultValue = "0") val lightBackgroundArgb: Int = 0,
+    @ColumnInfo(defaultValue = "0") val darkBackgroundArgb: Int = 0,
 )

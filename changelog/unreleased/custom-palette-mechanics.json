@@ -1,0 +1,15 @@
+{
+  "bump": "minor",
+  "added": [
+    "Custom theme: light and dark background colours can now be set directly, with an Auto option that derives them from the primary colour",
+    "Saved palettes can be renamed from the palette list",
+    "With an active saved palette, an Update button overwrites it in place; Save as new creates a separate palette instead of always duplicating"
+  ],
+  "changed": [
+    "Saved palettes now include the background overrides and restore them on load"
+  ],
+  "fixed": [
+    "Deleting the active saved palette no longer leaves a stale active marker",
+    "Unpicked custom colour slots now preview the colour the theme actually uses instead of an oversaturated placeholder"
+  ]
+}
