@@ -1,5 +1,6 @@
 package com.mapgie.goflo.notifications
 
+import android.app.AlarmManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -10,15 +11,18 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 // Besides boot, this also covers app updates (alarms registered by the old version
-// should be recomputed) and timezone/clock changes (all alarms are armed at absolute
-// epochs computed from local times, so they drift when the zone or clock moves).
+// should be recomputed), timezone/clock changes (all alarms are armed at absolute
+// epochs computed from local times, so they drift when the zone or clock moves), and
+// the exact-alarm permission being granted (alarms armed while it was denied are
+// inexact and should be upgraded to exact immediately, not at the next reboot).
 class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != Intent.ACTION_MY_PACKAGE_REPLACED &&
             intent.action != Intent.ACTION_TIMEZONE_CHANGED &&
-            intent.action != Intent.ACTION_TIME_CHANGED
+            intent.action != Intent.ACTION_TIME_CHANGED &&
+            intent.action != AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
         ) return
 
         // goAsync() extends the BroadcastReceiver's active window so the OS doesn't

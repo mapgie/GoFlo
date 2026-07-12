@@ -104,6 +104,9 @@ class DailyCheckWorker(
             .setContentText(message)
             .setContentIntent(tapPi)
             .setAutoCancel(true)
+            // "Your period may have started" must not sit on the lock screen.
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(ReminderScheduler.lockScreenPublicVersion(context, CHANNEL_DAILY_CHECK_ID))
             .build()
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

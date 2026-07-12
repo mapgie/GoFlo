@@ -205,7 +205,11 @@ class ReminderReceiver : BroadcastReceiver() {
                 if (alarm.alarmType == "NOTIFICATION") NotificationCompat.CATEGORY_REMINDER
                 else NotificationCompat.CATEGORY_ALARM
             )
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Custom alarm labels are user-written and can carry health context, so the
+            // lock screen only ever shows the neutral public version (same policy as
+            // the widget's PIN-lock placeholder).
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion(context, channelId))
             .addAction(
                 android.R.drawable.ic_input_add,
                 "Log",
@@ -253,6 +257,9 @@ class ReminderReceiver : BroadcastReceiver() {
         manager.notify(notifId, builder.build())
     }
 
+    private fun publicVersion(context: Context, channelId: String) =
+        ReminderScheduler.lockScreenPublicVersion(context, channelId)
+
     private fun showNotification(
         context: Context,
         id: Int,
@@ -290,7 +297,10 @@ class ReminderReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .setPriority(priority)
             .setCategory(if (useAlarm) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_REMINDER)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Period and ovulation predictions are health data: keep them off the lock
+            // screen and show the neutral public version instead.
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion(context, channelId))
 
         if (useAlarm) {
             val fullScreenIntent = Intent(context, AlarmActivity::class.java).apply {
