@@ -1,6 +1,7 @@
 package com.mapgie.goflo.notifications
 
 import android.app.AlarmManager
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -9,7 +10,9 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import androidx.core.app.NotificationCompat
 import com.mapgie.goflo.GoFloApplication
+import com.mapgie.goflo.R
 import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.preferences.ReminderSettings
@@ -54,6 +57,18 @@ object ReminderScheduler {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pi)
         }
     }
+
+    /**
+     * The lock-screen face of every GoFlo reminder: no label, no prediction, no health
+     * context. Pair with VISIBILITY_PRIVATE so the real content requires unlock, the
+     * same policy the widget applies when PIN lock is on.
+     */
+    fun lockScreenPublicVersion(context: Context, channelId: String): Notification =
+        NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(context.getString(R.string.notification_public_title))
+            .setContentText(context.getString(R.string.notification_public_text))
+            .build()
 
     /**
      * Recomputes and re-arms the period-prediction reminders from current data.
@@ -249,13 +264,18 @@ object ReminderScheduler {
         }
     }
 
-    private fun nextTriggerMillis(hour: Int, minute: Int): Long {
-        // Resolve "next occurrence of HH:mm" in local time per day, not by adding
-        // 24h of millis: across a DST transition the flat offset lands an hour off.
-        val now = LocalDateTime.now()
-        val todayAtTime = LocalDateTime.of(LocalDate.now(), LocalTime.of(hour, minute))
+    // Resolve "next occurrence of HH:mm" in local time per day, not by adding
+    // 24h of millis: across a DST transition the flat offset lands an hour off.
+    // now/zone parameters exist for tests; production callers use the defaults.
+    internal fun nextTriggerMillis(
+        hour: Int,
+        minute: Int,
+        now: LocalDateTime = LocalDateTime.now(),
+        zone: ZoneId = ZoneId.systemDefault(),
+    ): Long {
+        val todayAtTime = LocalDateTime.of(now.toLocalDate(), LocalTime.of(hour, minute))
         val next = if (todayAtTime.isAfter(now)) todayAtTime else todayAtTime.plusDays(1)
-        return next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        return next.atZone(zone).toInstant().toEpochMilli()
     }
 
     fun customAlarmPendingIntent(context: Context, alarmId: Long): PendingIntent {

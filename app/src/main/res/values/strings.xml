@@ -8,6 +8,8 @@
     <string name="notification_ovulation_text">You may be in your ovulation window today.</string>
     <string name="notification_daily_title">How are you feeling?</string>
     <string name="notification_daily_text">Tap to log today\'s symptoms and flow.</string>
+    <string name="notification_public_title">Reminder</string>
+    <string name="notification_public_text">Unlock to view</string>
     <string name="widget_description">Shows cycle day and days until next period</string>
     <string name="quick_log_widget_description">Tap a category to log it for today</string>
 </resources>
