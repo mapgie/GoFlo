@@ -31,6 +31,13 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.51.1-beta.1] - 2026-07-22
+
+### Changed
+- Reminder notifications on the lock screen now show a neutral "Reminder: Unlock to view" instead of period predictions, daily-check nudges, or custom alarm labels
+- Alarms scheduled while the exact-alarm permission was denied are upgraded to exact delivery as soon as the permission is granted, not at the next reboot
+
+---
 ## [0.51.0-beta.1] - 2026-07-11
 
 ### Added

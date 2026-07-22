@@ -1,7 +1,0 @@
-{
-  "bump": "patch",
-  "changed": [
-    "Reminder notifications on the lock screen now show a neutral \"Reminder: Unlock to view\" instead of period predictions, daily-check nudges, or custom alarm labels",
-    "Alarms scheduled while the exact-alarm permission was denied are upgraded to exact delivery as soon as the permission is granted, not at the next reboot"
-  ]
-}
