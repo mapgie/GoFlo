@@ -1,0 +1,5 @@
+{
+  "bump": "minor",
+  "changed": ["Long-press any calendar day to open the full log menu for that day, so any category can be logged for a past date"],
+  "fixed": ["All categories, whether built-in or user-defined, can now be logged retrospectively on any day, including empty days that had no entries yet"]
+}

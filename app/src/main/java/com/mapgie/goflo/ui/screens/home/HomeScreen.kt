@@ -133,6 +133,7 @@ fun HomeScreen(
         val cat = state.trackingCategories.firstOrNull { it.id == id }
         when {
             id == -1L && !state.periodTrackingEnabled -> {
+                logMenuTargetDate = date
                 showLogMenu = true
             }
             id == -1L ->
@@ -264,7 +265,13 @@ fun HomeScreen(
                             handleQuickLog(date)
                         }
                     },
-                    onDayLongClick = { date -> handleQuickLog(date) }
+                    // Long-press opens the full log menu for the tapped day, so
+                    // every category (system or user-defined) can be logged
+                    // retrospectively, not just the single quick-log action.
+                    onDayLongClick = { date ->
+                        logMenuTargetDate = date
+                        showLogMenu = true
+                    }
                 )
 
                 CycleInfoCard(state = state)
