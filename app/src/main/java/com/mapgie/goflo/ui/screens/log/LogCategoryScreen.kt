@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -21,12 +22,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -41,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -50,15 +55,86 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.util.decodeScaleLabels
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val displayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy")
+
+/**
+ * Tappable card showing the date this entry will be logged against. Opens a date
+ * picker so any category can be logged for a past day, not only today.
+ */
+@Composable
+private fun DateSelectorCard(
+    date: LocalDate,
+    onClick: () -> Unit,
+) {
+    ElevatedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { role = Role.Button }
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    "Date",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    date.format(displayFormat),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.DateRange,
+                contentDescription = "Change date",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerDialogWrapper(
+    initial: LocalDate,
+    onConfirm: (LocalDate) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val initialMillis = initial.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
+    val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                val millis = pickerState.selectedDateMillis ?: return@TextButton
+                onConfirm(Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate())
+            }) { Text("OK") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    ) {
+        DatePicker(state = pickerState)
+    }
+}
 
 /**
  * Slider input for numeric tracking categories.
@@ -351,6 +427,15 @@ fun LogCategoryScreen(
     }
 
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+
+    if (showDatePicker) {
+        DatePickerDialogWrapper(
+            initial = state.date,
+            onConfirm = { viewModel.setDate(it); showDatePicker = false },
+            onDismiss = { showDatePicker = false }
+        )
+    }
 
     if (showDeleteConfirm) {
         AlertDialog(
@@ -417,6 +502,17 @@ fun LogCategoryScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ── Date ──────────────────────────────────────────────────────────
+            // Editable for new entries so any category can be logged for a past
+            // day; fixed when editing one specific existing entry.
+
+            if (state.canEditDate) {
+                DateSelectorCard(
+                    date = state.date,
+                    onClick = { showDatePicker = true }
+                )
+            }
+
             // ── Input area — slider / free input / chips ──────────────────────
 
             val cat = state.category
