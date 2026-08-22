@@ -7,6 +7,13 @@
 >
 > **Staleness check for future sessions:** `colorSchemeFor`'s signature is load-bearing (the handover says extend, don't change it). Confirm it before wiring role derivation: `grep -n "fun colorSchemeFor" app/src/main/java/com/mapgie/goflo/ui/theme/Color.kt`. Run `git diff d07d947 -- app/src/main/java/com/mapgie/goflo/ui/theme/ app/src/main/java/com/mapgie/goflo/ui/util/CategoryAppearance.kt` for drift.
 
+> **Drift since stamp (Phase 1, branch `claude/logging-redesign-phase-1-f08e0o`):**
+> - `Color.kt` gained `ExtendedRoles` + `deriveExtendedRoles(scheme)` at the end of the file (after `buildCustomColorScheme`). HSL hue rotation of the three accents (+30/-30/+45 degrees), with a lightness-shift fallback for near-greyscale accents (saturation < 0.10, i.e. High Contrast). On-colours pick near-black/white by max contrast. `colorSchemeFor` untouched.
+> - `Theme.kt` gained `LocalExtendedRoles` (static CompositionLocal) and now wraps `MaterialTheme` in a `CompositionLocalProvider`.
+> - `CategoryAppearance.kt`: `CategoryColor` now has 6 entries (added QUATERNARY/QUINARY/SENARY); both resolvers have branches for the three new tokens reading `LocalExtendedRoles.current` (read inside the branch only, so hex/legacy tokens still resolve outside `GoFloTheme`).
+> - `ManageCategoriesScreen.kt`'s `CategoryColorPicker`: themed swatch circles replaced with 6 role pill chips ("In-theme roles"); "More colours" header replaced with "Fixed colour / Stays put on theme change".
+> - New `wcag_check_roles.py` at repo root mirrors the derivation; `wcag_check.py` restored from base64 mangling (§ its THEMES table still lacks Dragon Fire and Midnight Neon; the roles script carries them itself).
+
 All paths under `app/src/main/java/com/mapgie/goflo/`.
 
 ## 1. `ui/theme/Color.kt` (~1520 lines)

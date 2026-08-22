@@ -203,7 +203,7 @@ Each phase is a shippable PR. Order is deliberate: additive foundations first (r
 | Phase | Status | PR / commit | DB version after | Notes / deviations |
 |---|---|---|---|---|
 | 0 — Planning & groundwork | Done | this branch (`claude/design-handover-bdq9he`) | 23 | Subsystem maps stamped at `d07d947` / vc116. Theme-reconciliation split out as separate task. |
-| 1 — Extended colour roles | Not started | | 23 | |
+| 1 — Extended colour roles | Done | `claude/logging-redesign-phase-1-f08e0o` | 23 | Derivation deviates from the sketch in two ways: near-greyscale accents (High Contrast) shift lightness instead of hue (hue rotation of grey is a no-op), and on-colours pick near-black vs white by max contrast rather than a 0.35 luminance threshold (the threshold has a 0.30-0.35 band where white fails 3:1). Spot-check script `wcag_check_roles.py` added (all 12 families + HC + Blue & Orange, worst ratio 4.24:1). Also restored `wcag_check.py`, which was committed as one base64 line in `84624bc`. |
 | 2 — Group data model | Not started | | (24) | Colour-inheritance deviates from handover's "grey by default" to preserve existing colours. |
 | 3 — Component library | Not started | | | |
 | 4 — MetricInput + Yes/No + Time | Not started | | | |
