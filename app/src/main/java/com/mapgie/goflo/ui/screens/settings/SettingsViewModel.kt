@@ -303,6 +303,15 @@ class SettingsViewModel(
         store.setPreferredCycleLength(days)
     }
 
+    /**
+     * Persists the allowed gap between period days and immediately re-derives
+     * the period episodes, since the grouping and auto-end rules just changed.
+     */
+    fun setPeriodGapToleranceDays(days: Int) = viewModelScope.launch {
+        store.setPeriodGapToleranceDays(days)
+        repository.reconcile(days)
+    }
+
     fun setShowPeriodPrediction(show: Boolean) = viewModelScope.launch {
         store.setShowPeriodPrediction(show)
     }
@@ -606,6 +615,7 @@ class SettingsViewModel(
             } else allPeriods
             val allSymptoms = repository.getAllSymptomsOnce()
             val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+            val allDays = repository.getAllPeriodDaysOnce().map { it.date }
             val periodsArray = JSONArray()
             periods.forEach { period ->
                 val obj = JSONObject().apply {
@@ -617,6 +627,10 @@ class SettingsViewModel(
                     val symptomsArray = JSONArray()
                     symptomsByPeriod[period.id]?.forEach { symptomsArray.put(it.symptomType) }
                     put("symptoms", symptomsArray)
+                    val daysArray = JSONArray()
+                    allDays.filter { it >= period.startDate && (period.endDate == null || it <= period.endDate) }
+                        .forEach { daysArray.put(it) }
+                    put("days", daysArray)
                 }
                 periodsArray.put(obj)
             }
@@ -674,8 +688,9 @@ class SettingsViewModel(
             } else allPeriods
             val allSymptoms = repository.getAllSymptomsOnce()
             val symptomsByPeriod = allSymptoms.groupBy { it.periodId }
+            val allDays = repository.getAllPeriodDaysOnce().map { it.date }
             sb.appendLine("# Periods")
-            sb.appendLine("start_date,end_date,duration_days,flow_level,symptoms,notes")
+            sb.appendLine("start_date,end_date,duration_days,flow_level,symptoms,notes,logged_days")
             periods.forEach { period ->
                 val start    = LocalDate.parse(period.startDate)
                 val end      = period.endDate?.let { LocalDate.parse(it) }
@@ -685,7 +700,10 @@ class SettingsViewModel(
                         ?.joinToString(";") { it.symptomType }?.replace("\"", "\"\"") ?: ""
                 )
                 val notes = sanitizeCsvField(period.notes.replace("\"", "\"\""))
-                sb.appendLine("${period.startDate},${period.endDate ?: ""},${duration},${period.flowLevel},\"${symptoms}\",\"${notes}\"")
+                val loggedDays = allDays
+                    .filter { it >= period.startDate && (period.endDate == null || it <= period.endDate) }
+                    .joinToString(";")
+                sb.appendLine("${period.startDate},${period.endDate ?: ""},${duration},${period.flowLevel},\"${symptoms}\",\"${notes}\",\"${loggedDays}\"")
             }
         }
 
@@ -748,6 +766,9 @@ class SettingsViewModel(
 
             val result = repository.importData(json, replace)
             if (result is ImportResult.Success) {
+                // Imported day rows may bridge, overlap, or extend existing
+                // episodes — re-derive them under the current gap tolerance.
+                repository.reconcile(store.preferences.first().periodGapToleranceDays)
                 runCatching {
                     if (!json.trimStart().startsWith('[')) {
                         val root = JSONObject(json)

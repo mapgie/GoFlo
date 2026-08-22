@@ -20,17 +20,41 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
+/**
+ * UI state for per-day period logging.
+ *
+ * The unit of logging is a single day: [date] is the day being logged or
+ * edited, and every day-specific value (flow, symptoms, pinned categories)
+ * applies to that day only. Episode-level context (which period the day
+ * belongs to, its start, its explicit end, its notes) is shown and editable
+ * alongside, but the period itself is derived from the logged days.
+ */
 data class LogPeriodUiState(
     val isLoading: Boolean = true,
     val isEditing: Boolean = false,
     val existingId: Long? = null,
+    /** The day being logged or edited. All per-day values below apply to it. */
+    val date: LocalDate = LocalDate.now(),
+    /** Episode start (editing only — moving it re-keys the episode's days). */
     val startDate: LocalDate = LocalDate.now(),
+    /** Explicit episode end ("until"), or null to leave the period open. */
     val endDate: LocalDate? = null,
-    /** Currently selected flow level label (e.g. "Medium", or a user-defined label). */
+    /**
+     * When creating: the start date of the existing period that [date] would
+     * continue (within gap tolerance), or null if it starts a new period.
+     */
+    val continuesEpisodeStart: LocalDate? = null,
+    /** 1-based day number of [date] within its episode, when known. */
+    val episodeDayNumber: Int? = null,
+    /** Gap tolerance (days) loaded from preferences. */
+    val toleranceDays: Int = PeriodRepository.DEFAULT_GAP_TOLERANCE_DAYS,
+    /** Currently selected flow level label for [date] (e.g. "Medium"). */
     val selectedFlowLabel: String = "Medium",
-    /** All symptom labels selected for this period. */
+    /** All symptom labels selected for [date]. */
     val symptoms: Set<String> = emptySet(),
+    /** Episode-level notes. */
     val notes: String = "",
     val saved: Boolean = false,
     val deleted: Boolean = false,
@@ -72,46 +96,72 @@ class LogPeriodViewModel(
     private val preferencesStore: AppPreferencesStore? = null,
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(LogPeriodUiState(startDate = prefilledDate ?: LocalDate.now()))
+    private val _uiState = MutableStateFlow(
+        LogPeriodUiState(
+            date = prefilledDate ?: LocalDate.now(),
+            startDate = prefilledDate ?: LocalDate.now(),
+        )
+    )
     val uiState: StateFlow<LogPeriodUiState> = _uiState.asStateFlow()
 
     init {
-        if (periodId > 0) {
-            viewModelScope.launch {
+        viewModelScope.launch {
+            val tolerance = preferencesStore?.preferences?.first()?.periodGapToleranceDays
+                ?: PeriodRepository.DEFAULT_GAP_TOLERANCE_DAYS
+            _uiState.update { it.copy(toleranceDays = tolerance) }
+
+            if (periodId > 0) {
                 val period = repository.getPeriodById(periodId).first()
                 if (period != null) {
+                    val start = LocalDate.parse(period.startDate)
                     val storedEnd = period.endDate?.let { d -> LocalDate.parse(d) }
-                    // If this screen was opened for a date that continues the period
-                    // (the day right after its stored end date) rather than a date
-                    // already inside its range, extend the end date to that day so
-                    // saving naturally continues the period instead of leaving the
-                    // new day unaccounted for.
-                    val effectiveEnd = if (storedEnd != null && prefilledDate != null && prefilledDate.isAfter(storedEnd)) {
-                        prefilledDate
-                    } else {
-                        storedEnd
-                    }
+                    val day = prefilledDate ?: start
+                    // If this screen was opened for a day that continues the
+                    // period (a day past its stored end, within tolerance),
+                    // extend the end to that day so saving naturally continues
+                    // the period instead of trimming the new day away.
+                    val effectiveEnd = if (storedEnd != null && day.isAfter(storedEnd)) day else storedEnd
                     _uiState.update {
                         it.copy(
                             isLoading = false,
                             isEditing = true,
                             existingId = period.id,
-                            startDate = LocalDate.parse(period.startDate),
+                            date = day,
+                            startDate = start,
                             endDate = effectiveEnd,
-                            notes = period.notes
+                            episodeDayNumber = dayNumber(start, day),
+                            notes = period.notes,
                         )
                     }
                 } else {
                     _uiState.update { it.copy(isLoading = false) }
                 }
-                loadSystemCategoryNames()
-                loadPinnedCategories()
+            } else {
+                resolveContinuationContext(_uiState.value.date, tolerance)
+                _uiState.update { it.copy(isLoading = false) }
             }
-        } else {
-            _uiState.update { it.copy(isLoading = false) }
-            viewModelScope.launch {
-                loadSystemCategoryNames()
-                loadPinnedCategories()
+            loadSystemCategoryNames()
+            loadPinnedCategories()
+        }
+    }
+
+    /**
+     * Looks up whether logging [date] would continue an existing period, and
+     * prefills the episode context (day number, notes) from it if so.
+     */
+    private suspend fun resolveContinuationContext(date: LocalDate, tolerance: Int) {
+        val periods = repository.getAllPeriodsOnce()
+        val episode = PeriodRepository.periodForDate(periods, date, tolerance)
+        _uiState.update { state ->
+            if (episode != null) {
+                val start = LocalDate.parse(episode.startDate)
+                state.copy(
+                    continuesEpisodeStart = start,
+                    episodeDayNumber = dayNumber(minOf(start, date), date),
+                    notes = if (state.notes.isBlank()) episode.notes else state.notes,
+                )
+            } else {
+                state.copy(continuesEpisodeStart = null, episodeDayNumber = null)
             }
         }
     }
@@ -121,29 +171,26 @@ class LogPeriodViewModel(
         val flowCat = tr.getSystemCategoryByKey("flow")
         val symptomsCat = tr.getSystemCategoryByKey("symptoms")
 
-        // When editing, load current flow and symptoms from TrackingLog for the start date.
-        val currentState = _uiState.value
+        // Load current flow and symptoms from TrackingLog for the day being logged.
+        val date = _uiState.value.date
         var editFlowLabel: String? = null
         var editFlowSlider: Float? = null
         var editSymptoms: Set<String>? = null
-        if (currentState.isEditing) {
-            val startDate = currentState.startDate
-            if (flowCat != null) {
-                val raw = tr.getExistingLog(startDate, flowCat.id)?.values?.firstOrNull()
-                if (raw != null) {
-                    if (flowCat.categoryType == "numeric_slider") {
-                        editFlowSlider = raw.toFloatOrNull()
-                        editFlowLabel = when (editFlowSlider?.toInt()) {
-                            1 -> "Spotting"; 2 -> "Light"; 4 -> "Heavy"; else -> "Medium"
-                        }
-                    } else {
-                        editFlowLabel = raw
+        if (flowCat != null) {
+            val raw = tr.getExistingLog(date, flowCat.id)?.values?.firstOrNull()
+            if (raw != null) {
+                if (flowCat.categoryType == "numeric_slider") {
+                    editFlowSlider = raw.toFloatOrNull()
+                    editFlowLabel = when (editFlowSlider?.toInt()) {
+                        1 -> "Spotting"; 2 -> "Light"; 4 -> "Heavy"; else -> "Medium"
                     }
+                } else {
+                    editFlowLabel = raw
                 }
             }
-            if (symptomsCat != null) {
-                editSymptoms = tr.getExistingLog(startDate, symptomsCat.id)?.values?.toSet() ?: emptySet()
-            }
+        }
+        if (symptomsCat != null) {
+            editSymptoms = tr.getExistingLog(date, symptomsCat.id)?.values?.toSet()
         }
 
         _uiState.update { state ->
@@ -192,7 +239,7 @@ class LogPeriodViewModel(
         val numericMap = mutableMapOf<Long, Float?>()
         val freeTextMap = mutableMapOf<Long, String>()
 
-        val date = _uiState.value.startDate
+        val date = _uiState.value.date
         for (cat in categories) {
             valuesMap[cat.id] = tr.getValuesForCategory(cat.id).first().map { it.label }
             val existing = tr.getExistingLog(date, cat.id)
@@ -215,9 +262,32 @@ class LogPeriodViewModel(
         }
     }
 
+    /**
+     * Changes the day being logged (new entries only). Re-resolves the
+     * continuation context and reloads that day's existing values so the
+     * form always reflects the selected day.
+     */
+    fun setDate(date: LocalDate) {
+        _uiState.update { state ->
+            val end = if (state.endDate != null && date.isAfter(state.endDate)) null else state.endDate
+            state.copy(date = date, startDate = date, endDate = end, hasChanges = true)
+        }
+        viewModelScope.launch {
+            resolveContinuationContext(date, _uiState.value.toleranceDays)
+            loadSystemCategoryNames()
+            loadPinnedCategories()
+        }
+    }
+
+    /** Moves the episode start (editing only). */
     fun setStartDate(date: LocalDate) = _uiState.update { state ->
         val end = if (state.endDate != null && date.isAfter(state.endDate)) null else state.endDate
-        state.copy(startDate = date, endDate = end, hasChanges = true)
+        state.copy(
+            startDate = date,
+            endDate = end,
+            episodeDayNumber = dayNumber(date, state.date),
+            hasChanges = true,
+        )
     }
 
     fun setEndDate(date: LocalDate?) = _uiState.update {
@@ -244,7 +314,7 @@ class LogPeriodViewModel(
     }
 
     /**
-     * Adds [name] as a new option in the symptoms catalog and selects it for this period.
+     * Adds [name] as a new option in the symptoms catalog and selects it for this day.
      * The catalog insert is fire-and-forget; the selection is immediate.
      */
     fun addNewSymptomToLibrary(name: String) {
@@ -274,27 +344,45 @@ class LogPeriodViewModel(
         state.copy(pinnedFreeTextValues = state.pinnedFreeTextValues + (categoryId to text), hasChanges = true)
     }
 
+    /**
+     * Saves the day: marks [LogPeriodUiState.date] as a period day (which
+     * starts, continues, or bridges an episode as needed), applies any
+     * episode-boundary edits, and writes this day's flow/symptoms/pinned
+     * values to the per-day tracking logs.
+     */
     fun save() {
         val state = _uiState.value
         viewModelScope.launch {
             try {
-                val entry = PeriodEntry(
-                    id = state.existingId ?: 0,
-                    startDate = state.startDate.toString(),
-                    endDate = state.endDate?.toString(),
-                    flowLevel = state.selectedFlowLabel,
-                    notes = state.notes
-                )
-                if (state.isEditing && state.existingId != null) {
-                    repository.updatePeriod(entry, emptyList())
+                val tolerance = state.toleranceDays
+                val episode: PeriodEntry? = if (state.isEditing && state.existingId != null) {
+                    repository.logPeriodDay(state.date, tolerance)
+                    repository.updateEpisode(
+                        id = state.existingId,
+                        start = state.startDate,
+                        end = state.endDate,
+                        notes = state.notes,
+                        toleranceDays = tolerance,
+                    )
+                } else if (state.endDate != null && !state.endDate.isBefore(state.date)) {
+                    repository.logPeriodRange(state.date, state.endDate, tolerance)
                 } else {
-                    repository.insertPeriod(entry, emptyList())
+                    repository.logPeriodDay(state.date, tolerance)
                 }
+
+                if (episode != null) {
+                    repository.updateEpisodeMeta(
+                        id = episode.id,
+                        notes = state.notes,
+                        flowLevel = state.selectedFlowLabel,
+                    )
+                }
+
                 syncFlowToTrackingLog(state)
                 syncSymptomsToTrackingLog(state)
                 syncPinnedCategoryLogs(state)
                 application?.let { GoFloWidget.updateAllWidgets(it) }
-                // Saving a period changes the cycle predictions, so the pre-period,
+                // Saving a period day changes the cycle predictions, so the pre-period,
                 // ovulation, and daily reminders must be re-armed against the new dates.
                 // Failure must not report the (already successful) save as failed.
                 application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
@@ -306,8 +394,27 @@ class LogPeriodViewModel(
     }
 
     /**
-     * Mirrors the saved period's flow level into the TrackingLog system.
-     * This ensures new/edited periods appear in the Stats screen under the Flow category.
+     * Removes the edited day from the period without touching the day's own
+     * tracking logs — a flow or symptom logged on a day that turns out not to
+     * be a period day is still a valid, dated record.
+     */
+    fun removeDay() {
+        val state = _uiState.value
+        viewModelScope.launch {
+            try {
+                repository.unlogPeriodDay(state.date, state.toleranceDays)
+                application?.let { GoFloWidget.updateAllWidgets(it) }
+                application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
+                _uiState.update { it.copy(deleted = true) }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(error = "Could not remove this day. Please try again.") }
+            }
+        }
+    }
+
+    /**
+     * Mirrors this day's flow level into the TrackingLog system.
+     * This ensures logged days appear in the Stats screen under the Flow category.
      * No-op if [trackingRepository] was not provided (e.g. in tests or legacy callers).
      */
     private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) {
@@ -321,7 +428,7 @@ class LogPeriodViewModel(
             state.selectedFlowLabel
         }
         tr.saveLog(
-            date           = state.startDate,
+            date           = state.date,
             categoryId     = flowCategory.id,
             selectedValues = setOf(flowLabel),
             notes          = "",
@@ -334,14 +441,14 @@ class LogPeriodViewModel(
         val symptomsCategory = tr.getSystemCategoryByKey("symptoms") ?: return
         if (symptomsCategory.isArchived) return
         if (state.symptoms.isEmpty()) {
-            val existing = tr.getExistingLog(state.startDate, symptomsCategory.id) ?: return
+            val existing = tr.getExistingLog(state.date, symptomsCategory.id) ?: return
             tr.deleteLog(existing.log)
         } else {
             val loggedAt = if (symptomsCategory.trackAgainstTime) {
                 LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
             } else ""
             tr.saveLog(
-                date           = state.startDate,
+                date           = state.date,
                 categoryId     = symptomsCategory.id,
                 selectedValues = state.symptoms,
                 notes          = "",
@@ -351,10 +458,10 @@ class LogPeriodViewModel(
         }
     }
 
-    /** Saves each pinned category's current selection as a tracking log for the period start date. */
+    /** Saves each pinned category's current selection as a tracking log for the day being logged. */
     private suspend fun syncPinnedCategoryLogs(state: LogPeriodUiState) {
         val tr = trackingRepository ?: return
-        val date = state.startDate
+        val date = state.date
         for (cat in state.pinnedCategories) {
             val valuesToSave = computePinnedValues(cat, state) ?: continue
             tr.saveLog(
@@ -394,17 +501,20 @@ class LogPeriodViewModel(
         viewModelScope.launch { preferencesStore?.setPeriodTrackingEnabled(false) }
     }
 
+    /** Deletes the entire episode: its days, its row, and its per-day logs. */
     fun delete() {
         val state = _uiState.value
         val id = state.existingId ?: return
         viewModelScope.launch {
             try {
                 val period = repository.getPeriodById(id).first() ?: return@launch
+                val days = repository.getDaysForEpisode(period, state.toleranceDays)
                 trackingRepository?.deleteLogsForPeriod(
                     LocalDate.parse(period.startDate),
                     period.endDate?.let { LocalDate.parse(it) }
+                        ?: days.lastOrNull()?.let { LocalDate.parse(it) }
                 )
-                repository.deletePeriod(period)
+                repository.deletePeriod(period, state.toleranceDays)
                 application?.let { GoFloWidget.updateAllWidgets(it) }
                 application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
                 _uiState.update { it.copy(deleted = true) }
@@ -434,6 +544,12 @@ class LogPeriodViewModel(
             "Light"    -> 2f
             "Heavy"    -> 4f
             else       -> 3f  // "Medium" and any custom label default to the middle
+        }
+
+        /** 1-based day number of [date] within an episode starting at [start], or null when before it. */
+        private fun dayNumber(start: LocalDate, date: LocalDate): Int? {
+            val n = ChronoUnit.DAYS.between(start, date).toInt() + 1
+            return if (n >= 1) n else null
         }
     }
 }

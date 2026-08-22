@@ -516,10 +516,10 @@ class TrackingRepository(
     /**
      * Deletes all tracking logs associated with a period's date range.
      *
-     * Flow logs are deleted for every day from [startDate] to [endDate] (inclusive)
-     * because the backfill migration may have created one per day.
-     * Symptoms and pinned-category logs are deleted only for [startDate], which is
-     * the only date the Log Period screen writes to for those categories.
+     * Flow, symptoms, and pinned-category logs are all deleted for every day
+     * from [startDate] to [endDate] (inclusive) — with per-day period logging,
+     * any day of the period can carry its own entry for each of these
+     * categories, not just the start date.
      */
     suspend fun deleteLogsForPeriod(startDate: LocalDate, endDate: LocalDate?) {
         val end = endDate ?: startDate
@@ -529,10 +529,10 @@ class TrackingRepository(
             logDao.deleteLogsForCategoryInRange(flowCategory.id, startDate.toString(), end.toString())
         }
         if (symptomsCategory != null) {
-            logDao.deleteLogsForCategoryOnDate(symptomsCategory.id, startDate.toString())
+            logDao.deleteLogsForCategoryInRange(symptomsCategory.id, startDate.toString(), end.toString())
         }
         for (cat in categoryDao.getShowInLogPeriodCategoriesOnce().filter { !it.isSystem }) {
-            logDao.deleteLogsForCategoryOnDate(cat.id, startDate.toString())
+            logDao.deleteLogsForCategoryInRange(cat.id, startDate.toString(), end.toString())
         }
     }
 

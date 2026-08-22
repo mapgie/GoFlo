@@ -55,6 +55,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -79,11 +82,12 @@ fun LogPeriodScreen(
         if (state.saved || state.deleted) onBack()
     }
 
+    var showDayPicker by rememberSaveable { mutableStateOf(false) }
     var showStartPicker by rememberSaveable { mutableStateOf(false) }
     var showEndPicker by rememberSaveable { mutableStateOf(false) }
     var showDeleteConfirm by rememberSaveable { mutableStateOf(false) }
+    var showRemoveDayConfirm by rememberSaveable { mutableStateOf(false) }
     var showAddSymptomDialog by rememberSaveable { mutableStateOf(false) }
-    var showOngoingConfirm by rememberSaveable { mutableStateOf(false) }
     var showUnsavedChangesDialog by rememberSaveable { mutableStateOf(false) }
     var showOverflowMenu by rememberSaveable { mutableStateOf(false) }
 
@@ -92,6 +96,14 @@ fun LogPeriodScreen(
     }
 
     BackHandler(enabled = state.hasChanges) { showUnsavedChangesDialog = true }
+
+    if (showDayPicker && !state.isLoading) {
+        DatePickerDialogWrapper(
+            initial = state.date,
+            onConfirm = { viewModel.setDate(it); showDayPicker = false },
+            onDismiss = { showDayPicker = false }
+        )
+    }
 
     if (showStartPicker && !state.isLoading) {
         DatePickerDialogWrapper(
@@ -103,8 +115,8 @@ fun LogPeriodScreen(
 
     if (showEndPicker && !state.isLoading) {
         DatePickerDialogWrapper(
-            initial = state.endDate ?: LocalDate.now(),
-            minDate = state.startDate,
+            initial = state.endDate ?: state.date,
+            minDate = if (state.isEditing) state.startDate else state.date,
             onConfirm = { viewModel.setEndDate(it); showEndPicker = false },
             onDismiss = { showEndPicker = false }
         )
@@ -114,7 +126,7 @@ fun LogPeriodScreen(
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
             title = { Text("Delete period?") },
-            text = { Text("This will permanently remove this period log.") },
+            text = { Text("This will permanently remove this entire period, including every logged day in it.") },
             confirmButton = {
                 TextButton(
                     onClick = { showDeleteConfirm = false; viewModel.delete() },
@@ -125,27 +137,21 @@ fun LogPeriodScreen(
         )
     }
 
-    if (showOngoingConfirm) {
+    if (showRemoveDayConfirm && !state.isLoading) {
         AlertDialog(
-            onDismissRequest = { showOngoingConfirm = false },
-            title = { Text("No end date set") },
-            text  = { Text(
-                "This period will be saved as ongoing. You can add the end date later " +
-                "from History once your period ends. Ongoing entries are excluded from " +
-                "average cycle calculations."
+            onDismissRequest = { showRemoveDayConfirm = false },
+            title = { Text("Remove this day?") },
+            text = { Text(
+                "${state.date.format(displayFormat)} will no longer count as a period day. " +
+                "Anything else logged for this day is kept."
             ) },
             confirmButton = {
-                TextButton(onClick = { showOngoingConfirm = false; viewModel.save() }) {
-                    Text("Save as ongoing")
-                }
+                TextButton(
+                    onClick = { showRemoveDayConfirm = false; viewModel.removeDay() },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("Remove day") }
             },
-            dismissButton = {
-                // Dismiss the dialog AND immediately open the end-date picker so
-                // the button label matches the action ("Set end date" → date picker opens).
-                TextButton(onClick = { showOngoingConfirm = false; showEndPicker = true }) {
-                    Text("Set end date")
-                }
-            }
+            dismissButton = { TextButton(onClick = { showRemoveDayConfirm = false }) { Text("Cancel") } }
         )
     }
 
@@ -226,21 +232,75 @@ fun LogPeriodScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Date section
-                SectionLabel("Dates")
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val softBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-                    OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f), border = softBorder) {
-                        Text("Start: ${state.startDate.format(displayFormat)}")
+                val softBorder = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+                if (state.isEditing) {
+                    // Day being edited — its flow, symptoms, and pinned values below
+                    // apply to this day only.
+                    SectionLabel("Day")
+                    Text(
+                        text = state.episodeDayNumber?.let {
+                            "Editing ${state.date.format(displayFormat)} (day $it of this period)"
+                        } ?: "Editing ${state.date.format(displayFormat)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        "Pick another day on the calendar to log or edit that day's values.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    SectionLabel("Period dates")
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedButton(onClick = { showStartPicker = true }, modifier = Modifier.weight(1f), border = softBorder) {
+                            Text("Start: ${state.startDate.format(displayFormat)}")
+                        }
+                        OutlinedButton(onClick = { showEndPicker = true }, modifier = Modifier.weight(1f), border = softBorder) {
+                            Text("End: ${state.endDate?.format(displayFormat) ?: "Open"}")
+                        }
                     }
-                    OutlinedButton(onClick = { showEndPicker = true }, modifier = Modifier.weight(1f), border = softBorder) {
-                        Text("End: ${state.endDate?.format(displayFormat) ?: "Ongoing"}")
+                    if (state.endDate != null) {
+                        TextButton(onClick = { viewModel.setEndDate(null) }) {
+                            Text("Clear end date (leave open)")
+                        }
                     }
-                }
-                if (state.endDate != null) {
-                    TextButton(onClick = { viewModel.setEndDate(null) }) {
-                        Text("Clear end date (mark as ongoing)")
+                } else {
+                    // Day section — the single day being logged.
+                    SectionLabel("Day")
+                    OutlinedButton(onClick = { showDayPicker = true }, modifier = Modifier.fillMaxWidth(), border = softBorder) {
+                        Text(state.date.format(displayFormat))
                     }
+                    // Continuation context changes as the user picks dates, so
+                    // announce it politely to screen readers.
+                    Text(
+                        text = state.continuesEpisodeStart?.let { start ->
+                            val dayNo = state.episodeDayNumber
+                            if (dayNo != null && dayNo > 1) {
+                                "Day $dayNo of the period started ${start.format(displayFormat)}"
+                            } else {
+                                "Continues the period started ${start.format(displayFormat)}"
+                            }
+                        } ?: "Starts a new period",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                    )
+
+                    SectionLabel("End date (optional)")
+                    OutlinedButton(onClick = { showEndPicker = true }, modifier = Modifier.fillMaxWidth(), border = softBorder) {
+                        Text(state.endDate?.let { "Until: ${it.format(displayFormat)}" } ?: "No end date")
+                    }
+                    if (state.endDate != null) {
+                        TextButton(onClick = { viewModel.setEndDate(null) }) {
+                            Text("Clear end date")
+                        }
+                    }
+                    Text(
+                        "Without an end date, the period ends on its own after " +
+                            "${state.toleranceDays + 1} days with no period day logged. " +
+                            "Log each day to record how it changes.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
 
                 // Flow section — shown whenever the category exists and is not archived
@@ -379,23 +439,27 @@ fun LogPeriodScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                // Save — warn when no end date so the user doesn't accidentally create
-                // an "ongoing" entry that would corrupt cycle-length averages.
                 Button(
-                    onClick = { if (state.endDate == null) showOngoingConfirm = true else viewModel.save() },
+                    onClick = { viewModel.save() },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Save")
                 }
 
-                // Delete (only when editing)
+                // Day removal and full deletion (only when editing)
                 if (state.isEditing) {
+                    OutlinedButton(
+                        onClick = { showRemoveDayConfirm = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Remove this day from period")
+                    }
                     OutlinedButton(
                         onClick = { showDeleteConfirm = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Text("Delete Entry")
+                        Text("Delete Entire Period")
                     }
                 }
 

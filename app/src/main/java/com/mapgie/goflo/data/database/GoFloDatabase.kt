@@ -9,12 +9,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mapgie.goflo.data.database.dao.ColorProfileDao
 import com.mapgie.goflo.data.database.dao.CustomAlarmDao
 import com.mapgie.goflo.data.database.dao.PeriodDao
+import com.mapgie.goflo.data.database.dao.PeriodDayDao
 import com.mapgie.goflo.data.database.dao.SymptomDao
 import com.mapgie.goflo.data.database.dao.TrackingCategoryDao
 import com.mapgie.goflo.data.database.dao.TrackingLogDao
 import com.mapgie.goflo.data.database.entities.ColorProfile
 import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.CustomAlarmCategory
+import com.mapgie.goflo.data.database.entities.PeriodDayEntry
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
@@ -25,6 +27,7 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
 @Database(
     entities = [
         PeriodEntry::class,
+        PeriodDayEntry::class,
         SymptomEntry::class,
         TrackingCategory::class,
         TrackingValue::class,
@@ -34,11 +37,12 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         CustomAlarmCategory::class,
         ColorProfile::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
     abstract fun periodDao(): PeriodDao
+    abstract fun periodDayDao(): PeriodDayDao
     abstract fun symptomDao(): SymptomDao
     abstract fun trackingCategoryDao(): TrackingCategoryDao
     abstract fun trackingLogDao(): TrackingLogDao
@@ -654,6 +658,43 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the period_days table — the per-day source of truth for period
+         * tracking (v23) — and populates it from the existing episode ranges.
+         *
+         * Ended periods expand to one row per day from startDate to endDate.
+         * Ongoing periods (endDate IS NULL) expand from startDate up to today,
+         * capped at 10 days so a period that was accidentally left open months
+         * ago does not fabricate months of period days; the episode
+         * reconciliation that runs on app start then closes such stale entries
+         * at their last expanded day.
+         */
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `period_days`
+                       (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `date` TEXT NOT NULL)"""
+                )
+                database.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_period_days_date` ON `period_days`(`date`)"
+                )
+                database.execSQL(
+                    """INSERT OR IGNORE INTO period_days (date)
+                       WITH RECURSIVE expanded(day, lastDay) AS (
+                           SELECT startDate,
+                                  CASE WHEN endDate IS NOT NULL THEN endDate
+                                       ELSE MIN(date('now', 'localtime'), date(startDate, '+9 day'))
+                                  END
+                           FROM periods
+                           UNION ALL
+                           SELECT date(day, '+1 day'), lastDay FROM expanded WHERE day < lastDay
+                       )
+                       SELECT day FROM expanded"""
+                )
+            }
+        }
+
         fun getInstance(context: Context): GoFloDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -661,7 +702,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)

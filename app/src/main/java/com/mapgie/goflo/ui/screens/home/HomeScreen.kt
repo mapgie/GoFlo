@@ -111,18 +111,14 @@ fun HomeScreen(
 
     // ── Quick Log helper ──────────────────────────────────────────────────────
 
-    // If [date] already falls within an existing period's range (including an
-    // ongoing period, which extends through today), edit that period instead of
-    // creating a new, overlapping entry. If [date] is also the single unlogged
-    // day between that period's end and a separate, later period's start,
-    // merge the two immediately so the gap doesn't need a second, manual
-    // History merge to close.
+    // If [date] falls within (or within gap tolerance of) an existing period,
+    // open that period's editor for this specific day so its values can be
+    // logged independently; the save itself extends, bridges, or continues
+    // the period as needed. Otherwise start a new period entry for the day.
     fun navigateToLogPeriod(date: LocalDate) {
-        val existing = PeriodRepository.periodForDate(state.periods, date)
+        val existing = PeriodRepository.periodForDate(state.periods, date, state.periodGapToleranceDays)
         if (existing != null) {
-            viewModel.mergeGapAt(date, fallbackId = existing.id) { targetId ->
-                onNavigate(Screen.LogPeriod.withId(targetId, date))
-            }
+            onNavigate(Screen.LogPeriod.withId(existing.id, date))
         } else {
             onNavigate(Screen.LogPeriod.newEntryForDate(date))
         }
@@ -155,7 +151,9 @@ fun HomeScreen(
             onDismiss = { viewModel.clearSelectedDay() },
             onEditPeriod = { periodId ->
                 viewModel.clearSelectedDay()
-                onNavigate(Screen.LogPeriod.withId(periodId))
+                // Open the editor for this specific day so its own flow and
+                // symptoms are what gets edited, not the period's first day.
+                onNavigate(Screen.LogPeriod.withId(periodId, data.date))
             },
             onEditTrackingLog = { categoryId, logId ->
                 viewModel.clearSelectedDay()

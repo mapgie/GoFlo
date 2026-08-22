@@ -1,0 +1,15 @@
+{
+  "bump": "minor",
+  "added": [
+    "Log each day of a period individually: every day gets its own flow, symptoms, and tracked values",
+    "Periods now end on their own after a configurable number of days without period logging, or on an explicit end date",
+    "New Cycle setting for the allowed gap between period days (0-3 days) that still counts as one period",
+    "Remove a single day from a period without deleting the whole entry",
+    "Exports now include the individually logged period days; imports restore them"
+  ],
+  "changed": [
+    "Tapping a calendar day in or near a period now opens that specific day for logging instead of the period's first day",
+    "Merging two periods in History now marks the days between them as period days, keeping each day's own logged values",
+    "Deleting a period now removes the per-day logs of every day in it, not just the first day"
+  ]
+}

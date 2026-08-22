@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -29,7 +30,12 @@ class HistoryViewModel(
     private val repository: PeriodRepository,
     private val application: Application? = null,
     private val trackingRepository: TrackingRepository? = null,
+    private val preferencesStore: com.mapgie.goflo.data.preferences.AppPreferencesStore? = null,
 ) : ViewModel() {
+
+    private suspend fun gapTolerance(): Int =
+        preferencesStore?.preferences?.first()?.periodGapToleranceDays
+            ?: PeriodRepository.DEFAULT_GAP_TOLERANCE_DAYS
 
     // ── Pending-delete state ──────────────────────────────────────────────────
     // IDs of periods that have been swiped but whose Undo snackbar is still
@@ -42,6 +48,8 @@ class HistoryViewModel(
     private data class UndoData(
         val period: PeriodEntry,
         val symptoms: Set<String>,
+        /** ISO dates of the episode's logged period days, for restoration. */
+        val days: List<String>,
     )
     private val pendingUndo = mutableMapOf<Long, UndoData>()
 
@@ -67,16 +75,19 @@ class HistoryViewModel(
      */
     fun stageDeletion(period: PeriodEntry) {
         viewModelScope.launch {
-            // Read symptoms before hiding or deleting so the undo cache is always
-            // populated before the snackbar can be tapped.
+            val tolerance = gapTolerance()
+            // Read symptoms and day rows before hiding or deleting so the undo
+            // cache is always populated before the snackbar can be tapped.
             val symptoms = repository.getSymptomsParsed(period.id)
-            pendingUndo[period.id] = UndoData(period, symptoms)
+            val days = repository.getDaysForEpisode(period, tolerance)
+            pendingUndo[period.id] = UndoData(period, symptoms, days)
             _pendingDeleteIds.update { it + period.id }
             trackingRepository?.deleteLogsForPeriod(
                 LocalDate.parse(period.startDate),
                 period.endDate?.let { LocalDate.parse(it) }
+                    ?: days.lastOrNull()?.let { LocalDate.parse(it) }
             )
-            repository.deletePeriod(period)
+            repository.deletePeriod(period, tolerance)
             application?.let { GoFloWidget.updateAllWidgets(it) }
             // Deleting a period changes the cycle predictions the reminders are armed on.
             application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
@@ -90,7 +101,7 @@ class HistoryViewModel(
         viewModelScope.launch {
             val undo = pendingUndo.remove(period.id)
             if (undo != null) {
-                repository.insertPeriod(undo.period, undo.symptoms.toList())
+                repository.restorePeriod(undo.period, undo.symptoms.toList(), undo.days, gapTolerance())
                 application?.let { GoFloWidget.updateAllWidgets(it) }
                 application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
             }
@@ -108,18 +119,15 @@ class HistoryViewModel(
     }
 
     /**
-     * Merges [first] and [second] into a single continuous period, combining their
-     * notes and symptoms. The absorbed period's own tracking-log entries (flow,
-     * symptoms, pinned categories) are deliberately left alone — they're still
-     * valid, dated records of what was logged that day, not orphaned data. They
-     * were previously deleted here on the assumption that they'd otherwise linger
-     * unattached, but `deleteLogsForPeriod` was written for actual period
-     * *deletion* and silently discarded real history that the user asked to
-     * combine, not remove.
+     * Merges [first] and [second] into a single continuous period by marking
+     * the unlogged days between them as period days — explicit user intent
+     * that the whole span was one period. Notes are combined; each day's own
+     * tracking-log entries (flow, symptoms, pinned categories) are untouched
+     * because they remain valid, dated records.
      */
     fun mergePeriods(first: PeriodEntry, second: PeriodEntry) {
         viewModelScope.launch {
-            repository.mergePeriods(first, second)
+            repository.mergePeriods(first, second, gapTolerance())
             application?.let { GoFloWidget.updateAllWidgets(it) }
             application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
         }
@@ -129,10 +137,11 @@ class HistoryViewModel(
         private val repository: PeriodRepository,
         private val application: Application? = null,
         private val trackingRepository: TrackingRepository? = null,
+        private val preferencesStore: com.mapgie.goflo.data.preferences.AppPreferencesStore? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return HistoryViewModel(repository, application, trackingRepository) as T
+            return HistoryViewModel(repository, application, trackingRepository, preferencesStore) as T
         }
     }
 }

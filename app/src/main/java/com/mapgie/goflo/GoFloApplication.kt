@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 class GoFloApplication : Application() {
 
     val database by lazy { GoFloDatabase.getInstance(this) }
-    val repository by lazy { PeriodRepository(database.periodDao(), database.symptomDao()) }
+    val repository by lazy { PeriodRepository(database.periodDao(), database.symptomDao(), database.periodDayDao()) }
     val trackingRepository by lazy {
         TrackingRepository(database.trackingCategoryDao(), database.trackingLogDao(), database.symptomDao())
     }
@@ -61,15 +61,22 @@ class GoFloApplication : Application() {
         appScope.launch { runFlowBackfillIfNeeded() }
         appScope.launch { runSymptomsBackfillIfNeeded() }
         appScope.launch { runFlowLevelRestoreIfNeeded() }
-        // Sequenced (not launched concurrently): the adjacency merge must see the
-        // period list *after* the overlap merge has resolved, since consolidating
-        // an overlap can change a period's end date such that it newly becomes
-        // adjacent to a third period. Running both against a live table at once
-        // would also race on the same rows.
-        appScope.launch {
-            runPeriodOverlapMergeIfNeeded()
-            runPeriodAdjacencyMergeIfNeeded()
-        }
+        appScope.launch { reconcileEpisodes() }
+    }
+
+    /**
+     * Re-derives period episodes from the per-day log on every app start.
+     *
+     * This is what "deems a period ended": an ongoing episode whose last
+     * logged day is now beyond the user's gap-tolerance window gets closed at
+     * that last day. The same rebuild also repairs any fragmented or
+     * overlapping episodes left behind by older versions, replacing the
+     * one-time overlap/adjacency merge fixups that previously ran here.
+     */
+    private suspend fun reconcileEpisodes() {
+        val prefs = preferencesStore.preferences.first()
+        repository.reconcile(prefs.periodGapToleranceDays)
+        GoFloWidget.updateAllWidgets(this)
     }
 
     /**
@@ -176,46 +183,4 @@ class GoFloApplication : Application() {
         preferencesStore.setFlowLevelRestoreDone(true)
     }
 
-    /**
-     * One-time data fixup: merges period entries whose date ranges overlap
-     * (e.g. a new period logged for a date already covered by an ongoing period
-     * before the entry-point fix existed) into a single entry.
-     *
-     * Only runs once — guarded by the [periodOverlapMergeDone] preference flag.
-     */
-    private suspend fun runPeriodOverlapMergeIfNeeded() {
-        val prefs = preferencesStore.preferences.first()
-        if (prefs.periodOverlapMergeDone) return
-
-        val mergedCount = repository.mergeOverlappingPeriods()
-        if (mergedCount > 0) {
-            GoFloWidget.updateAllWidgets(this)
-        }
-
-        preferencesStore.setPeriodOverlapMergeDone(true)
-    }
-
-    /**
-     * One-time data fixup: merges period entries that are touching or sit a
-     * single unlogged day apart (e.g. a period closed with an explicit end
-     * date, then a new period logged for the next day or the day after,
-     * before the entry-point fix existed) into a single entry.
-     *
-     * The absorbed periods' own tracking-log entries (flow, symptoms, pinned
-     * categories) are deliberately left in place — they're still valid, dated
-     * records of what was logged, not orphaned data to discard.
-     *
-     * Only runs once — guarded by the [periodAdjacencyMergeDone] preference flag.
-     */
-    private suspend fun runPeriodAdjacencyMergeIfNeeded() {
-        val prefs = preferencesStore.preferences.first()
-        if (prefs.periodAdjacencyMergeDone) return
-
-        val absorbed = repository.mergeAdjacentPeriods()
-        if (absorbed.isNotEmpty()) {
-            GoFloWidget.updateAllWidgets(this)
-        }
-
-        preferencesStore.setPeriodAdjacencyMergeDone(true)
-    }
 }

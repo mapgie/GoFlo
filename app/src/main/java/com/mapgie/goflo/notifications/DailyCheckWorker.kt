@@ -42,8 +42,12 @@ class DailyCheckWorker(
         }
 
         val db = GoFloDatabase.getInstance(context)
-        val periodRepo = PeriodRepository(db.periodDao(), db.symptomDao())
+        val periodRepo = PeriodRepository(db.periodDao(), db.symptomDao(), db.periodDayDao())
         val today = LocalDate.now()
+
+        // Auto-end: close any ongoing period whose gap-tolerance window has
+        // lapsed, so the episode is deemed ended even if the app isn't opened.
+        periodRepo.reconcile(prefs.periodGapToleranceDays, today)
 
         // ── Check 1: predicted period missed ──────────────────────────────────
         val periods = periodRepo.getAllPeriodsOnce()
@@ -56,7 +60,7 @@ class DailyCheckWorker(
                     // Check if any period was logged for the predicted date or the days since.
                     val loggedInWindow = (0 until daysOverdue).any { offset ->
                         val checkDate = predicted.plusDays(offset.toLong())
-                        PeriodRepository.periodForDate(periods, checkDate) != null
+                        PeriodRepository.periodForDate(periods, checkDate, prefs.periodGapToleranceDays) != null
                     }
                     if (!loggedInWindow) {
                         sendNotification(context, "Your period may have started. Tap to log it.")
