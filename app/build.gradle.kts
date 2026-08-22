@@ -82,8 +82,10 @@ dependencies {
     testImplementation(libs.junit)
     // Real org.json for JVM unit tests — the android.jar stubs throw
     // "not mocked" for JSONObject/JSONArray, which the export/import
-    // round-trip tests exercise.
-    testImplementation(libs.org.json)
+    // round-trip tests exercise. Deliberately not in libs.versions.toml:
+    // test-only dependencies are never shipped, so they don't belong on
+    // the licenses attribution screen the catalog check keeps in sync.
+    testImplementation("org.json:json:20240303")
 }
 
 // ── Keep assets/CHANGELOG.md in sync with the root copy ──────────────────────
