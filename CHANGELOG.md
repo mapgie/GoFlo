@@ -31,6 +31,12 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.52.0-beta.1] - 2026-08-22
+
+### Added
+- Tap the date on the log screen to pick a different day, so any category, built-in or user-defined, can be logged retrospectively for a past date
+
+---
 ## [0.51.1-beta.1] - 2026-07-22
 
 ### Changed
