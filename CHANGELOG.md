@@ -31,6 +31,27 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.53.0-beta.1] - 2026-08-22
+
+### Added
+- Log each day of a period individually: every day gets its own flow, symptoms, and tracked values
+- Periods now end on their own after a configurable number of days without period logging, or on an explicit end date
+- New Cycle setting for the allowed gap between period days (0-3 days) that still counts as one period
+- Remove a single day from a period without deleting the whole entry
+- Exports now include the individually logged period days; imports restore them
+
+### Changed
+- Long-pressing a calendar day now opens the full log menu for that day, so any category can be logged retrospectively straight from the calendar
+- The log menu shows which day it will log for when opened for a day other than today
+- The period and category logging screens now share the same header style, with the date being logged always visible at the top
+- Tapping a calendar day in or near a period now opens that specific day for logging instead of the period's first day
+- Merging two periods in History now marks the days between them as period days, keeping each day's own logged values
+- Deleting a period now removes the per-day logs of every day in it, not just the first day
+
+### Fixed
+- Tapping an empty day with no quick-log shortcut configured now opens the log menu for that day instead of today
+
+---
 ## [0.52.0-beta.1] - 2026-08-22
 
 ### Added
