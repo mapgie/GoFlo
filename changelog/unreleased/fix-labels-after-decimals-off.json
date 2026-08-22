@@ -1,4 +1,0 @@
-{
-  "bump": "patch",
-  "fixed": ["Label values can now be added after turning off Allow decimals; the Min/Max fields reformat to whole numbers so the label editor re-enables"]
-}
