@@ -53,6 +53,9 @@ A no-op `onDismissRequest` lets the sheet animate to its hidden state (e.g. via 
 **Hoist SheetState above the composable that uses it**
 If `SheetState` (or similar stateful objects) is created inside a composable, it gets reset on recomposition. Hoist it to the parent screen so it survives the child composable's lifecycle. This also allows the parent to programmatically show/hide the sheet without losing form state.
 
+**A mode toggle must reformat the text fields whose parsing depends on that mode**
+When a boolean toggle changes how a numeric field is displayed (e.g. "allow decimals" formatting a value as `"1.0"` vs `"1"`), flipping the toggle only changes the flag, not the text already in the field. If a downstream gate parses that text with a mode-specific parser (`"1.0".toIntOrNull()` returns `null`), the gate stays wrong after the toggle flips: turning decimals off left the fields holding `"1.0"`/`"5.0"`, so the whole-number label editor could never re-enable. Fix: in the toggle's `onCheckedChange`, reformat every dependent field to the new mode (`text.toFloatOrNull()?.let { if (enabled) "%.1f".format(it) else it.toInt().toString() }`), so both the display and any parse-based gating stay consistent with the flag.
+
 **Never hardcode colours in TextStyle / typography**
 Hardcoded colours in `TextStyle` entries override Material3's `LocalContentColor`, breaking contrast in non-default themes. Always omit `color` from `TextStyle` and let the theme propagate it.
 
