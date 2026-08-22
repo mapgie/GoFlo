@@ -31,6 +31,12 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.53.1-beta.1] - 2026-08-22
+
+### Fixed
+- Label values can now be added after turning off Allow decimals; the Min/Max fields reformat to whole numbers so the label editor re-enables
+
+---
 ## [0.53.0-beta.1] - 2026-08-22
 
 ### Added
