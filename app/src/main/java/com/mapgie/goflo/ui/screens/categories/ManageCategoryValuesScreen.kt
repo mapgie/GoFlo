@@ -807,7 +807,19 @@ private fun NumericSliderSettings(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Switch(checked = allowDecimals, onCheckedChange = { allowDecimals = it })
+            Switch(checked = allowDecimals, onCheckedChange = { enabled ->
+                allowDecimals = enabled
+                // Reformat the Min/Max fields to match the new step mode. Turning
+                // decimals off must strip the trailing ".0" so the values parse as
+                // whole numbers again, otherwise the label editor (which requires an
+                // integer range) can never re-enable after decimals are switched off.
+                fun reformat(text: String): String =
+                    text.toFloatOrNull()?.let {
+                        if (enabled) "%.1f".format(it) else it.toInt().toString()
+                    } ?: text
+                minText = reformat(minText)
+                maxText = reformat(maxText)
+            })
         }
 
         // ── Optional per-step labels ─────────────────────────────────────────
