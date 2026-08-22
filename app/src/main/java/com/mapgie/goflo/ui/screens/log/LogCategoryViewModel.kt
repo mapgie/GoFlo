@@ -46,6 +46,13 @@ data class LogCategoryUiState(
     val trackTime: Boolean = false,
     /** Timed entries already logged today for this category (used for increment+trackTime UI). */
     val timedEntriesToday: List<TrackingLogWithValues> = emptyList(),
+    /**
+     * Whether the log date can be changed from this screen. True for new entries
+     * (so any category can be logged retrospectively for a past day); false when
+     * editing one specific existing entry by id, where changing the date would be
+     * ambiguous (it would abandon that entry rather than move it).
+     */
+    val canEditDate: Boolean = false,
 )
 
 class LogCategoryViewModel(
@@ -128,7 +135,50 @@ class LogCategoryViewModel(
                 existingLog = existingEntry?.log,
                 trackTime = trackTime,
                 timedEntriesToday = timedEntries,
+                canEditDate = existingLogId == null,
             )
+        }
+    }
+
+    /**
+     * Changes the date this screen logs against and re-resolves any existing entry
+     * for the new (date, category) pair, so switching to a day that already has an
+     * entry loads it for editing and switching to a blank day starts a fresh entry.
+     * Never moves or duplicates data: saving always writes to the currently shown date.
+     */
+    fun setDate(newDate: LocalDate) {
+        val state = _uiState.value
+        val category = state.category ?: return
+        if (newDate == state.date) return
+        viewModelScope.launch {
+            val existingEntry = if (category.allowMultiple) null
+                else repository.getExistingLog(newDate, categoryId)
+
+            val existingNumeric: Float? = if (category.categoryType == "numeric_slider" ||
+                category.categoryType == "increment")
+                existingEntry?.values?.firstOrNull()?.toFloatOrNull()
+            else null
+
+            val existingFreeText: String = if (category.categoryType == "numeric_free")
+                existingEntry?.values?.firstOrNull() ?: ""
+            else ""
+
+            val timedEntries = if (state.trackTime && category.categoryType == "increment") {
+                repository.getLogsForDateAndCategory(newDate, categoryId)
+            } else emptyList()
+
+            _uiState.update {
+                it.copy(
+                    date = newDate,
+                    selectedValues = existingEntry?.values?.toSet() ?: emptySet(),
+                    numericValue = existingNumeric,
+                    numericFreeText = existingFreeText,
+                    notes = existingEntry?.log?.notes ?: "",
+                    isEditing = existingEntry != null,
+                    existingLog = existingEntry?.log,
+                    timedEntriesToday = timedEntries,
+                )
+            }
         }
     }
 
