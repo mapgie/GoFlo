@@ -80,6 +80,10 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
+    // Real org.json for JVM unit tests — the android.jar stubs throw
+    // "not mocked" for JSONObject/JSONArray, which the export/import
+    // round-trip tests exercise.
+    testImplementation(libs.org.json)
 }
 
 // ── Keep assets/CHANGELOG.md in sync with the root copy ──────────────────────
