@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="design_doc_mode" content="canvas" />
+<title>GoFlo — logging screens, rethought</title>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#1265AF}a:hover{color:#0d4d86}
+.frame{position:absolute}
+.flabel{font-size:13px;font-weight:600;color:#2b2f36;letter-spacing:-.01em;margin-bottom:2px}
+.fnote{font-size:11.5px;line-height:1.5;color:#6b7078;max-width:360px;margin-bottom:10px;text-wrap:pretty}
+.fnote b{color:#2b2f36;font-weight:600}
+/* ── phone ── */
+.ph{--bg:#F8FAFE;--on:#181C22;--pri:#1265AF;--onpri:#fff;--pc:#D5E3FF;--onpc:#001C3D;--sec:#9A6800;--sc:#FFE08D;--onsc:#251A00;--sv:#E1E3EE;--onsv:#444751;--out:#757782;
+width:360px;background:var(--bg);color:var(--on);border-radius:26px;overflow:hidden;box-shadow:0 18px 40px rgba(20,30,50,.16),0 0 0 1px rgba(20,30,50,.07);font-size:14px}
+.sb{height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:10px;font-weight:600;color:var(--onsv)}
+.tb{padding:2px 16px 14px;display:flex;align-items:flex-start;gap:14px}
+.tb .bk{font-size:19px;line-height:1;margin-top:4px;opacity:.85}
+.tb h3{font-family:Comfortaa,sans-serif;font-size:21px;margin:0;font-weight:700;letter-spacing:-.02em}
+.tb .sub{font-size:12px;color:var(--onsv);margin-top:3px}
+.tb .kebab{margin-left:auto;font-size:16px;opacity:.5;margin-top:2px;letter-spacing:1px}
+.bd{padding:0 16px 18px;display:flex;flex-direction:column;gap:20px}
+.grp{display:flex;flex-direction:column;gap:10px}
+.hd{display:flex;align-items:baseline;justify-content:space-between}
+.hd .t{font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--onsv)}
+.hd .v{font-size:13px;font-weight:600;color:var(--pri)}
+/* dates as one list card */
+.list{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 0 rgba(20,30,50,.06),0 0 0 1px rgba(20,30,50,.06)}
+.li{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;min-height:52px}
+.li+.li{border-top:1px solid rgba(20,30,50,.07)}
+.li .k{color:var(--onsv);font-size:13.5px}
+.li .val{font-weight:600;font-size:14.5px}
+.li .val.dim{color:var(--pri)}
+.li .chev{color:var(--out);font-size:13px;margin-left:10px}
+.li .rt{display:flex;align-items:center}
+/* stepped scale */
+.scale{display:grid;gap:6px}
+.steps{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:6px;align-items:end}
+.st{border:0;padding:0;background:transparent;font:inherit;cursor:pointer;display:grid;gap:6px;justify-items:center}
+.st .bar{width:100%;border-radius:9px;background:var(--sv);transition:.16s}
+.st .n{font-size:11px;color:var(--onsv);font-weight:600}
+.st.on .bar{background:var(--pri)}
+.st.on .n{color:var(--pri)}
+.st.on.warm .bar{background:var(--sec)}
+.st.on.warm .n{color:var(--sec)}
+.ends{display:flex;justify-content:space-between;font-size:11px;color:var(--out)}
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:19px;font-size:13.5px;background:#fff;color:var(--on);box-shadow:inset 0 0 0 1px var(--out)}
+.chip.on{background:var(--pc);color:var(--onpc);box-shadow:none;font-weight:600}
+.chip.on .ck{font-size:12px}
+.chip.add{color:var(--pri);font-weight:600;box-shadow:inset 0 0 0 1px var(--pc);background:transparent}
+.notes{background:#fff;border-radius:16px;padding:14px 16px;min-height:78px;color:var(--out);font-size:13.5px;box-shadow:0 0 0 1px rgba(20,30,50,.06)}
+.save{height:52px;border-radius:26px;background:var(--pri);color:var(--onpri);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;letter-spacing:.01em}
+.bar-bottom{padding:12px 16px 16px;background:linear-gradient(rgba(248,250,254,0),var(--bg) 40%);position:sticky;bottom:0}
+/* hero metric */
+.hero{background:var(--pc);color:var(--onpc);border-radius:20px;padding:18px 16px 16px;display:grid;gap:14px}
+.hero .word{font-family:Comfortaa,sans-serif;font-size:24px;font-weight:700;letter-spacing:-.02em}
+.hero .cap{font-size:11.5px;color:#2c4a72;margin-top:3px}
+.hero .st .bar{background:rgba(0,28,61,.13)}
+.hero .st.on .bar{background:var(--pri)}
+.hero .st .n{color:#2c4a72}
+.hero .st.on .n{color:var(--pri)}
+.hero .ends{color:#2c4a72}
+/* before-frame primitives (reproduces current build) */
+.oldcard{background:#F4EDF2;border-radius:14px;padding:16px}
+.oldnum{text-align:right;font-size:30px;font-weight:700;color:#1265AF;line-height:1}
+.oldtrack{display:flex;align-items:center;gap:8px;margin:12px 0 6px}
+.oldtrack .fill{height:22px;border-radius:11px;background:#1265AF;flex:2;position:relative}
+.oldtrack .rest{height:22px;border-radius:11px;background:#FFDDAF;flex:1}
+.oldtrack .thumb{width:5px;height:38px;border-radius:3px;background:#1265AF}
+.oldends{display:flex;justify-content:space-between;font-size:11px;color:#444751}
+.oldpill{flex:1;text-align:center;padding:13px 0;border-radius:22px;box-shadow:inset 0 0 0 1px #9aa0ab;color:#1265AF;font-size:14px}
+.oldlabel{font-size:15px;color:#181C22;margin:0 0 10px}
+/* settings + groups */
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.sw{width:44px;height:44px;border-radius:12px;position:relative}
+.sw.sel{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--on)}
+.sw .tick{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px}
+.rolerow{display:flex;align-items:center;gap:12px;padding:13px 16px;min-height:56px}
+.rolerow+.rolerow{border-top:1px solid rgba(20,30,50,.07)}
+.rolerow .dotc{width:26px;height:26px;border-radius:8px;flex:none}
+.rolerow .nm{font-weight:600;font-size:14px}
+.rolerow .mt{font-size:11.5px;color:var(--onsv);margin-top:1px}
+.rolerow .chev{margin-left:auto;color:var(--out);font-size:14px}
+.tag{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:12px;font-size:11px;font-weight:600}
+/* header switcher sheet */
+.sheet{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 12px 30px rgba(20,30,50,.18),0 0 0 1px rgba(20,30,50,.06)}
+.sheet .gh{padding:12px 16px 6px;font-size:10.5px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.sheet .gh .gd{width:12px;height:12px;border-radius:4px}
+.sheet .opt{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:14px}
+.sheet .opt .rd{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 2px var(--out);flex:none}
+.sheet .opt.on .rd{box-shadow:inset 0 0 0 6px var(--pri)}
+.sheet .opt.on{font-weight:600}
+.tapH{display:inline-flex;align-items:center;gap:6px}
+.tapH .caret{font-size:12px;opacity:.6}
+/* what-you-track management */
+.seg{display:flex;background:var(--sv);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;font:inherit;font-size:12.5px;font-weight:600;padding:8px 0;border-radius:9px;background:transparent;color:var(--onsv);cursor:pointer}
+.seg button.on{background:#fff;color:var(--on);box-shadow:0 1px 3px rgba(20,30,50,.14)}
+.gcard{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px rgba(20,30,50,.06)}
+.gcard .gtop{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(20,30,50,.07)}
+.gcard .gtop .gd{width:16px;height:16px;border-radius:5px;flex:none}
+.gcard .gtop .gn{font-weight:700;font-size:14px}
+.gcard .gtop .ge{margin-left:auto;font-size:11.5px;font-weight:600}
+.crow{display:flex;align-items:center;gap:10px;padding:11px 14px;font-size:13.5px}
+.crow+.crow{border-top:1px solid rgba(20,30,50,.06)}
+.crow .cdot{width:9px;height:9px;border-radius:50%;flex:none}
+.crow .cmove{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--pri)}
+.addrow{display:flex;align-items:center;gap:8px;padding:11px 14px;font-size:13px;font-weight:600;color:var(--pri);border-top:1px solid rgba(20,30,50,.06)}
+.newgroup{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:24px;font-weight:600;font-size:14px;color:var(--pri);box-shadow:inset 0 0 0 1.5px var(--pc)}
+.field{background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;box-shadow:0 0 0 1px rgba(20,30,50,.08)}
+.field.ph-tx{color:var(--out)}
+.roles{display:flex;flex-wrap:wrap;gap:9px}
+.rolepick{display:flex;align-items:center;gap:7px;height:38px;padding:0 12px;border-radius:19px;font-size:12.5px;font-weight:600;background:#fff;box-shadow:inset 0 0 0 1px var(--out);cursor:pointer}
+.rolepick .rd2{width:14px;height:14px;border-radius:5px;flex:none}
+.rolepick.on{box-shadow:inset 0 0 0 2px currentColor}
+/* new-category extras */
+.iconrow{display:flex;flex-wrap:wrap;gap:9px}
+.icont{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;box-shadow:inset 0 0 0 1px var(--out);color:var(--onsv)}
+.icont.on{box-shadow:inset 0 0 0 2px var(--pri);color:var(--pri)}
+.togrow{display:flex;align-items:center;gap:12px;padding:13px 14px;background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(20,30,50,.08)}
+.togrow .nm{font-size:14px;font-weight:600}
+.togrow .mt{font-size:11.5px;color:var(--onsv);margin-top:2px}
+.tog{margin-left:auto;width:42px;height:25px;border-radius:13px;background:var(--out);flex:none;position:relative;transition:.15s}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.15s}
+.tog.on{background:var(--pri)}.tog.on::after{left:20px}
+.warn{font-size:11.5px;line-height:1.5;color:#9A6800;background:#FFF3D6;border-radius:10px;padding:9px 12px}
+/* timeline */
+.tl{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px rgba(20,30,50,.06)}
+.tle{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.tle+.tle{border-top:1px solid rgba(20,30,50,.06)}
+.tle .tm{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;width:58px;flex:none}
+.tle .vv{font-size:13.5px}
+.tle .vv .sub{color:var(--onsv);font-size:11.5px}
+.tle .rm{margin-left:auto;color:var(--out);font-size:15px}
+.tladd{display:flex;align-items:center;gap:8px;padding:12px 14px;font-size:13px;font-weight:600;color:var(--pri);border-top:1px solid rgba(20,30,50,.06)}
+</style>
+</head>
+<body>
+
+<div class="frame" style="left:60px;top:60px">
+<div class="flabel">Today — as built</div>
+<div class="fnote">Every input is a different shape. Sliders shout a number nobody reads, the track's two-tone fill looks like a progress bar, and each control floats in its own mauve slab.</div>
+<div class="ph" style="--bg:#F8FAFE">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3 style="font-family:Inter;font-weight:700;font-size:20px">Log Period</h3></div><span class="kebab">⋮</span></div>
+<div class="bd" style="gap:16px">
+<div><p class="oldlabel">Dates</p><div style="display:flex;gap:10px"><div class="oldpill">Start: Aug 6, 2026</div><div class="oldpill">End: Ongoing</div></div></div>
+<div><p class="oldlabel">Flow</p><div class="oldcard"><div class="oldnum">3</div><div class="oldtrack"><div class="fill"></div><div class="thumb"></div><div class="rest"></div></div><div class="oldends"><span>1</span><span>4</span></div></div></div>
+<div><p class="oldlabel">Symptoms</p><div class="chips"><span class="chip">Cramps</span><span class="chip">Headache</span><span class="chip">Bloating</span><span class="chip">Fatigue</span><span class="chip">Back Pain</span><span class="chip">Mood Swings</span><span class="chip">Bleeding (non-period)</span><span class="chip">nausea</span><span class="chip">+ Add</span></div></div>
+<div><p class="oldlabel">Rage</p><div class="oldcard"><div class="oldnum">0</div><div class="oldtrack"><div class="thumb"></div><div class="rest" style="flex:1"></div></div><div class="oldends"><span>0</span><span>Drag to set a value</span><span>5</span></div></div></div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:520px;top:60px">
+<div class="flabel">Log Period — rethought</div>
+<div class="fnote">One surface language: <b>facts go in a list, judgements go on a tap-scale, states go on chips.</b> Scales become five discrete rising steps — tappable, labelled in words, no numeral needed and no drag required.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>Log period</h3><div class="sub">Day 4 · started Aug 6</div></div><span class="kebab">⋮</span></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">Dates</span></div>
+<div class="list">
+<div class="li"><span class="k">Started</span><span class="rt"><span class="val">Aug 6, 2026</span><span class="chev">›</span></span></div>
+<div class="li"><span class="k">Ended</span><span class="rt"><span class="val dim">Still ongoing</span><span class="chev">›</span></span></div>
+</div></div>
+
+<div class="grp"><div class="hd"><span class="t">Flow</span><span class="v">Medium</span></div>
+<div class="scale" style="--n:4">
+<div class="steps">
+<button class="st"><span class="bar" style="height:20px"></span><span class="n">Spot</span></button>
+<button class="st"><span class="bar" style="height:32px"></span><span class="n">Light</span></button>
+<button class="st on"><span class="bar" style="height:44px"></span><span class="n">Med</span></button>
+<button class="st"><span class="bar" style="height:56px"></span><span class="n">Heavy</span></button>
+</div>
+</div></div>
+
+<div class="grp"><div class="hd"><span class="t">Symptoms</span><span class="v">2 today</span></div>
+<div class="chips">
+<span class="chip on"><span class="ck">✓</span>Cramps</span><span class="chip on"><span class="ck">✓</span>Nausea</span><span class="chip">Headache</span><span class="chip">Bloating</span><span class="chip">Fatigue</span><span class="chip">Back pain</span><span class="chip">Mood swings</span><span class="chip add">+ Add</span>
+</div></div>
+
+<div class="grp"><div class="hd"><span class="t">Rage</span><span class="v">Not today</span></div>
+<div class="scale" style="--n:6">
+<div class="steps">
+<button class="st on warm"><span class="bar" style="height:14px"></span><span class="n">0</span></button>
+<button class="st warm"><span class="bar" style="height:22px"></span><span class="n">1</span></button>
+<button class="st warm"><span class="bar" style="height:30px"></span><span class="n">2</span></button>
+<button class="st warm"><span class="bar" style="height:38px"></span><span class="n">3</span></button>
+<button class="st warm"><span class="bar" style="height:46px"></span><span class="n">4</span></button>
+<button class="st warm"><span class="bar" style="height:54px"></span><span class="n">5</span></button>
+</div>
+<div class="ends"><span>Calm</span><span>Volcanic</span></div>
+</div></div>
+</div>
+<div class="bar-bottom"><div class="save">Save log</div></div>
+</div>
+</div>
+
+<div class="frame" style="left:980px;top:60px">
+<div class="flabel">Single-metric log — rethought</div>
+<div class="fnote">The old screen said its own name three times and left two thirds of the page empty. Here the metric <b>is</b> the page: one tonal hero holds the reading, the date sits inline, notes fill the space that was blank.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>Nose symptoms</h3><div class="sub">Sat, Aug 22 · change</div></div></div>
+<div class="bd">
+<div class="hero">
+<div><div class="word">Barely noticeable</div><div class="cap">How bad is it right now?</div></div>
+<div class="scale" style="--n:5">
+<div class="steps">
+<button class="st on"><span class="bar" style="height:16px"></span><span class="n">1</span></button>
+<button class="st"><span class="bar" style="height:26px"></span><span class="n">2</span></button>
+<button class="st"><span class="bar" style="height:36px"></span><span class="n">3</span></button>
+<button class="st"><span class="bar" style="height:46px"></span><span class="n">4</span></button>
+<button class="st"><span class="bar" style="height:56px"></span><span class="n">5</span></button>
+</div>
+<div class="ends"><span>Barely there</span><span>Unbearable</span></div>
+</div>
+</div>
+<div class="grp"><div class="hd"><span class="t">Notes</span><span class="v" style="color:#757782;font-weight:400">Optional</span></div>
+<div class="notes">Anything worth remembering later…</div></div>
+<div class="grp"><div class="hd"><span class="t">Last 7 days</span></div>
+<div class="list"><div class="li" style="gap:8px;align-items:flex-end;padding:16px">
+<span class="bar" style="height:18px;flex:1;background:#E1E3EE;border-radius:5px"></span>
+<span class="bar" style="height:34px;flex:1;background:#E1E3EE;border-radius:5px"></span>
+<span class="bar" style="height:26px;flex:1;background:#E1E3EE;border-radius:5px"></span>
+<span class="bar" style="height:50px;flex:1;background:#E1E3EE;border-radius:5px"></span>
+<span class="bar" style="height:42px;flex:1;background:#E1E3EE;border-radius:5px"></span>
+<span class="bar" style="height:22px;flex:1;background:#E1E3EE;border-radius:5px"></span>
+<span class="bar" style="height:18px;flex:1;background:#1265AF;border-radius:5px"></span>
+</div></div></div>
+</div>
+<div class="bar-bottom"><div class="save">Save</div></div>
+</div>
+</div>
+
+<div class="frame" style="left:1440px;top:60px;width:420px">
+<div class="flabel">What changed, and why</div>
+<div class="fnote" style="max-width:420px">Four rules that make every log screen fall into place.</div>
+<div style="display:grid;gap:10px;font-size:12.5px;line-height:1.55">
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">1 · Kill the slider</b><span style="color:#5a6068">A 1–5 rating is not a continuous quantity. Five discrete steps, each a real tap target, rising in height so magnitude is visible at a glance. Nobody has to drag, and the giant blue numeral disappears — the selected step <i>is</i> the readout.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">2 · Words over numbers</b><span style="color:#5a6068">"Medium", "Still ongoing", "Barely noticeable". Numbers stay as small step captions where a scale genuinely is numeric.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">3 · One card per idea, not per field</b><span style="color:#5a6068">Start and end dates are one list card with rows, not two floating outlined pills. Section titles become small uppercase labels with the current value on the right, so the screen can be read without touching it.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">4 · Selected state is tonal, not outlined</b><span style="color:#5a6068">Chips fill with <span style="color:#1265AF;font-weight:600">primaryContainer</span> and gain a check when on; unselected chips stay hairline. Warm <span style="color:#9A6800;font-weight:600">secondary</span> is reserved for the mood-ish scales, so blue always means "flow / medical" and amber means "how I felt".</span></div>
+</div>
+</div>
+
+<div class="frame" style="left:60px;top:960px">
+<div class="flabel">Daily log — no period running</div>
+<div class="fnote">Same vocabulary, different content: with no cycle active the page leads with <b>how the day felt</b>, keeps period out of the form, and offers starting one as a single quiet action at the bottom.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>Log today</h3><div class="sub">Sat, Aug 22 · cycle day 19</div></div><span class="kebab">⋮</span></div>
+<div class="bd">
+<div class="hero" style="background:#FFE08D;color:#251A00">
+<div><div class="word">Pretty good</div><div class="cap" style="color:#5c4a1a">How did today feel overall?</div></div>
+<div class="scale" style="--n:5">
+<div class="steps">
+<button class="st"><span class="bar" style="height:16px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">1</span></button>
+<button class="st"><span class="bar" style="height:26px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">2</span></button>
+<button class="st"><span class="bar" style="height:36px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">3</span></button>
+<button class="st"><span class="bar" style="height:46px;background:#9A6800"></span><span class="n" style="color:#9A6800">4</span></button>
+<button class="st"><span class="bar" style="height:56px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">5</span></button>
+</div>
+<div class="ends" style="color:#5c4a1a"><span>Rough</span><span>Great</span></div>
+</div>
+</div>
+<div class="grp"><div class="hd"><span class="t">Symptoms</span><span class="v">1 today</span></div>
+<div class="chips">
+<span class="chip on"><span class="ck">✓</span>Headache</span><span class="chip">Cramps</span><span class="chip">Bloating</span><span class="chip">Fatigue</span><span class="chip">Nausea</span><span class="chip add">+ Add</span>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Tracking</span><span class="v" style="color:#757782;font-weight:400">3 metrics</span></div>
+<div class="list">
+<div class="li"><span class="k">Nose symptoms</span><span class="rt"><span class="val">Barely noticeable</span><span class="chev">›</span></span></div>
+<div class="li"><span class="k">Rage</span><span class="rt"><span class="val">Not today</span><span class="chev">›</span></span></div>
+<div class="li"><span class="k">Sleep</span><span class="rt"><span class="val dim">Add</span><span class="chev">›</span></span></div>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Notes</span><span class="v" style="color:#757782;font-weight:400">Optional</span></div>
+<div class="notes">Anything worth remembering later…</div></div>
+<div class="li" style="border-radius:16px;background:transparent;box-shadow:inset 0 0 0 1px #C3CEDD"><span class="k" style="color:#1265AF;font-weight:600">Period started today</span><span class="chev" style="color:#1265AF">›</span></div>
+</div>
+<div class="bar-bottom"><div class="save">Save today</div></div>
+</div>
+</div>
+
+<div class="frame" style="left:520px;top:960px">
+<div class="flabel">Same screen, period running</div>
+<div class="fnote">Nothing is rearranged — a single <b>flow</b> group slots in at the top and the footer swaps to the period's own state. The form the user learned on quiet days stays the form they use on heavy ones.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>Log today</h3><div class="sub">Sat, Aug 22 · period day 4</div></div><span class="kebab">⋮</span></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">Flow</span><span class="v">Medium</span></div>
+<div class="scale" style="--n:4">
+<div class="steps">
+<button class="st"><span class="bar" style="height:20px"></span><span class="n">Spot</span></button>
+<button class="st"><span class="bar" style="height:32px"></span><span class="n">Light</span></button>
+<button class="st on"><span class="bar" style="height:44px"></span><span class="n">Med</span></button>
+<button class="st"><span class="bar" style="height:56px"></span><span class="n">Heavy</span></button>
+</div>
+</div></div>
+<div class="hero" style="background:#FFE08D;color:#251A00;padding:14px 16px">
+<div style="display:flex;align-items:baseline;justify-content:space-between"><div class="word" style="font-size:20px">Rough</div><div class="cap" style="color:#5c4a1a;margin:0">Day overall</div></div>
+<div class="scale" style="--n:5">
+<div class="steps">
+<button class="st"><span class="bar" style="height:14px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">1</span></button>
+<button class="st on"><span class="bar" style="height:22px;background:#9A6800"></span><span class="n" style="color:#9A6800">2</span></button>
+<button class="st"><span class="bar" style="height:30px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">3</span></button>
+<button class="st"><span class="bar" style="height:38px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">4</span></button>
+<button class="st"><span class="bar" style="height:46px;background:rgba(37,26,0,.14)"></span><span class="n" style="color:#5c4a1a">5</span></button>
+</div>
+</div>
+</div>
+<div class="grp"><div class="hd"><span class="t">Symptoms</span><span class="v">2 today</span></div>
+<div class="chips">
+<span class="chip on"><span class="ck">✓</span>Cramps</span><span class="chip on"><span class="ck">✓</span>Nausea</span><span class="chip">Headache</span><span class="chip">Bloating</span><span class="chip">Fatigue</span><span class="chip add">+ Add</span>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Tracking</span><span class="v" style="color:#757782;font-weight:400">3 metrics</span></div>
+<div class="list">
+<div class="li"><span class="k">Nose symptoms</span><span class="rt"><span class="val">Barely noticeable</span><span class="chev">›</span></span></div>
+<div class="li"><span class="k">Rage</span><span class="rt"><span class="val">Level 3</span><span class="chev">›</span></span></div>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Notes</span><span class="v" style="color:#757782;font-weight:400">Optional</span></div>
+<div class="notes">Anything worth remembering later…</div></div>
+<div class="li" style="border-radius:16px;background:#D5E3FF;box-shadow:none"><span class="k" style="color:#001C3D">Period ongoing · since Aug 6</span><span class="chev" style="color:#001C3D">End</span></div>
+</div>
+<div class="bar-bottom"><div class="save">Save today</div></div>
+</div>
+</div>
+
+<div class="frame" style="left:980px;top:960px;width:420px">
+<div class="flabel">The rule that ties them together</div>
+<div class="fnote" style="max-width:420px">There is one log screen, not two. Period is a <b>state the day is in</b>, not a separate destination.</div>
+<div style="display:grid;gap:10px;font-size:12.5px;line-height:1.55">
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Off-period → mood leads</b><span style="color:#5a6068">With no cycle running, "how did today feel" is the only thing worth asking first. It gets the amber hero; flow simply isn't rendered.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">On-period → flow leads</b><span style="color:#5a6068">Flow takes the top slot in blue and the mood hero compresses to a single row. Everything below it — symptoms, tracked metrics, notes — is byte-for-byte the same component in the same order.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Start / end lives in the footer</b><span style="color:#5a6068">Off-period it's a hairline row, "Period started today". On-period it's a filled <span style="color:#1265AF;font-weight:600">primaryContainer</span> status row with End on the right. One row, two states — no separate "Log Period" screen to navigate to.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Colour carries meaning</b><span style="color:#5a6068">Blue = cycle and body facts. Amber = subjective feeling. A user glancing at a saved day can tell what kind of information they're looking at before reading a word.</span></div>
+</div>
+</div>
+
+<div class="frame" style="left:60px;top:2040px;width:360px">
+<div class="flabel">Settings → Categories &amp; groups</div>
+<div class="fnote">This is where the colour language is <b>authored</b>, not hardcoded. A group owns a colour <b>role</b> (primary / secondary / tertiary) — never a raw hex — so switching theme below re-colours every group at once.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>Categories</h3><div class="sub">Grouping &amp; colour</div></div></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">App theme</span><span class="v">Beach Vibes</span></div>
+<div class="swatches">
+<div class="sw" style="background:#00747C"></div>
+<div class="sw sel" style="background:#1265AF"><span class="tick">✓</span></div>
+<div class="sw" style="background:#BC4D3F"></div>
+<div class="sw" style="background:#7A5AC2"></div>
+<div class="sw" style="background:#2E7D48"></div>
+<div class="sw" style="background:#C2185B"></div>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Your groups</span><span class="v">+ New group</span></div>
+<div class="list">
+<div class="rolerow"><span class="dotc" style="background:#1265AF"></span><div><div class="nm">Body &amp; cycle</div><div class="mt">Flow · Cramps · Nose · primary</div></div><span class="chev">›</span></div>
+<div class="rolerow"><span class="dotc" style="background:#9A6800"></span><div><div class="nm">How I felt</div><div class="mt">Mood · Rage · secondary</div></div><span class="chev">›</span></div>
+<div class="rolerow"><span class="dotc" style="background:#4B5BAC"></span><div><div class="nm">Environment</div><div class="mt">Weather · Rainfall · Dampness · tertiary</div></div><span class="chev">›</span></div>
+<div class="rolerow"><span class="dotc" style="background:#C4CDDB"></span><div><div class="nm">Ungrouped</div><div class="mt">Sleep · Water — neutral until filed</div></div><span class="chev">›</span></div>
+</div></div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:520px;top:2040px;width:360px">
+<div class="flabel">A group is one card with rows</div>
+<div class="fnote">Weather, rainfall and dampness were three separate logs. Filed under one <b>Environment</b> group they render as a single tertiary-coloured card — each metric a row with its own scale behind the chevron.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3 class="tapH">Environment <span class="caret">▾</span></h3><div class="sub">Sat, Aug 22 · tap title to switch</div></div><span class="kebab">⋮</span></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t" style="color:#4B5BAC">Environment</span><span class="v" style="color:#4B5BAC">3 metrics</span></div>
+<div class="list">
+<div class="li"><span class="k">Weather</span><span class="rt"><span class="val" style="color:#4B5BAC">Overcast</span><span class="chev">›</span></span></div>
+<div class="li"><span class="k">Rainfall</span><span class="rt"><span class="val">Light</span><span class="chev">›</span></span></div>
+<div class="li"><span class="k">Dampness</span><span class="rt"><span class="val dim" style="color:#4B5BAC">Not set</span><span class="chev">›</span></span></div>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Rainfall</span><span class="v" style="color:#4B5BAC">Light</span></div>
+<div class="scale" style="--n:4">
+<div class="steps">
+<button class="st"><span class="bar" style="height:18px"></span><span class="n">None</span></button>
+<button class="st on"><span class="bar" style="height:30px;background:#4B5BAC"></span><span class="n" style="color:#4B5BAC">Light</span></button>
+<button class="st"><span class="bar" style="height:44px"></span><span class="n">Steady</span></button>
+<button class="st"><span class="bar" style="height:56px"></span><span class="n">Heavy</span></button>
+</div></div></div>
+<div class="grp"><div class="hd"><span class="t">Notes</span><span class="v" style="color:#757782;font-weight:400">Optional</span></div>
+<div class="notes">Anything worth remembering later…</div></div>
+</div>
+<div class="bar-bottom"><div class="save" style="background:#4B5BAC">Save</div></div>
+</div>
+</div>
+
+<div class="frame" style="left:980px;top:2040px;width:360px">
+<div class="flabel">Tap the header to switch</div>
+<div class="fnote">Logged the wrong thing? The title is a button. It opens a sheet of every category, <b>organised by group and tinted by the group's role</b> — so the colour you're about to log in is visible before you commit.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3 class="tapH" style="color:#1265AF">Log period <span class="caret">▴</span></h3><div class="sub">Switching category…</div></div></div>
+<div class="bd">
+<div class="sheet">
+<div class="gh" style="color:#1265AF"><span class="gd" style="background:#1265AF"></span>Body &amp; cycle</div>
+<div class="opt on"><span class="rd"></span>Log period</div>
+<div class="opt"><span class="rd"></span>Nose symptoms</div>
+<div class="gh" style="color:#9A6800"><span class="gd" style="background:#9A6800"></span>How I felt</div>
+<div class="opt" style="--pri:#9A6800"><span class="rd"></span>Overall mood</div>
+<div class="opt" style="--pri:#9A6800"><span class="rd"></span>Rage</div>
+<div class="gh" style="color:#4B5BAC"><span class="gd" style="background:#4B5BAC"></span>Environment</div>
+<div class="opt" style="--pri:#4B5BAC"><span class="rd"></span>Weather · Rainfall · Dampness</div>
+</div>
+<div class="fnote" style="margin:2px 2px 0;color:#757782">The current entry is preserved — switching only changes what the same saved day is filed under.</div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:1440px;top:2040px;width:420px">
+<div class="flabel">The data model behind it</div>
+<div class="fnote" style="max-width:420px">One nullable column carries all of this — and nothing existing has to be rewritten.</div>
+<div style="display:grid;gap:10px;font-size:12.5px;line-height:1.55">
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Category → groupId (nullable)</b><span style="color:#5a6068">Subjective vs objective isn't a hidden flag — it's <i>which group you filed it in</i>. A Group stores {name, colourRole, defaultScale}. The role is <span style="color:#1265AF;font-weight:600">primary</span>/<span style="color:#9A6800;font-weight:600">secondary</span>/tertiary, never a hex, so the theme picker recolours everything for free.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Migration is additive</b><span style="color:#5a6068">Add the column, default <code>null</code>. Every existing category keeps working, rendered neutral (surfaceVariant). A one-time optional "Organise your categories" nudge lets people file them. No destructive rewrite, no crash surface.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Grouping ≥2 → one card</b><span style="color:#5a6068">A group with several categories renders as a single card of rows (Environment). A group of one renders as today's single-metric page. Same component, count-driven.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Header switch = re-file, not re-enter</b><span style="color:#5a6068">Switching category from the title changes the entry's categoryId; the value the user already picked is preserved. Cheap because logging is one screen driven by the category, not per-category screens.</span></div>
+</div>
+</div>
+
+<div class="frame" style="left:60px;top:3120px;width:360px">
+<div class="flabel">What You Track — Grouped</div>
+<div class="fnote">The management home. A <b>Grouped / Ungrouped</b> toggle switches the view; each group is a card you can add a category straight into, and one action makes a whole new group.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>What you track</h3><div class="sub">8 categories · 3 groups</div></div><span class="kebab">⋮</span></div>
+<div class="bd">
+<div class="seg"><button class="on">Grouped</button><button>Ungrouped</button></div>
+<div class="gcard">
+<div class="gtop"><span class="gd" style="background:#1265AF"></span><span class="gn">Body &amp; cycle</span><span class="ge" style="color:#1265AF">Edit</span></div>
+<div class="crow"><span class="cdot" style="background:#1265AF"></span>Flow</div>
+<div class="crow"><span class="cdot" style="background:#1265AF"></span>Cramps</div>
+<div class="crow"><span class="cdot" style="background:#1265AF"></span>Nose symptoms</div>
+<div class="addrow">+ Add category to this group</div>
+</div>
+<div class="gcard">
+<div class="gtop"><span class="gd" style="background:#9A6800"></span><span class="gn">How I felt</span><span class="ge" style="color:#9A6800">Edit</span></div>
+<div class="crow"><span class="cdot" style="background:#9A6800"></span>Overall mood</div>
+<div class="crow"><span class="cdot" style="background:#9A6800"></span>Rage</div>
+<div class="addrow" style="color:#9A6800">+ Add category to this group</div>
+</div>
+<div class="gcard">
+<div class="gtop"><span class="gd" style="background:#4B5BAC"></span><span class="gn">Environment</span><span class="ge" style="color:#4B5BAC">Edit</span></div>
+<div class="crow"><span class="cdot" style="background:#4B5BAC"></span>Weather</div>
+<div class="crow"><span class="cdot" style="background:#4B5BAC"></span>Rainfall</div>
+<div class="addrow" style="color:#4B5BAC">+ Add category to this group</div>
+</div>
+<div class="newgroup">+ New group</div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:520px;top:3120px;width:360px">
+<div class="flabel">What You Track — Ungrouped</div>
+<div class="fnote">The same page, other tab. Loose categories render neutral; each offers <b>Add to group</b> to file it into an existing group (inheriting that group's colour), plus a new category can be made right here.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>What you track</h3><div class="sub">2 ungrouped</div></div><span class="kebab">⋮</span></div>
+<div class="bd">
+<div class="seg"><button>Grouped</button><button class="on">Ungrouped</button></div>
+<div class="list">
+<div class="crow"><span class="cdot" style="background:#C4CDDB"></span>Sleep<span class="cmove">Add to group ›</span></div>
+<div class="crow"><span class="cdot" style="background:#C4CDDB"></span>Water<span class="cmove">Add to group ›</span></div>
+</div>
+<div class="fnote" style="margin:0 2px;color:#757782">Ungrouped categories still log — they just show in surfaceVariant until you file them.</div>
+<div class="newgroup" style="box-shadow:none;background:#1265AF;color:#fff">+ New category</div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:980px;top:3120px;width:360px">
+<div class="flabel">New category — full option set</div>
+<div class="fnote">Name, icon, and colour in one pass, then how it behaves: <b>input type</b>, whether it can be logged <b>many times a day</b>, and whether it rides along with a <b>period</b>. Colour left as roles for now — we'll revisit.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">✕</span><div><h3>New category</h3><div class="sub">Step 1 of 2 · basics</div></div><span class="ge" style="margin-left:auto;margin-top:4px;font-weight:600;color:#1265AF">Next ›</span></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">Name</span></div><div class="field">Headache severity</div></div>
+<div class="grp"><div class="hd"><span class="t">Icon</span></div>
+<div class="iconrow">
+<span class="icont on">✦</span><span class="icont">☾</span><span class="icont">☀</span><span class="icont">♥</span><span class="icont">⚡</span><span class="icont">☂</span><span class="icont" style="color:var(--pri)">＋</span>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Colour</span><span class="v" style="color:#757782;font-weight:400">role — revisit</span></div>
+<div class="roles">
+<span class="rolepick on" style="color:#1265AF"><span class="rd2" style="background:#1265AF"></span>Body &amp; cycle</span>
+<span class="rolepick" style="color:#9A6800"><span class="rd2" style="background:#9A6800"></span>How I felt</span>
+<span class="rolepick" style="color:#4B5BAC"><span class="rd2" style="background:#4B5BAC"></span>Environment</span>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Input type</span></div>
+<div class="roles">
+<span class="rolepick on" style="color:#1265AF">Scale 1–5</span>
+<span class="rolepick" style="color:#1265AF">Slider</span>
+<span class="rolepick" style="color:#1265AF">Count</span>
+<span class="rolepick" style="color:#1265AF">Yes / no</span>
+<span class="rolepick" style="color:#1265AF">Time</span>
+</div>
+<div class="fnote" style="margin:0;color:#757782">A 1–5 <b>scale</b> is discrete steps. A <b>slider</b> is a genuine continuous quantity (weight, temp). Different components — one control decides which renders.</div></div>
+<div class="togrow"><div><div class="nm">Allow multiple per day</div><div class="mt">Log it several times — keeps the time of each</div></div><span class="tog on"></span></div>
+<div class="togrow"><div><div class="nm">Log with period</div><div class="mt">Surface it in the flow context while a period runs</div></div><span class="tog"></span></div>
+<div class="fnote" style="margin:2px;color:#757782">Scale, range and alarms live on step 2 — the first screen stays short.</div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:1440px;top:3120px;width:360px">
+<div class="flabel">Add to group (from Ungrouped)</div>
+<div class="fnote">Tapping <b>Add to group</b> on a loose category opens this — pick a group and it adopts that group's colour role immediately. "New group…" jumps to group creation with this category pre-filled.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">✕</span><div><h3>Add "Sleep" to…</h3><div class="sub">Currently ungrouped</div></div></div>
+<div class="bd">
+<div class="sheet">
+<div class="opt" style="--pri:#1265AF"><span class="rd"></span><span class="cdot" style="width:12px;height:12px;border-radius:4px;background:#1265AF"></span>Body &amp; cycle</div>
+<div class="opt" style="--pri:#9A6800"><span class="rd"></span><span class="cdot" style="width:12px;height:12px;border-radius:4px;background:#9A6800"></span>How I felt</div>
+<div class="opt" style="--pri:#4B5BAC"><span class="rd"></span><span class="cdot" style="width:12px;height:12px;border-radius:4px;background:#4B5BAC"></span>Environment</div>
+<div class="opt" style="color:#1265AF;font-weight:600;border-top:1px solid rgba(20,30,50,.07)"><span style="font-size:16px">+</span>New group…</div>
+</div>
+<div class="fnote" style="margin:2px 2px 0;color:#757782">Sleep keeps all its past entries — filing changes its colour and where it appears, nothing else.</div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:60px;top:4680px;width:360px">
+<div class="flabel">Multiple per day → a timeline</div>
+<div class="fnote">With "allow multiple" on, the log stops being one value and becomes a <b>timeline of timestamped entries</b>. Each tap appends a reading with the time it happened; the day's card shows them in order.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3 class="tapH">Headache <span class="caret">▾</span></h3><div class="sub">Sat, Aug 22 · 3 entries today</div></div><span class="kebab">⋮</span></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">Today</span><span class="v">3 logged</span></div>
+<div class="tl">
+<div class="tle"><span class="tm">08:10</span><span class="vv">Level 2 · <span class="sub">mild</span></span><span class="rm">⋯</span></div>
+<div class="tle"><span class="tm">13:40</span><span class="vv">Level 4 · <span class="sub">after lunch</span></span><span class="rm">⋯</span></div>
+<div class="tle"><span class="tm">19:05</span><span class="vv">Level 1 · <span class="sub">faded</span></span><span class="rm">⋯</span></div>
+<div class="tladd">+ Log another — now, 21:30</div>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Add a reading</span><span class="v">Level 1</span></div>
+<div class="scale" style="--n:5"><div class="steps">
+<button class="st on"><span class="bar" style="height:16px"></span><span class="n">1</span></button>
+<button class="st"><span class="bar" style="height:26px"></span><span class="n">2</span></button>
+<button class="st"><span class="bar" style="height:36px"></span><span class="n">3</span></button>
+<button class="st"><span class="bar" style="height:46px"></span><span class="n">4</span></button>
+<button class="st"><span class="bar" style="height:56px"></span><span class="n">5</span></button>
+</div></div></div>
+</div>
+<div class="bar-bottom"><div class="save">Add entry</div></div>
+</div>
+</div>
+
+<div class="frame" style="left:520px;top:4680px;width:360px">
+<div class="flabel">Input types render differently</div>
+<div class="fnote">The five input types are genuinely different controls — the category's <b>type</b> decides which appears. Scale stays as the stepped bars; the rest each get their own honest control.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3>Input types</h3><div class="sub">One control per kind</div></div></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">Slider — continuous</span><span class="v">72.4 kg</span></div>
+<div class="oldtrack" style="margin:2px 0"><div class="fill" style="flex:2.4;background:#1265AF"></div><div class="thumb" style="background:#1265AF"></div><div class="rest" style="flex:1.6;background:#E1E3EE"></div></div>
+<div class="oldends" style="color:#757782"><span>50</span><span>weight</span><span>110</span></div></div>
+<div class="grp"><div class="hd"><span class="t">Count — tap to add</span><span class="v">6 glasses</span></div>
+<div style="display:flex;align-items:center;gap:14px">
+<div style="width:44px;height:44px;border-radius:12px;box-shadow:inset 0 0 0 1.5px #C4CDDB;display:flex;align-items:center;justify-content:center;font-size:22px;color:#757782">−</div>
+<div style="font-size:26px;font-weight:700;min-width:34px;text-align:center">6</div>
+<div style="width:44px;height:44px;border-radius:12px;background:#1265AF;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px">＋</div>
+<div style="margin-left:auto;font-size:12px;color:#757782">glasses of water</div></div></div>
+<div class="grp"><div class="hd"><span class="t">Yes / no</span><span class="v">Yes</span></div>
+<div style="display:flex;gap:8px">
+<div class="rolepick on" style="flex:1;justify-content:center;color:#1265AF">Yes</div>
+<div class="rolepick" style="flex:1;justify-content:center;color:#1265AF">No</div></div></div>
+<div class="grp"><div class="hd"><span class="t">Time</span><span class="v">23:15</span></div>
+<div class="field" style="display:flex;align-items:center"><span style="font-variant-numeric:tabular-nums;font-size:20px;font-weight:700">23 : 15</span><span style="margin-left:auto;color:#757782;font-size:12px">when it happened</span></div></div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:980px;top:4680px;width:420px">
+<div class="flabel">How the new options interact</div>
+<div class="fnote" style="max-width:420px">The four additions each map cleanly onto the model — no clashes once "log with period" is reframed.</div>
+<div style="display:grid;gap:10px;font-size:12.5px;line-height:1.55">
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Icon</b><span style="color:#5a6068">Stored per category, tinted with the category's colour role — so it recolours with the theme like everything else. Shows in the header switcher and on saved-day summaries.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Input type ≠ scale</b><span style="color:#5a6068">A category stores {type, config}. Scale &amp; slider are different components: discrete steps vs a real continuous value. "Kill the slider" only ever meant ratings — genuine measures keep one.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Allow multiple per day</b><span style="color:#5a6068">Flips the store from one value/day to a list of timestamped entries — you capture <i>what time</i> something happened. The log screen swaps to the timeline component automatically.</span></div>
+<div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 0 0 1px rgba(20,30,50,.08)"><b style="display:block;margin-bottom:5px;color:#181C22">Log with period — reframed, no clash</b><span style="color:#5a6068">It no longer means a separate screen. In the unified log, period is a state of the day, so the flag just <b>pins the category into the flow context</b> while a period runs. Off-period it sits in its normal group.</span></div>
+</div>
+</div>
+
+<div class="frame" style="left:60px;top:6000px;width:360px">
+<div class="flabel">New category — step 2, scale settings</div>
+<div class="fnote">Choosing type <b>Scale</b> reveals its own settings on the second screen: the words behind each step, a custom number range, and whether decimals are allowed.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">‹</span><div><h3>Scale settings</h3><div class="sub">Step 2 of 2 · Headache severity</div></div><span class="ge" style="margin-left:auto;margin-top:4px;font-weight:600;color:#1265AF">Save</span></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">Range</span><span class="v">1 – 5</span></div>
+<div style="display:flex;gap:10px">
+<div class="field" style="flex:1;display:flex;align-items:center"><span style="color:#757782;font-size:12px">Min</span><span style="margin-left:auto;font-weight:700">1</span></div>
+<div class="field" style="flex:1;display:flex;align-items:center"><span style="color:#757782;font-size:12px">Max</span><span style="margin-left:auto;font-weight:700">5</span></div>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Step labels</span><span class="v" style="color:#757782;font-weight:400">optional words</span></div>
+<div class="list">
+<div class="li" style="min-height:44px"><span class="k">1</span><span class="val" style="font-size:13.5px">Barely there</span></div>
+<div class="li" style="min-height:44px"><span class="k">2</span><span class="val" style="font-size:13.5px">Noticeable</span></div>
+<div class="li" style="min-height:44px"><span class="k">3</span><span class="val" style="font-size:13.5px">Distracting</span></div>
+<div class="li" style="min-height:44px"><span class="k">4</span><span class="val ph-tx" style="font-size:13.5px;color:#B7BECB">Add word…</span></div>
+<div class="li" style="min-height:44px"><span class="k">5</span><span class="val" style="font-size:13.5px">Unbearable</span></div>
+</div></div>
+<div class="togrow"><div><div class="nm">Allow decimals</div><div class="mt">Log values like 3.5 between steps</div></div><span class="tog"></span></div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:520px;top:6000px;width:360px">
+<div class="flabel">Category edit — alarms</div>
+<div class="fnote">Editing an existing category is the same two screens plus <b>alarms</b> — reminders to log it. They only appear on edit, not first creation, keeping step 1 short.</div>
+<div class="ph">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">←</span><div><h3 class="tapH"><span style="color:#1265AF">✦</span> Headache</h3><div class="sub">Edit category</div></div><span class="ge" style="margin-left:auto;margin-top:4px;font-weight:600;color:#1265AF">Save</span></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">Reminders</span><span class="v">+ Add alarm</span></div>
+<div class="list">
+<div class="li"><span class="rt" style="gap:10px"><span style="color:#1265AF">⏰</span><div><div class="val" style="font-size:14px">09:00</div><div style="font-size:11.5px;color:#757782">Every day</div></div></span><span class="tog on" style="width:42px"></span></div>
+<div class="li"><span class="rt" style="gap:10px"><span style="color:#757782">⏰</span><div><div class="val" style="font-size:14px">21:30</div><div style="font-size:11.5px;color:#757782">Weekdays</div></div></span><span class="tog" style="width:42px"></span></div>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Type</span><span class="v">Scale 1–5</span></div>
+<div class="list"><div class="li"><span class="k">Scale settings</span><span class="chev">›</span></div></div></div>
+<div class="grp"><div class="hd"><span class="t">Danger zone</span></div>
+<div class="field" style="color:#BC4D3F;box-shadow:inset 0 0 0 1px #E9C4BE;background:transparent">Delete category &amp; its history</div></div>
+</div>
+</div>
+</div>
+
+<div class="frame" style="left:980px;top:6000px;width:420px">
+<div class="flabel">Colour — extended theme roles</div>
+<div class="fnote" style="max-width:420px">Beyond primary/secondary/tertiary, we <b>auto-derive 3 more in-theme roles</b> from the active theme, so users get 5–6 harmonious choices that all re-theme. A truly clashing pick becomes a <b>fixed colour</b> — deliberately exempt from theme changes.</div>
+<div class="ph" style="width:388px">
+<div class="sb"><span>9:41</span><span>▮▮▮</span></div>
+<div class="tb"><span class="bk">‹</span><div><h3>Pick a colour</h3><div class="sub">Headache</div></div></div>
+<div class="bd">
+<div class="grp"><div class="hd"><span class="t">In-theme roles</span><span class="v" style="color:#757782;font-weight:400">re-theme automatically</span></div>
+<div class="roles">
+<span class="rolepick on" style="color:#1265AF"><span class="rd2" style="background:#1265AF"></span>Primary</span>
+<span class="rolepick" style="color:#9A6800"><span class="rd2" style="background:#9A6800"></span>Secondary</span>
+<span class="rolepick" style="color:#4B5BAC"><span class="rd2" style="background:#4B5BAC"></span>Tertiary</span>
+<span class="rolepick" style="color:#2E7D48"><span class="rd2" style="background:#2E7D48"></span>Quaternary</span>
+<span class="rolepick" style="color:#B0468A"><span class="rd2" style="background:#B0468A"></span>Quinary</span>
+<span class="rolepick" style="color:#0E7C8B"><span class="rd2" style="background:#0E7C8B"></span>Senary</span>
+</div></div>
+<div class="grp"><div class="hd"><span class="t">Fixed colour</span><span class="v" style="color:#757782;font-weight:400">stays put on theme change</span></div>
+<div class="swatches">
+<div class="sw" style="background:#E4572E;border-radius:12px"></div>
+<div class="sw" style="background:#F2B705"></div>
+<div class="sw" style="background:#6A4C93"></div>
+<div class="sw" style="background:#1B998B"></div>
+<div class="sw" style="background:#2D3142"></div>
+<div class="sw" style="background:#fff;box-shadow:inset 0 0 0 1.5px #C4CDDB;display:flex;align-items:center;justify-content:center;color:#757782;font-size:18px">＋</div>
+</div>
+<div class="warn">A fixed colour is treated as "don't change this" — it won't shift when the app theme changes. Everything else follows the theme.</div></div>
+</div>
+</div>
+</div>
+
+</body>
+</html>
