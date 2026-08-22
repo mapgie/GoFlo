@@ -113,6 +113,17 @@ The handover's "as-built" understates the current app. Much of the "new" model *
 
 Each phase is a shippable PR. Order is deliberate: additive foundations first (roles, model, components), then the façade, then the big screen unification, then management, then creation/edit, then removal. **A later phase never starts by deleting an earlier path.**
 
+> **Each phase has a detailed build guide** in [`phases/`](phases/) with exact files, current line refs, code sketches, migration details, and acceptance + preservation checklists. Read the guide for your phase before starting; the summaries below are the index.
+>
+> - Phase 1 → [`phases/phase-1-color-roles.md`](phases/phase-1-color-roles.md)
+> - Phase 2 → [`phases/phase-2-group-model.md`](phases/phase-2-group-model.md)
+> - Phase 3 → [`phases/phase-3-component-library.md`](phases/phase-3-component-library.md)
+> - Phase 4 → [`phases/phase-4-metricinput.md`](phases/phase-4-metricinput.md)
+> - Phase 5 → [`phases/phase-5-unified-logscreen.md`](phases/phase-5-unified-logscreen.md)
+> - Phase 6 → [`phases/phase-6-what-you-track.md`](phases/phase-6-what-you-track.md)
+> - Phase 7 → [`phases/phase-7-create-edit-alarms.md`](phases/phase-7-create-edit-alarms.md)
+> - Phase 8 → [`phases/phase-8-cleanup.md`](phases/phase-8-cleanup.md)
+
 ### Phase 1 — Extended colour roles (additive, no migration)
 **Goal:** categories can be assigned quaternary/quinary/senary in-theme roles and a fixed off-theme colour, all re-theming correctly.
 **Do:**

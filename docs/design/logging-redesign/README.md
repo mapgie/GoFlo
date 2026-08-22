@@ -5,12 +5,13 @@ This folder holds the design handover for GoFlo's logging/category redesign and 
 ## Start here
 
 1. **[`PLAN.md`](PLAN.md)** — the master plan. Golden rules, feature-preservation inventory, gap analysis, the 8 phases with acceptance criteria, a progress log, and open decisions. A fresh session should read this first.
-2. **[`subsystem-maps/`](subsystem-maps/)** — stamped groundwork so you don't have to re-explore the codebase:
+2. **[`phases/`](phases/)** — one detailed build guide per phase (exact files, current line refs, code sketches, migration/data details, acceptance + preservation checklists, gotchas). Read the guide for your phase after the master plan.
+3. **[`subsystem-maps/`](subsystem-maps/)** — stamped groundwork so you don't have to re-explore the codebase:
    - [`01-logging-screens.md`](subsystem-maps/01-logging-screens.md) — the two current log screens, routes, input controls, save flows.
    - [`02-category-data-model.md`](subsystem-maps/02-category-data-model.md) — entities, DB version + migration chain, DAOs, repository API.
    - [`03-theme-color-machinery.md`](subsystem-maps/03-theme-color-machinery.md) — `colorSchemeFor`, palettes, colour-role resolution hook.
    Each map is stamped with the **commit + build** it was verified against (`d07d947`, versionCode 116, DB v23) and a staleness check. If HEAD has moved, run the staleness check before trusting line numbers.
-3. **[`handover/`](handover/)** — the original design bundle (verbatim):
+4. **[`handover/`](handover/)** — the original design bundle (verbatim):
    - `README.md` — design intent + the reusable-component-library requirement.
    - `GoFlo Theme Redesign.md` — the 12-palette colour spec (largely already applied; reconciliation is a separate task).
    - `Log Screens Rethought.html` — the pannable mockup canvas (open in a browser).
