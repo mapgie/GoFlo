@@ -60,7 +60,7 @@ fun CalendarGrid(
     today: LocalDate = LocalDate.now(),
     /** Called on a normal tap. */
     onDayClick: (LocalDate) -> Unit,
-    /** Called on a long-press. Opens Quick Log for that day. */
+    /** Called on a long-press. Opens the full log menu for that day. */
     onDayLongClick: (LocalDate) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
