@@ -124,12 +124,19 @@ fun HomeScreen(
         }
     }
 
+    // Open the full log menu (speed dial) targeted at [date], so whatever is
+    // picked from it gets logged for that day rather than today.
+    fun openLogMenuFor(date: LocalDate) {
+        logMenuTargetDate = date
+        showLogMenu = true
+    }
+
     fun handleQuickLog(date: LocalDate) {
         val id = state.quickLogCategoryId
         val cat = state.trackingCategories.firstOrNull { it.id == id }
         when {
             id == -1L && !state.periodTrackingEnabled -> {
-                showLogMenu = true
+                openLogMenuFor(date)
             }
             id == -1L ->
                 navigateToLogPeriod(date)
@@ -161,8 +168,7 @@ fun HomeScreen(
             },
             onLogMore = {
                 viewModel.clearSelectedDay()
-                logMenuTargetDate = data.date
-                showLogMenu = true
+                openLogMenuFor(data.date)
             },
         )
     }
@@ -211,6 +217,9 @@ fun HomeScreen(
             val targetDate = logMenuTargetDate ?: LocalDate.now()
             SpeedDial(
                 expanded = showLogMenu,
+                targetDateLabel = logMenuTargetDate
+                    ?.takeIf { it != LocalDate.now() }
+                    ?.format(displayFormat),
                 onToggle = {
                     showLogMenu = !showLogMenu
                     if (!showLogMenu) logMenuTargetDate = null
@@ -262,7 +271,10 @@ fun HomeScreen(
                             handleQuickLog(date)
                         }
                     },
-                    onDayLongClick = { date -> handleQuickLog(date) }
+                    // Long-press opens the full log menu for that day, so any
+                    // category (not just the quick-log choice) can be logged
+                    // retrospectively straight from the calendar.
+                    onDayLongClick = { date -> openLogMenuFor(date) }
                 )
 
                 CycleInfoCard(state = state)
@@ -311,6 +323,8 @@ fun HomeScreen(
 @Composable
 private fun SpeedDial(
     expanded: Boolean,
+    /** Formatted date the menu will log for, when it is not today. */
+    targetDateLabel: String?,
     onToggle: () -> Unit,
     onLogPeriod: () -> Unit,
     periodTrackingEnabled: Boolean,
@@ -332,6 +346,21 @@ private fun SpeedDial(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(bottom = 4.dp)
             ) {
+                if (targetDateLabel != null) {
+                    Surface(
+                        shape           = RoundedCornerShape(8.dp),
+                        color           = MaterialTheme.colorScheme.secondaryContainer,
+                        shadowElevation = 2.dp,
+                        modifier        = Modifier.padding(end = 4.dp, bottom = 4.dp)
+                    ) {
+                        Text(
+                            text     = "Logging for $targetDateLabel",
+                            style    = MaterialTheme.typography.labelLarge,
+                            color    = MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                        )
+                    }
+                }
                 // Tracking categories (reversed so first category is nearest the FAB)
                 categories.asReversed().forEach { category ->
                     SpeedDialItem(
@@ -439,7 +468,7 @@ private fun OnboardingBanner(onDismiss: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text     = "Long-press any day to start logging. Add your own categories in the Manage tab.",
+                text     = "Tap a day to log it, or long-press for the full log menu. Add your own categories in the Manage tab.",
                 style    = MaterialTheme.typography.bodyMedium,
                 color    = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.weight(1f),
