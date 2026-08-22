@@ -65,10 +65,6 @@ data class AppPreferences(
     val flowBackfillDone: Boolean = false,
     /** True once the one-time migration of period symptoms into TrackingLog has been completed. */
     val symptomsBackfillDone: Boolean = false,
-    /** True once the one-time merge of overlapping/duplicate period entries has been completed. */
-    val periodOverlapMergeDone: Boolean = false,
-    /** True once the one-time merge of adjacent (1-day-gap) period entries has been completed. */
-    val periodAdjacencyMergeDone: Boolean = false,
     /**
      * When true, the GoFlo Status home-screen widget shows live cycle data even
      * if a PIN is set.  Users who trust their home screen can opt in; the default
@@ -134,6 +130,13 @@ data class AppPreferences(
     val customActiveProfileId: Long = -1L,
     /** Whether period logging is enabled. Defaults to true; can be toggled from Tracking Modes or the period log screen. */
     val periodTrackingEnabled: Boolean = true,
+    /**
+     * How many unlogged days between two period days still count as the same
+     * period (0-3). Also drives auto-end: once one day more than this window
+     * passes without a period day being logged, the period is deemed ended at
+     * its last logged day.
+     */
+    val periodGapToleranceDays: Int = 1,
     /** Comma-separated list of active tracking mode IDs (e.g. "FERTILITY,PREGNANCY"). */
     val activeModes: String = "",
     /** ISO-8601 date string for the pregnancy anchor date. Interpretation depends on [pregnancyStartType]. */
@@ -171,8 +174,6 @@ class AppPreferencesStore(private val context: Context) {
         val BANNER_STYLE = stringPreferencesKey("banner_style")
         val FLOW_BACKFILL_DONE = booleanPreferencesKey("flow_backfill_done")
         val SYMPTOMS_BACKFILL_DONE = booleanPreferencesKey("symptoms_backfill_done")
-        val PERIOD_OVERLAP_MERGE_DONE = booleanPreferencesKey("period_overlap_merge_done")
-        val PERIOD_ADJACENCY_MERGE_DONE = booleanPreferencesKey("period_adjacency_merge_done")
         val WIDGET_DATA_VISIBLE = booleanPreferencesKey("widget_data_visible")
         val DASHBOARD_ENABLED = booleanPreferencesKey("dashboard_enabled")
         val PINNED_STATS = stringPreferencesKey("pinned_stats")
@@ -200,6 +201,7 @@ class AppPreferencesStore(private val context: Context) {
         val CUSTOM_THEME_MODE         = stringPreferencesKey("custom_theme_mode")
         val CUSTOM_ACTIVE_PROFILE_ID  = longPreferencesKey("custom_active_profile_id")
         val PERIOD_TRACKING_ENABLED   = booleanPreferencesKey("period_tracking_enabled")
+        val PERIOD_GAP_TOLERANCE_DAYS = intPreferencesKey("period_gap_tolerance_days")
         val ACTIVE_MODES              = stringPreferencesKey("active_modes")
         val PREGNANCY_DATE_STR        = stringPreferencesKey("pregnancy_date_str")
         val PREGNANCY_START_TYPE      = stringPreferencesKey("pregnancy_start_type")
@@ -220,8 +222,6 @@ class AppPreferencesStore(private val context: Context) {
             bannerStyle = prefs[Keys.BANNER_STYLE] ?: "PLAIN",
             flowBackfillDone = prefs[Keys.FLOW_BACKFILL_DONE] ?: false,
             symptomsBackfillDone = prefs[Keys.SYMPTOMS_BACKFILL_DONE] ?: false,
-            periodOverlapMergeDone = prefs[Keys.PERIOD_OVERLAP_MERGE_DONE] ?: false,
-            periodAdjacencyMergeDone = prefs[Keys.PERIOD_ADJACENCY_MERGE_DONE] ?: false,
             widgetDataVisible = prefs[Keys.WIDGET_DATA_VISIBLE] ?: false,
             dashboardEnabled = prefs[Keys.DASHBOARD_ENABLED] ?: false,
             pinnedStats = prefs[Keys.PINNED_STATS] ?: "",
@@ -249,6 +249,7 @@ class AppPreferencesStore(private val context: Context) {
             customThemeMode          = prefs[Keys.CUSTOM_THEME_MODE]          ?: "LIGHT",
             customActiveProfileId    = prefs[Keys.CUSTOM_ACTIVE_PROFILE_ID]   ?: -1L,
             periodTrackingEnabled    = prefs[Keys.PERIOD_TRACKING_ENABLED]    ?: true,
+            periodGapToleranceDays   = prefs[Keys.PERIOD_GAP_TOLERANCE_DAYS] ?: 1,
             activeModes            = prefs[Keys.ACTIVE_MODES]                ?: "",
             pregnancyDateStr       = prefs[Keys.PREGNANCY_DATE_STR]          ?: "",
             pregnancyStartType     = prefs[Keys.PREGNANCY_START_TYPE]        ?: "EDD",
@@ -357,14 +358,6 @@ class AppPreferencesStore(private val context: Context) {
         context.dataStore.edit { it[Keys.SYMPTOMS_BACKFILL_DONE] = done }
     }
 
-    suspend fun setPeriodOverlapMergeDone(done: Boolean) {
-        context.dataStore.edit { it[Keys.PERIOD_OVERLAP_MERGE_DONE] = done }
-    }
-
-    suspend fun setPeriodAdjacencyMergeDone(done: Boolean) {
-        context.dataStore.edit { it[Keys.PERIOD_ADJACENCY_MERGE_DONE] = done }
-    }
-
     suspend fun setWidgetDataVisible(visible: Boolean) {
         context.dataStore.edit { it[Keys.WIDGET_DATA_VISIBLE] = visible }
     }
@@ -470,6 +463,15 @@ class AppPreferencesStore(private val context: Context) {
 
     suspend fun setPeriodTrackingEnabled(enabled: Boolean) {
         context.dataStore.edit { it[Keys.PERIOD_TRACKING_ENABLED] = enabled }
+    }
+
+    /**
+     * Persists the allowed gap between period days. Values outside 0..3 are
+     * rejected — a larger gap would silently glue separate cycles together.
+     */
+    suspend fun setPeriodGapToleranceDays(days: Int) {
+        require(days in 0..3) { "periodGapToleranceDays must be in 0..3, got $days" }
+        context.dataStore.edit { it[Keys.PERIOD_GAP_TOLERANCE_DAYS] = days }
     }
 
     suspend fun setActiveModes(modes: String) {

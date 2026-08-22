@@ -118,6 +118,39 @@ fun ManageCycleScreen(
 
             HorizontalDivider()
 
+            var toleranceSlider by remember(prefs.periodGapToleranceDays) {
+                mutableStateOf(prefs.periodGapToleranceDays.toFloat())
+            }
+            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text(
+                    "Allowed gap between period days: ${toleranceSlider.toInt()} " +
+                        if (toleranceSlider.toInt() == 1) "day" else "days",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    "Days you log this close together count as the same period. " +
+                        "A period with no end date is deemed ended once " +
+                        "${toleranceSlider.toInt() + 1} days pass without a period day being logged.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Slider(
+                    value                 = toleranceSlider,
+                    onValueChange         = { toleranceSlider = it },
+                    onValueChangeFinished = { viewModel.setPeriodGapToleranceDays(toleranceSlider.toInt()) },
+                    valueRange            = 0f..3f,
+                    steps                 = 2
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("0 days", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("3 days", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+
+            HorizontalDivider()
+
             ListItem(
                 headlineContent   = { Text("Show period predictions") },
                 supportingContent = { Text("Display predicted future period days on the calendar") },

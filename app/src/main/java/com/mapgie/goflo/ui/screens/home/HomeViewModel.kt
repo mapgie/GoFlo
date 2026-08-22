@@ -54,6 +54,8 @@ data class HomeUiState(
     val pregnancyInfo: PregnancyInfo? = null,
     /** Whether period logging is enabled. */
     val periodTrackingEnabled: Boolean = true,
+    /** Allowed gap (days) between period days that still counts as one period. */
+    val periodGapToleranceDays: Int = PeriodRepository.DEFAULT_GAP_TOLERANCE_DAYS,
 )
 
 data class PregnancyInfo(
@@ -149,6 +151,7 @@ class HomeViewModel(
             onboardingBannerDismissed   = prefs.onboardingBannerDismissed,
             pregnancyInfo               = pregnancyInfo,
             periodTrackingEnabled       = prefs.periodTrackingEnabled,
+            periodGapToleranceDays      = prefs.periodGapToleranceDays,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUiState())
 
@@ -186,17 +189,6 @@ class HomeViewModel(
 
     fun selectDay(date: LocalDate) { _selectedDay.value = date }
     fun clearSelectedDay() { _selectedDay.value = null }
-
-    /**
-     * If [date] bridges a one-day gap between two existing periods, merges
-     * them (see [PeriodRepository.mergeGapAt]) and hands the merged id to
-     * [onResolved]; otherwise hands back [fallbackId] unchanged.
-     */
-    fun mergeGapAt(date: LocalDate, fallbackId: Long, onResolved: (Long) -> Unit) {
-        viewModelScope.launch {
-            onResolved(repository.mergeGapAt(date)?.id ?: fallbackId)
-        }
-    }
 
     // ── Quick increment (Plus One categories) ───────────────────────────────────
 

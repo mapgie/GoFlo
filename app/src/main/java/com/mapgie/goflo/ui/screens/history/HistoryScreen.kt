@@ -317,7 +317,8 @@ private fun PeriodCard(
             text = {
                 Text(
                     "This will combine them into one period from ${earlier.format(displayFormat)} " +
-                    "to ${later.format(displayFormat)}, keeping both entries' notes and symptoms. " +
+                    "to ${later.format(displayFormat)}. The days in between are marked as period days, " +
+                    "notes are kept from both entries, and each day keeps its own logged values. " +
                     "This can't be undone."
                 )
             },
