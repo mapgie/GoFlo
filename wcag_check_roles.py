@@ -23,14 +23,6 @@ import sys
 
 from wcag_check import THEMES, contrast_ratio
 
-# Palettes present in Color.kt but not (yet) in wcag_check.py's THEMES table.
-EXTRA_ACCENTS: dict[str, dict[str, str]] = {
-    "Dragon Fire (Light)":   {"primary": "B0181F", "secondary": "C04A0E", "tertiary": "E07800"},
-    "Dragon Fire (Dark)":    {"primary": "FF8A82", "secondary": "FFB28F", "tertiary": "FFB870"},
-    "Midnight Neon (Light)": {"primary": "C5128A", "secondary": "006D90", "tertiary": "486E00"},
-    "Midnight Neon (Dark)":  {"primary": "FF55C8", "secondary": "5EE0FF", "tertiary": "C2F052"},
-}
-
 NEAR_BLACK = "1C1B1F"
 WHITE = "FFFFFF"
 
@@ -71,7 +63,6 @@ def main() -> int:
         name: {k: theme[k] for k in ("primary", "secondary", "tertiary")}
         for name, theme in THEMES.items()
     }
-    accents.update(EXTRA_ACCENTS)
 
     failures = 0
     checked = 0

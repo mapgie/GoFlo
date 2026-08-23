@@ -12,7 +12,8 @@
 > - `Theme.kt` gained `LocalExtendedRoles` (static CompositionLocal) and now wraps `MaterialTheme` in a `CompositionLocalProvider`.
 > - `CategoryAppearance.kt`: `CategoryColor` now has 6 entries (added QUATERNARY/QUINARY/SENARY); both resolvers have branches for the three new tokens reading `LocalExtendedRoles.current` (read inside the branch only, so hex/legacy tokens still resolve outside `GoFloTheme`).
 > - `ManageCategoriesScreen.kt`'s `CategoryColorPicker`: themed swatch circles replaced with 6 role pill chips ("In-theme roles"); "More colours" header replaced with "Fixed colour / Stays put on theme change".
-> - New `wcag_check_roles.py` at repo root mirrors the derivation; `wcag_check.py` restored from base64 mangling (§ its THEMES table still lacks Dragon Fire and Midnight Neon; the roles script carries them itself).
+> - New `wcag_check_roles.py` at repo root mirrors the derivation over every palette in `wcag_check.py`'s THEMES table; `wcag_check.py` restored from base64 mangling, and the byte-identical workaround copy `wcag_check_real.py` removed.
+> - `Color.kt`'s palette values were reconciled to the finalised colour spec on main (#176) after this map was stamped; the accent hexes quoted elsewhere in this map may be out of date, but the structure (scheme count, `colorSchemeFor`, `buildCustomColorScheme`) is unchanged.
 
 All paths under `app/src/main/java/com/mapgie/goflo/`.
 
