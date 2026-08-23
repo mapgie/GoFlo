@@ -1,0 +1,6 @@
+{
+  "bump": "patch",
+  "changed": [
+    "Themes: refreshed all 12 named palettes so each name's three colour chord delivers. Coral now reads as coral, lagoon teal and gold; Dragon Fire is all fire; Midnight Neon glows in both light and dark. Accessibility themes are unchanged."
+  ]
+}
