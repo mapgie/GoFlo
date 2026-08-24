@@ -4,9 +4,19 @@ import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+/**
+ * Extended category colour roles derived from the active scheme, provided by
+ * [GoFloTheme]. Static is fine: theme changes recompose the whole subtree.
+ */
+val LocalExtendedRoles = staticCompositionLocalOf<ExtendedRoles> {
+    error("ExtendedRoles not provided — is this composable inside GoFloTheme?")
+}
 
 @Composable
 fun GoFloTheme(
@@ -64,9 +74,11 @@ fun GoFloTheme(
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography  = GoFloTypography,
-        content     = content,
-    )
+    CompositionLocalProvider(LocalExtendedRoles provides deriveExtendedRoles(colorScheme)) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography  = GoFloTypography,
+            content     = content,
+        )
+    }
 }

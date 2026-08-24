@@ -169,6 +169,9 @@ State that captures the user's entire current configuration (e.g. "X axis = Cate
 **Branch protection blocks force push — use merge, not rebase, for conflict resolution**
 When a branch is protected against force push and upstream has moved on, `git rebase origin/main` rewrites local history that can no longer be pushed. The only forward path is `git merge origin/main`, which creates a merge commit but preserves the existing remote history. If both branches claimed the same version string, resolve by bumping the lower-priority branch's version upward in the same merge commit — don't leave the version collision for the reviewer to spot.
 
+**A committed file can be silently mangled by tooling — sanity-run scripts after committing them**
+`wcag_check.py` sat on main for months as a single base64-encoded line (no newlines), committed that way by an automated session and never noticed because CI does not execute it. Any check script that only runs locally is one bad commit away from being quietly unrunnable, and `git diff --stat` reporting "1 insertion" for a whole new script is the tell. After committing an executable file, run it from a fresh checkout (or at least `head` it) — and prefer wiring such checks into CI so a mangled commit fails loudly instead of rotting.
+
 **A parameter present in a function signature but never forwarded at the call site**
 A function may accept a flag (`wcag: Boolean = false`) and correctly wire it through internally, yet if the call site omits it the flag silently takes its default for every caller. Function signature looks correct, internal logic looks correct — only the gap between them is wrong. This is especially common in theming chains, feature flags, and composable parameter cascades where defaults mask the omission. When adding a parameter to a shared function, grep all call sites and verify each one explicitly passes the new argument.
 

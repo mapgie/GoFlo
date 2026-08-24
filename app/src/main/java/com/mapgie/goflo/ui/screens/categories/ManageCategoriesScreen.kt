@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -98,6 +99,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -1075,64 +1077,87 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 
-        // Themed swatches
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment     = Alignment.CenterVertically,
+        // In-theme roles: pill chips that re-theme with the active palette.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text  = "In-theme roles",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text  = "Re-theme automatically",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement   = Arrangement.spacedBy(8.dp),
         ) {
             CategoryColor.entries.forEach { colorOption ->
-                val isSelected    = colorOption.key == selectedToken
-                val swatchColor   = colorOption.key.toCategoryColor()
-                val onSwatchColor = colorOption.key.toCategoryOnColor()
+                val isSelected  = colorOption.key == selectedToken
+                val roleColor   = colorOption.key.toCategoryColor()
+                val onRoleColor = colorOption.key.toCategoryOnColor()
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(swatchColor)
-                            .then(
-                                if (isSelected)
-                                    Modifier.border(3.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                else Modifier
-                            )
-                            .clickable { onSelect(colorOption.key) }
-                            .semantics {
-                                role = Role.RadioButton
-                                selected = isSelected
-                                contentDescription = colorOption.displayName
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isSelected) {
-                            Icon(
-                                imageVector        = Icons.Default.Check,
-                                contentDescription = null,
-                                tint               = onSwatchColor,
-                                modifier           = Modifier.size(22.dp)
-                            )
+                Row(
+                    verticalAlignment     = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .clip(RoundedCornerShape(50))
+                        .then(
+                            if (isSelected) Modifier.background(roleColor)
+                            else Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50))
+                        )
+                        .clickable { onSelect(colorOption.key) }
+                        .semantics {
+                            role = Role.RadioButton
+                            selected = isSelected
+                            contentDescription = colorOption.displayName
                         }
+                        .padding(horizontal = 14.dp),
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector        = Icons.Default.Check,
+                            contentDescription = null,
+                            tint               = onRoleColor,
+                            modifier           = Modifier.size(16.dp)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(roleColor)
+                        )
                     }
                     Text(
                         text  = colorOption.displayName,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (isSelected) FontWeight.Bold else null,
+                        color = if (isSelected) onRoleColor else MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
         }
 
-        // Extended palette
+        // Fixed colours: deliberately exempt from theme changes.
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Text(
-            text  = "More colours",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text  = "Fixed colour",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text  = "Stays put on theme change",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement   = Arrangement.spacedBy(8.dp),

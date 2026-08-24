@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.mapgie.goflo.ui.theme.LocalExtendedRoles
 
 // ── Icon catalogue ────────────────────────────────────────────────────────────
 
@@ -134,9 +135,12 @@ enum class CategoryColor(
     val key: String,
     val displayName: String,
 ) {
-    PRIMARY   ("primary",   "Primary"),
-    SECONDARY ("secondary", "Secondary"),
-    TERTIARY  ("tertiary",  "Accent"),
+    PRIMARY    ("primary",    "Primary"),
+    SECONDARY  ("secondary",  "Secondary"),
+    TERTIARY   ("tertiary",   "Accent"),
+    QUATERNARY ("quaternary", "Quaternary"),
+    QUINARY    ("quinary",    "Quinary"),
+    SENARY     ("senary",     "Senary"),
 }
 
 /**
@@ -177,10 +181,13 @@ fun Int.toHexColorKey(): String =
 fun String.toCategoryColor(): Color {
     val s = MaterialTheme.colorScheme
     return when (this) {
-        "primary"   -> s.primary
-        "secondary" -> s.secondary
-        "tertiary"  -> s.tertiary
-        else        -> runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
+        "primary"    -> s.primary
+        "secondary"  -> s.secondary
+        "tertiary"   -> s.tertiary
+        "quaternary" -> LocalExtendedRoles.current.quaternary
+        "quinary"    -> LocalExtendedRoles.current.quinary
+        "senary"     -> LocalExtendedRoles.current.senary
+        else         -> runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
     }
 }
 
@@ -224,10 +231,13 @@ fun continuousShade(base: Color, surface: Color, fraction: Float): Color {
 fun String.toCategoryOnColor(): Color {
     val s = MaterialTheme.colorScheme
     return when (this) {
-        "primary"   -> s.onPrimary
-        "secondary" -> s.onSecondary
-        "tertiary"  -> s.onTertiary
-        else        -> {
+        "primary"    -> s.onPrimary
+        "secondary"  -> s.onSecondary
+        "tertiary"   -> s.onTertiary
+        "quaternary" -> LocalExtendedRoles.current.onQuaternary
+        "quinary"    -> LocalExtendedRoles.current.onQuinary
+        "senary"     -> LocalExtendedRoles.current.onSenary
+        else         -> {
             val bg = runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
             // WCAG: contrast ≥ 3:1 for icons. luminance > 0.35 means the background
             // is light enough that white would fail — use near-black instead.

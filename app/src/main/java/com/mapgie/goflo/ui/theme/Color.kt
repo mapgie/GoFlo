@@ -1517,3 +1517,64 @@ fun buildCustomColorScheme(
         )
     }
 }
+
+// ── Extended category colour roles ───────────────────────────────────────────
+
+/**
+ * Three extra in-theme accent roles (quaternary/quinary/senary) derived from a
+ * [ColorScheme], plus WCAG-safe on-colours. Material3's ColorScheme has no
+ * 4th-6th accent slot, so these live in a parallel holder provided via
+ * [com.mapgie.goflo.ui.theme.LocalExtendedRoles] (see Theme.kt).
+ */
+data class ExtendedRoles(
+    val quaternary: Color, val onQuaternary: Color,
+    val quinary:    Color, val onQuinary:    Color,
+    val senary:     Color, val onSenary:     Color,
+)
+
+/**
+ * Derives the three extended roles from the scheme's own accents so they stay
+ * harmonious with the active palette and re-theme automatically.
+ *
+ * Each role hue-rotates one base accent, keeping its saturation/lightness so
+ * the result sits in the scheme's own accent band. Near-greyscale accents
+ * (High Contrast themes) get a lightness shift instead: rotating the hue of a
+ * grey is a no-op and would make the extra roles indistinguishable.
+ *
+ * Mirrored in `wcag_check_roles.py` — keep both in sync.
+ */
+fun deriveExtendedRoles(scheme: ColorScheme): ExtendedRoles {
+    fun derive(base: Color, degrees: Float, lightnessShift: Float): Color {
+        val hsl = FloatArray(3)
+        ColorUtils.colorToHSL(base.toArgb(), hsl)
+        if (hsl[1] < 0.10f) {
+            // Shift toward mid-lightness so a dark grey base moves lighter and a
+            // light one darker; distinct magnitudes keep the three roles apart
+            // even when all base accents are the same grey (High Contrast).
+            val direction = if (hsl[2] > 0.5f) -1f else 1f
+            hsl[2] = (hsl[2] + direction * lightnessShift).coerceIn(0.15f, 0.85f)
+        } else {
+            hsl[0] = (hsl[0] + degrees + 360f) % 360f
+        }
+        return Color(ColorUtils.HSLToColor(hsl))
+    }
+
+    // On-colour is whichever of near-black/white contrasts more with the role.
+    // This guarantees at least ~4.1:1 on any background, unlike a fixed
+    // luminance threshold, which has a band where white falls under 3:1.
+    fun on(c: Color): Color {
+        val lum = c.luminance()
+        val contrastWhite = 1.05f / (lum + 0.05f)
+        val contrastBlack = (lum + 0.05f) / (Color(0xFF1C1B1F).luminance() + 0.05f)
+        return if (contrastBlack >= contrastWhite) Color(0xFF1C1B1F) else Color.White
+    }
+
+    val quaternary = derive(scheme.primary,    30f, 0.25f)
+    val quinary    = derive(scheme.secondary, -30f, 0.45f)
+    val senary     = derive(scheme.tertiary,   45f, 0.65f)
+    return ExtendedRoles(
+        quaternary, on(quaternary),
+        quinary,    on(quinary),
+        senary,     on(senary),
+    )
+}
