@@ -1,0 +1,7 @@
+{
+  "bump": "minor",
+  "added": [
+    "New unified day log screen (preview): period, flow, symptoms, and every tracked category for a day in one place, opened from the day sheet on the calendar",
+    "Re-file an entry from the day log: tap a category's name to file the value you entered under a different category, organised by group"
+  ]
+}
