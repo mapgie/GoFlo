@@ -23,6 +23,14 @@ internal fun CategoriesHelpDialog(onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 HelpSection(
+                    "Grouped and Ungrouped",
+                    "The Grouped view shows one card per group, tinted with the group's colour. The Ungrouped view lists categories that are not in any group. Both views show the same categories; nothing is hidden by switching."
+                )
+                HelpSection(
+                    "Groups",
+                    "A group collects related categories and gives them a shared colour role. Use Add to group to file a category, and Edit on a group card to rename it, change its colour, reorder it, or delete it. Deleting a group keeps its categories: they just become ungrouped."
+                )
+                HelpSection(
                     "Category types",
                     "Default: choose from a list of named values you define. Slider and Numeric Input: record a number. Plus One: tap to add to a daily count."
                 )
@@ -32,7 +40,7 @@ internal fun CategoriesHelpDialog(onDismiss: () -> Unit) {
                 )
                 HelpSection(
                     "Reorder categories",
-                    "Long-press the drag handle on the right side of a row to pick it up, then drag it to a new position."
+                    "Tap the reorder button in the top bar to show every active category in one list, then long-press the drag handle on the right side of a row to pick it up and drag it to a new position."
                 )
                 HelpSection(
                     "Archive",
