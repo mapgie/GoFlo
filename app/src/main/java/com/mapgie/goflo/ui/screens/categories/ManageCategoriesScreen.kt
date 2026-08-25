@@ -148,22 +148,17 @@ import com.mapgie.goflo.ui.util.toHexColorKey
 fun ManageCategoriesScreen(
     viewModel: ManageCategoriesViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToCategory: (Long) -> Unit
+    onNavigateToCategory: (Long) -> Unit,
+    onNavigateToCreateCategory: (groupId: Long?) -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsState()
 
     var selectedTab   by rememberSaveable { mutableStateOf(0) }
-    var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var showHelp      by rememberSaveable { mutableStateOf(false) }
     var pendingDelete  by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingArchive by rememberSaveable { mutableStateOf<Long?>(null) }
     var reorderMode   by rememberSaveable { mutableStateOf(false) }
     var archivedExpanded by rememberSaveable { mutableStateOf(false) }
-
-    // New-category dialog context: file into this group on creation, and
-    // pre-select the group's default input type.
-    var addDialogGroupId     by rememberSaveable { mutableStateOf<Long?>(null) }
-    var addDialogInitialType by rememberSaveable { mutableStateOf(CategoryType.DEFAULT.key) }
 
     // Group management state.
     var addToGroupCategoryId by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -189,46 +184,6 @@ fun ManageCategoriesScreen(
         } else {
             pendingArchive = category.id
         }
-    }
-
-    // ── Add category dialog ───────────────────────────────────────────────────
-
-    if (showAddDialog) {
-        AddCategoryDialog(
-            initialType = addDialogInitialType,
-            onAdd = { name, iconName, colorToken, categoryType, numericMin, numericMax, allowDecimals, numericUnit, allowMultiple, showInLogPeriod ->
-                viewModel.addCategory(
-                    name            = name,
-                    iconName        = iconName,
-                    colorToken      = colorToken,
-                    categoryType    = categoryType,
-                    numericMin      = numericMin,
-                    numericMax      = numericMax,
-                    allowDecimals   = allowDecimals,
-                    numericUnit     = numericUnit,
-                    allowMultiple   = allowMultiple,
-                    showInLogPeriod = showInLogPeriod,
-                    groupId         = addDialogGroupId,
-                    onCreated    = { newId ->
-                        showAddDialog = false
-                        addDialogGroupId = null
-                        addDialogInitialType = CategoryType.DEFAULT.key
-                        // Numeric categories have all settings configured in the creation
-                        // dialog; navigating to the values screen would only confuse the
-                        // user with a redundant "Save" prompt. Default categories need to
-                        // go there so the user can add their value options.
-                        if (categoryType == CategoryType.DEFAULT.key) {
-                            onNavigateToCategory(newId)
-                        }
-                    }
-                )
-            },
-            onDismiss = {
-                showAddDialog = false
-                addDialogGroupId = null
-                addDialogInitialType = CategoryType.DEFAULT.key
-            }
-        )
     }
 
     // ── Archive confirmation ──────────────────────────────────────────────────
@@ -407,10 +362,12 @@ fun ManageCategoriesScreen(
                 addMembersGroupId = null
             },
             onNewCategory = {
-                addDialogGroupId = addMembersGroup.id
-                addDialogInitialType = addMembersGroup.defaultInputType
+                // The 2-step create flow (CategoryEditScreen) loads the group
+                // itself to pre-select its default input type and file the
+                // category on save.
+                val groupId = addMembersGroup.id
                 addMembersGroupId = null
-                showAddDialog = true
+                onNavigateToCreateCategory(groupId)
             },
             onDismiss = { addMembersGroupId = null }
         )
@@ -512,7 +469,7 @@ fun ManageCategoriesScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = { onNavigateToCreateCategory(null) },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Add Category") },
                 modifier = Modifier.semantics { contentDescription = "Add category" }
@@ -720,7 +677,7 @@ fun ManageCategoriesScreen(
                         }
                         item(key = "new_category") {
                             OutlinedButton(
-                                onClick = { showAddDialog = true },
+                                onClick = { onNavigateToCreateCategory(null) },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 48.dp)
@@ -1504,7 +1461,11 @@ private fun buildCategorySubtitle(category: TrackingCategory): String = buildStr
 }
 
 // ── Add category dialog ───────────────────────────────────────────────────────
+// Superseded by CategoryEditScreen (logging redesign Phase 7): every create
+// entry point now navigates to the 2-step flow instead of opening this dialog.
+// Kept unreferenced until Phase 8 removes it against the parity checklist.
 
+@Suppress("unused")
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AddCategoryDialog(
@@ -1702,7 +1663,11 @@ private fun AddCategoryDialog(
 }
 
 // ── Edit appearance dialog ────────────────────────────────────────────────────
+// Superseded by CategoryEditScreen (logging redesign Phase 7), which covers icon
+// and colour editing. Kept unreferenced until Phase 8 removes it against the
+// parity checklist.
 
+@Suppress("unused")
 @Composable
 internal fun EditAppearanceDialog(
     category: TrackingCategory,
@@ -1877,7 +1842,7 @@ private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
     }
 }
 
-private fun isCustomColorToken(token: String): Boolean {
+internal fun isCustomColorToken(token: String): Boolean {
     if (token.length != 8) return false
     val categoryColorKeys = CategoryColor.entries.map { it.key }.toSet()
     if (token in categoryColorKeys) return false
@@ -2099,9 +2064,10 @@ private fun CategoryColorPicker(selectedToken: String, onSelect: (String) -> Uni
 }
 
 // ── Full HSV colour picker dialog ─────────────────────────────────────────────
+// Internal: also opened from CategoryEditScreen's custom fixed-colour slot.
 
 @Composable
-private fun FullColorPickerDialog(
+internal fun FullColorPickerDialog(
     initialColor: Int,
     onDismiss: () -> Unit,
     onColorSelected: (String) -> Unit

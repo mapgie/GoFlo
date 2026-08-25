@@ -51,6 +51,8 @@ import com.mapgie.goflo.ui.screens.auth.LockViewModel
 import com.mapgie.goflo.ui.screens.auth.PinSetupScreen
 import com.mapgie.goflo.ui.screens.auth.PinSetupViewModel
 import com.mapgie.goflo.ui.screens.disclaimer.DisclaimerScreen
+import com.mapgie.goflo.ui.screens.categories.CategoryEditScreen
+import com.mapgie.goflo.ui.screens.categories.CategoryEditViewModel
 import com.mapgie.goflo.ui.screens.categories.ManageCategoriesScreen
 import com.mapgie.goflo.ui.screens.categories.ManageCategoriesViewModel
 import com.mapgie.goflo.ui.screens.categories.ManageCategoryValuesScreen
@@ -535,7 +537,52 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     onNavigateBack = { navController.popBackStack() },
                     onNavigateToCategory = { categoryId ->
                         navController.navigate(Screen.ManageCategoryValues.forCategory(categoryId))
+                    },
+                    onNavigateToCreateCategory = { groupId ->
+                        navController.navigate(
+                            if (groupId != null) Screen.CategoryEdit.newInGroup(groupId)
+                            else Screen.CategoryEdit.newCategory
+                        )
                     }
+                )
+            }
+
+            // ── Category create/edit flow (logging redesign Phase 7) ──────────────
+
+            composable(
+                route = Screen.CategoryEdit.route,
+                arguments = listOf(
+                    navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L },
+                    navArgument("groupId") { type = NavType.LongType; defaultValue = -1L },
+                )
+            ) { backStack ->
+                val categoryId = backStack.arguments?.getLong("categoryId") ?: -1L
+                val groupId = backStack.arguments?.getLong("groupId") ?: -1L
+                val vm: CategoryEditViewModel = viewModel(
+                    key = "category_edit_${categoryId}_$groupId",
+                    factory = CategoryEditViewModel.Factory(
+                        categoryId, groupId,
+                        app.trackingRepository, app.customAlarmRepository, app.applicationContext
+                    )
+                )
+                CategoryEditScreen(
+                    viewModel = vm,
+                    onNavigateBack = { navController.popBackStack() },
+                    onCreated = { newId, categoryType ->
+                        navController.popBackStack()
+                        // Default (list-of-values) categories continue to the values
+                        // screen so the user can add their options; every other type
+                        // is fully configured by the create flow already.
+                        if (categoryType == "default") {
+                            navController.navigate(Screen.ManageCategoryValues.forCategory(newId))
+                        }
+                    },
+                    onNavigateToNewAlarm = {
+                        navController.navigate(Screen.EditAlarm.newForCategory(categoryId))
+                    },
+                    onNavigateToEditAlarm = { alarmId ->
+                        navController.navigate(Screen.EditAlarm.forAlarm(alarmId))
+                    },
                 )
             }
 
@@ -558,6 +605,9 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     },
                     onNavigateToEditAlarm = { alarmId ->
                         navController.navigate(Screen.EditAlarm.forAlarm(alarmId))
+                    },
+                    onNavigateToEditCategory = {
+                        navController.navigate(Screen.CategoryEdit.forCategory(categoryId))
                     },
                 )
             }

@@ -5,6 +5,7 @@
 > - versionCode **116**, versionName **0.53.0-beta.1**, DB schema version **23**
 > - Date: 2026-08-22
 > - **Updated 2026-08-25 for Phase 2** (branch `claude/logging-redesign-phase-2-nuaywv`): DB is now **v24** — `groups` table, `TrackingCategory.groupId`, `GroupDao`, group methods on `TrackingRepository`, `"inherit"` colour sentinel. Sections below annotated in place.
+> - **Phase 7 drift** (branch `claude/logging-redesign-phase-7`, DB still v24): the "immutable after creation" rule on `categoryType` is now **"fixed once logged"** (owner decision) — editable via the new `CategoryEditScreen` until the category has a tracking log, checked live through additive `TrackingLogDao.countLogsForCategory(categoryId)` / `TrackingRepository.hasLogs(categoryId)`. `CategoryEditViewModel.save` routes edits through the pre-existing `updateCategoryFullSettings` (mode key carried through; type/allow-multiple/show-in-period pinned to stored values for system categories or once logs exist). Create still uses `addCategory` + `assignCategoryToGroup`. No schema change.
 >
 > **Staleness check for future sessions:** the DB class is `data/database/GoFloDatabase.kt`. Confirm its `version = N` before writing a migration — if it is no longer **24**, someone added migrations after this map; read them and target `N → N+1`. Run `git diff d07d947 -- app/src/main/java/com/mapgie/goflo/data/` to see drift.
 
@@ -24,7 +25,7 @@ The central category entity. **Note how much already exists** — icons, colour 
 | `displayOrder` | `Int` | `0` | |
 | `iconName` | `String` | `"category"` | → `CategoryIcon.key` (20 curated icons) |
 | `colorToken` | `String` | `"secondary"` | semantic token OR 8-char AARRGGBB hex |
-| `categoryType` | `String` | `"default"` | input-type discriminator; **immutable after creation (current rule)** |
+| `categoryType` | `String` | `"default"` | input-type discriminator; **fixed once logged** *(Phase 7 rule: editable until the first tracking log exists, then locked — see `TrackingRepository.hasLogs`)* |
 | `numericMin` | `Float` | `0f` | |
 | `numericMax` | `Float` | `10f` | |
 | `allowDecimals` | `Boolean` | `false` | |
