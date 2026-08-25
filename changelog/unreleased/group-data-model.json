@@ -1,0 +1,6 @@
+{
+  "bump": "minor",
+  "added": [
+    "Groups: categories can now belong to a group that owns a shared colour role and a default input type (data layer; management UI arrives in a later update)"
+  ]
+}

@@ -18,10 +18,16 @@ import androidx.room.PrimaryKey
  * [iconName] maps to a [com.mapgie.goflo.ui.util.CategoryIcon] key string.
  *
  * [colorToken] maps to a [com.mapgie.goflo.ui.util.CategoryColor] key string
- * ("primary", "secondary", "tertiary").  The token is resolved to an actual
+ * ("primary", "secondary", "tertiary", ...).  The token is resolved to an actual
  * [androidx.compose.ui.graphics.Color] at render time via
  * [com.mapgie.goflo.ui.util.toCategoryColor], so the bubble automatically
- * follows the user's chosen palette and light/dark mode.
+ * follows the user's chosen palette and light/dark mode.  The sentinel value
+ * "inherit" defers to the owning group's [Group.colorRole] (neutral when the
+ * category has no group); resolve it via
+ * [com.mapgie.goflo.ui.util.effectiveColorToken] before rendering.
+ *
+ * [groupId] optionally files this category under a [Group].  Nullable, no
+ * foreign key: deleting a group unfiles its members rather than cascading.
  *
  * [categoryType] is one of "default" | "numeric_slider" | "numeric_free" | "increment"
  * (see [com.mapgie.goflo.ui.util.CategoryType]).  It is immutable after creation.
@@ -58,6 +64,7 @@ data class TrackingCategory(
      *  Empty string for system categories and manually created categories.
      *  Used to deduplicate mode suggestions across modes. */
     @ColumnInfo(defaultValue = "") val modeKey: String = "",
+    val groupId: Long? = null,
 ) {
     val isNumeric: Boolean get() = categoryType != "default"
 }

@@ -59,6 +59,16 @@ interface TrackingCategoryDao {
     @Delete
     suspend fun deleteCategory(category: TrackingCategory)
 
+    // ── Groups ────────────────────────────────────────────────────────────
+
+    /** Files the category under [groupId], or unfiles it when null. */
+    @Query("UPDATE tracking_categories SET groupId = :groupId WHERE id = :categoryId")
+    suspend fun assignCategoryToGroup(categoryId: Long, groupId: Long?)
+
+    /** Unfiles every member of a group. Called before the group row is deleted. */
+    @Query("UPDATE tracking_categories SET groupId = NULL WHERE groupId = :groupId")
+    suspend fun clearGroupAssignments(groupId: Long)
+
     // ── Values ────────────────────────────────────────────────────────────
 
     @Query("SELECT * FROM tracking_values WHERE categoryId = :categoryId ORDER BY displayOrder ASC, id ASC")

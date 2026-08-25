@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.mapgie.goflo.data.database.entities.Group
+import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.theme.LocalExtendedRoles
 
 // ── Icon catalogue ────────────────────────────────────────────────────────────
@@ -144,6 +146,38 @@ enum class CategoryColor(
 }
 
 /**
+ * Sentinel [TrackingCategory.colorToken] value meaning "follow my group's
+ * colour role".  Deliberately NOT a [CategoryColor] entry so the role picker
+ * does not offer it as a standalone colour; the group-management UI (Phase 6)
+ * is the intended way to opt in.
+ *
+ * Resolution: [effectiveColorToken] maps it to the group's
+ * [Group.colorRole]; with no group it stays "inherit", which
+ * [toCategoryColor]/[toCategoryOnColor] render as the neutral
+ * surfaceVariant/onSurfaceVariant pair.
+ */
+const val COLOR_TOKEN_INHERIT = "inherit"
+
+/**
+ * Resolves the token this category should actually render with, applying the
+ * group colour-inheritance rule:
+ *
+ * - A category with its own token (every pre-existing category) uses it
+ *   unchanged, whether or not it belongs to a group.
+ * - `"inherit"` with a group resolves to the group's [Group.colorRole].
+ * - `"inherit"` without a group (or with a dangling groupId) stays
+ *   `"inherit"`, which renders neutral.
+ *
+ * Call this before [toCategoryColor]/[toCategoryOnColor] wherever a category
+ * bubble is drawn and groups are available.
+ */
+fun TrackingCategory.effectiveColorToken(groups: List<Group>): String {
+    if (colorToken != COLOR_TOKEN_INHERIT) return colorToken
+    val group = groupId?.let { id -> groups.firstOrNull { it.id == id } }
+    return group?.colorRole ?: COLOR_TOKEN_INHERIT
+}
+
+/**
  * Extended colour palette offered in the "More colours" section of the picker.
  * Values are fully-opaque ARGB ints; convert to a storage key via [toHexColorKey].
  */
@@ -187,6 +221,8 @@ fun String.toCategoryColor(): Color {
         "quaternary" -> LocalExtendedRoles.current.quaternary
         "quinary"    -> LocalExtendedRoles.current.quinary
         "senary"     -> LocalExtendedRoles.current.senary
+        // Unresolved inherit (no group): neutral, per the group-inheritance rule.
+        COLOR_TOKEN_INHERIT -> s.surfaceVariant
         else         -> runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
     }
 }
@@ -237,6 +273,7 @@ fun String.toCategoryOnColor(): Color {
         "quaternary" -> LocalExtendedRoles.current.onQuaternary
         "quinary"    -> LocalExtendedRoles.current.onQuinary
         "senary"     -> LocalExtendedRoles.current.onSenary
+        COLOR_TOKEN_INHERIT -> s.onSurfaceVariant
         else         -> {
             val bg = runCatching { Color(toLong(16)) }.getOrDefault(s.secondary)
             // WCAG: contrast ≥ 3:1 for icons. luminance > 0.35 means the background

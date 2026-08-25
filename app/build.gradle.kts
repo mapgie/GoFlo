@@ -86,6 +86,12 @@ dependencies {
     // test-only dependencies are never shipped, so they don't belong on
     // the licenses attribution screen the catalog check keeps in sync.
     testImplementation("org.json:json:20240303")
+    // Real SQLite engine for JVM unit tests — lets migration tests execute the
+    // actual Migration SQL against a real database (Room's MigrationTestHelper
+    // needs instrumented tests + exported schemas, neither of which this
+    // project has). Test-only, so deliberately not in libs.versions.toml
+    // (same rationale as org.json above).
+    testImplementation("org.xerial:sqlite-jdbc:3.45.1.0")
 }
 
 // ── Keep assets/CHANGELOG.md in sync with the root copy ──────────────────────

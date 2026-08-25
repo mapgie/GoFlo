@@ -8,6 +8,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.mapgie.goflo.data.database.dao.ColorProfileDao
 import com.mapgie.goflo.data.database.dao.CustomAlarmDao
+import com.mapgie.goflo.data.database.dao.GroupDao
 import com.mapgie.goflo.data.database.dao.PeriodDao
 import com.mapgie.goflo.data.database.dao.PeriodDayDao
 import com.mapgie.goflo.data.database.dao.SymptomDao
@@ -16,6 +17,7 @@ import com.mapgie.goflo.data.database.dao.TrackingLogDao
 import com.mapgie.goflo.data.database.entities.ColorProfile
 import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.CustomAlarmCategory
+import com.mapgie.goflo.data.database.entities.Group
 import com.mapgie.goflo.data.database.entities.PeriodDayEntry
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.SymptomEntry
@@ -36,8 +38,9 @@ import com.mapgie.goflo.data.database.entities.TrackingValue
         CustomAlarm::class,
         CustomAlarmCategory::class,
         ColorProfile::class,
+        Group::class,
     ],
-    version = 23,
+    version = 24,
     exportSchema = false
 )
 abstract class GoFloDatabase : RoomDatabase() {
@@ -48,6 +51,7 @@ abstract class GoFloDatabase : RoomDatabase() {
     abstract fun trackingLogDao(): TrackingLogDao
     abstract fun customAlarmDao(): CustomAlarmDao
     abstract fun colorProfileDao(): ColorProfileDao
+    abstract fun groupDao(): GroupDao
 
     companion object {
         @Volatile private var instance: GoFloDatabase? = null
@@ -695,6 +699,38 @@ abstract class GoFloDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the `groups` table and a nullable groupId column on
+         * tracking_categories (v24).
+         *
+         * A group owns a colour role and a default input type; categories are
+         * optionally filed under one via groupId. No foreign key on groupId:
+         * deleting a group unfiles its members (repository sets groupId NULL)
+         * rather than cascading, and an FK would force a full table rebuild.
+         *
+         * Existing rows are untouched: groupId is NULL everywhere and every
+         * category keeps its own colorToken, so nothing changes visually.
+         *
+         * The DEFAULT clauses must stay in sync with the @ColumnInfo
+         * defaultValue annotations on [Group] — Room validates the migrated
+         * schema against the entity on first open.
+         */
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `groups`
+                       (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `name` TEXT NOT NULL,
+                        `colorRole` TEXT NOT NULL DEFAULT 'primary',
+                        `defaultInputType` TEXT NOT NULL DEFAULT 'default',
+                        `displayOrder` INTEGER NOT NULL DEFAULT 0)"""
+                )
+                database.execSQL(
+                    "ALTER TABLE tracking_categories ADD COLUMN `groupId` INTEGER"
+                )
+            }
+        }
+
         fun getInstance(context: Context): GoFloDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -702,7 +738,7 @@ abstract class GoFloDatabase : RoomDatabase() {
                     GoFloDatabase::class.java,
                     "goflo_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
                     .addCallback(object : Callback() {
                         override fun onOpen(db: SupportSQLiteDatabase) {
                             super.onOpen(db)
