@@ -1,9 +1,11 @@
 package com.mapgie.goflo.data.repository
 
+import com.mapgie.goflo.data.database.dao.GroupDao
 import com.mapgie.goflo.data.database.dao.SymptomDao
 import com.mapgie.goflo.data.database.dao.TrackingCategoryDao
 import com.mapgie.goflo.data.database.dao.TrackingLogDao
 import com.mapgie.goflo.data.database.dao.ValueCount
+import com.mapgie.goflo.data.database.entities.Group
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingLog
 import com.mapgie.goflo.data.database.entities.TrackingLogValue
@@ -24,6 +26,7 @@ data class TrackingLogWithValues(
 class TrackingRepository(
     private val categoryDao: TrackingCategoryDao,
     private val logDao: TrackingLogDao,
+    private val groupDao: GroupDao? = null,
     private val symptomDao: SymptomDao? = null,
 ) {
 
@@ -564,5 +567,87 @@ class TrackingRepository(
                 categoryDao.updateCategory(cat.copy(displayOrder = newOrder))
             }
         }
+    }
+
+    // ── Groups ────────────────────────────────────────────────────────────────
+
+    private val groups: GroupDao
+        get() = checkNotNull(groupDao) { "TrackingRepository was built without a GroupDao" }
+
+    fun getAllGroups(): Flow<List<Group>> =
+        groups.getAllGroups()
+
+    suspend fun getAllGroupsOnce(): List<Group> =
+        groups.getAllGroupsOnce()
+
+    suspend fun getGroupByIdOnce(id: Long): Group? =
+        groups.getGroupById(id)
+
+    suspend fun addGroup(
+        name: String,
+        colorRole: String = "primary",
+        defaultInputType: String = "default",
+    ): Long {
+        val maxOrder = groups.getAllGroupsOnce().maxOfOrNull { it.displayOrder } ?: -1
+        return groups.insertGroup(
+            Group(
+                name             = name.trim(),
+                colorRole        = colorRole,
+                defaultInputType = defaultInputType,
+                displayOrder     = maxOrder + 1,
+            )
+        )
+    }
+
+    suspend fun renameGroup(id: Long, newName: String) {
+        val group = groups.getGroupById(id) ?: return
+        val trimmed = newName.trim()
+        if (trimmed.isNotEmpty() && trimmed != group.name) {
+            groups.updateGroup(group.copy(name = trimmed))
+        }
+    }
+
+    suspend fun updateGroupRole(id: Long, colorRole: String) {
+        val group = groups.getGroupById(id) ?: return
+        if (group.colorRole != colorRole) {
+            groups.updateGroup(group.copy(colorRole = colorRole))
+        }
+    }
+
+    suspend fun updateGroupDefaultInputType(id: Long, defaultInputType: String) {
+        val group = groups.getGroupById(id) ?: return
+        if (group.defaultInputType != defaultInputType) {
+            groups.updateGroup(group.copy(defaultInputType = defaultInputType))
+        }
+    }
+
+    suspend fun reorderGroups(orderedIds: List<Long>) {
+        orderedIds.forEachIndexed { newOrder, id ->
+            val group = groups.getGroupById(id) ?: return@forEachIndexed
+            if (group.displayOrder != newOrder) {
+                groups.updateGroup(group.copy(displayOrder = newOrder))
+            }
+        }
+    }
+
+    /**
+     * Deletes a group without touching its member categories or their history:
+     * members are unfiled (groupId set to null) first, so an inherit-coloured
+     * member falls back to the neutral rendering rather than dangling.
+     */
+    suspend fun deleteGroup(id: Long) {
+        val group = groups.getGroupById(id) ?: return
+        categoryDao.clearGroupAssignments(id)
+        groups.deleteGroup(group)
+    }
+
+    /** Files a category under [groupId]. */
+    suspend fun assignCategoryToGroup(categoryId: Long, groupId: Long) {
+        categoryDao.assignCategoryToGroup(categoryId, groupId)
+    }
+
+    /** Removes a category from its group, if any. */
+    suspend fun unassignCategory(categoryId: Long) {
+        categoryDao.assignCategoryToGroup(categoryId, null)
     }
 }

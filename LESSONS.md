@@ -94,6 +94,9 @@ When a form has section labels ("Flow", "Symptoms") and entered values ("Medium"
 
 ### Data / State
 
+**Room migrations can be tested on the JVM: real SQLite via sqlite-jdbc + a reflection proxy for `SupportSQLiteDatabase`**
+Room's `MigrationTestHelper` needs instrumented tests *and* exported schema JSON (`exportSchema = true`); a project with neither can still test migrations properly. Build the pre-migration schema by hand in an in-memory database (`org.xerial:sqlite-jdbc`, test-only dependency), seed representative data, then run the actual `Migration` object through a `java.lang.reflect.Proxy` implementing `SupportSQLiteDatabase` that routes `execSQL` to JDBC and throws for anything else — migrations that only `execSQL` need nothing more, and the proxy compiles regardless of the interface's exact member list (hand-implementing the ~35-member interface risks a CI-only compile break). Assert the post-migration schema with `PRAGMA table_info` against the exact shape Room generates for the entity — including `DEFAULT` clauses, which must match the entity's `@ColumnInfo(defaultValue=…)` annotations or Room throws `IllegalStateException` at first open on device. This exercises the real migration SQL on a real SQLite engine in a plain unit test.
+
 **Gate prediction display on window end, not window start**
 A prediction window (e.g. a 5-day expected period) should remain visible as long as any part of the window is current — gate on `windowEnd >= today`, not `windowStart >= today`. Gating on the start collapses the display to zero the moment the window begins, which is precisely when it matters most. Apply the same principle to any "active range" feature: fertility windows, ovulation windows, reminders that span multiple days.
 

@@ -29,7 +29,12 @@ class GoFloApplication : Application() {
     val database by lazy { GoFloDatabase.getInstance(this) }
     val repository by lazy { PeriodRepository(database.periodDao(), database.symptomDao(), database.periodDayDao()) }
     val trackingRepository by lazy {
-        TrackingRepository(database.trackingCategoryDao(), database.trackingLogDao(), database.symptomDao())
+        TrackingRepository(
+            categoryDao = database.trackingCategoryDao(),
+            logDao      = database.trackingLogDao(),
+            groupDao    = database.groupDao(),
+            symptomDao  = database.symptomDao(),
+        )
     }
     val customAlarmRepository by lazy { CustomAlarmRepository(database.customAlarmDao()) }
     val colorProfileDao by lazy { database.colorProfileDao() }
