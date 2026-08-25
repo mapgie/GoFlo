@@ -590,6 +590,35 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+
+            // ── Unified day logging (logging redesign Phase 5) ───────────────────
+            // Additive route: the LogPeriod and LogCategory destinations above
+            // stay registered and reachable until parity sign-off (Phase 8).
+
+            composable(
+                route = Screen.LogDay.route,
+                arguments = listOf(
+                    navArgument("date") { type = NavType.StringType; nullable = true; defaultValue = null }
+                )
+            ) { backStack ->
+                val dateStr = backStack.arguments?.getString("date")
+                val date = dateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+                    ?: java.time.LocalDate.now()
+                val vm: com.mapgie.goflo.ui.screens.log.LogViewModel = viewModel(
+                    key = "log_day_$dateStr",
+                    factory = com.mapgie.goflo.ui.screens.log.LogViewModel.Factory(
+                        repository = app.repository,
+                        trackingRepository = app.trackingRepository,
+                        date = date,
+                        application = app,
+                        preferencesStore = app.preferencesStore,
+                    )
+                )
+                com.mapgie.goflo.ui.screens.log.LogScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }

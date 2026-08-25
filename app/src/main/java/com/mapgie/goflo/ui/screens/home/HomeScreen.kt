@@ -170,6 +170,10 @@ fun HomeScreen(
                 viewModel.clearSelectedDay()
                 openLogMenuFor(data.date)
             },
+            onOpenDayLog = {
+                viewModel.clearSelectedDay()
+                onNavigate(Screen.LogDay.forDate(data.date))
+            },
         )
     }
 

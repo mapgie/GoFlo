@@ -68,6 +68,11 @@ fun DayLogSheet(
     onEditPeriod: (Long) -> Unit,
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
     onLogMore: () -> Unit,
+    /**
+     * Optional entry to the unified day screen (logging redesign Phase 5).
+     * Null hides the row; the classic per-screen actions above are unaffected.
+     */
+    onOpenDayLog: (() -> Unit)? = null,
 ) {
     val sheetState = rememberModalBottomSheetState()
 
@@ -219,6 +224,15 @@ fun DayLogSheet(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Log more for this day…")
+            }
+
+            if (onOpenDayLog != null) {
+                TextButton(
+                    onClick  = { onDismiss(); onOpenDayLog() },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Try the new day log (preview)")
+                }
             }
 
             Spacer(Modifier.height(8.dp))
