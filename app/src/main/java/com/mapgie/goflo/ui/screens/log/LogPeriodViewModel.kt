@@ -18,9 +18,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 
 /**
  * UI state for per-day period logging.
@@ -298,12 +295,7 @@ class LogPeriodViewModel(
 
     fun setFlowSliderValue(value: Float) = _uiState.update { state ->
         // Map slider position to the nearest built-in label for storage.
-        val label = when (value.toInt()) {
-            1    -> "Spotting"
-            2    -> "Light"
-            4    -> "Heavy"
-            else -> "Medium"
-        }
+        val label = PeriodDaySync.flowLabelForSliderValue(value.toInt())
         state.copy(flowSliderValue = value, selectedFlowLabel = label, hasChanges = true)
     }
 
@@ -429,47 +421,15 @@ class LogPeriodViewModel(
      * Mirrors this day's flow level into the TrackingLog system.
      * This ensures logged days appear in the Stats screen under the Flow category.
      * No-op if [trackingRepository] was not provided (e.g. in tests or legacy callers).
+     * Logic lives in [PeriodDaySync], shared with the unified day screen.
      */
-    private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) {
-        val tr = trackingRepository ?: return
-        val flowCategory = tr.getSystemCategoryByKey("flow") ?: return
-        if (flowCategory.isArchived) return
-        val flowLabel = if (flowCategory.categoryType == "numeric_slider") {
-            val v = state.flowSliderValue ?: flowLabelToSliderValue(state.selectedFlowLabel)
-            v.toInt().toString()
-        } else {
-            state.selectedFlowLabel
-        }
-        tr.saveLog(
-            date           = state.date,
-            categoryId     = flowCategory.id,
-            selectedValues = setOf(flowLabel),
-            notes          = "",
-            allowMultiple  = false,
+    private suspend fun syncFlowToTrackingLog(state: LogPeriodUiState) =
+        PeriodDaySync.syncFlowToTrackingLog(
+            trackingRepository, state.date, state.selectedFlowLabel, state.flowSliderValue,
         )
-    }
 
-    private suspend fun syncSymptomsToTrackingLog(state: LogPeriodUiState) {
-        val tr = trackingRepository ?: return
-        val symptomsCategory = tr.getSystemCategoryByKey("symptoms") ?: return
-        if (symptomsCategory.isArchived) return
-        if (state.symptoms.isEmpty()) {
-            val existing = tr.getExistingLog(state.date, symptomsCategory.id) ?: return
-            tr.deleteLog(existing.log)
-        } else {
-            val loggedAt = if (symptomsCategory.trackAgainstTime) {
-                LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
-            } else ""
-            tr.saveLog(
-                date           = state.date,
-                categoryId     = symptomsCategory.id,
-                selectedValues = state.symptoms,
-                notes          = "",
-                allowMultiple  = false,
-                loggedAt       = loggedAt,
-            )
-        }
-    }
+    private suspend fun syncSymptomsToTrackingLog(state: LogPeriodUiState) =
+        PeriodDaySync.syncSymptomsToTrackingLog(trackingRepository, state.date, state.symptoms)
 
     /** Saves each pinned category's current selection as a tracking log for the day being logged. */
     private suspend fun syncPinnedCategoryLogs(state: LogPeriodUiState) {
@@ -488,27 +448,12 @@ class LogPeriodViewModel(
     }
 
     private fun computePinnedValues(cat: TrackingCategory, state: LogPeriodUiState): Set<String>? =
-        when (cat.categoryType) {
-            "numeric_slider" -> {
-                // Fall back to numericMin so the slider's displayed position is always saved.
-                val v = state.pinnedNumericValues[cat.id] ?: cat.numericMin
-                setOf(if (cat.allowDecimals) "%.1f".format(v) else v.toInt().toString())
-            }
-            "numeric_free" -> {
-                val text = (state.pinnedFreeTextValues[cat.id] ?: "").trim()
-                if (text.isEmpty()) null else setOf(text)
-            }
-            "increment" -> {
-                // Always save, including 0 — a zero count is meaningful data for a
-                // category the user chose to track alongside periods.
-                val count = state.pinnedNumericValues[cat.id]?.toInt() ?: 0
-                setOf(count.toString())
-            }
-            else -> {
-                val selected = state.pinnedCategorySelections[cat.id] ?: emptySet()
-                if (selected.isEmpty()) null else selected
-            }
-        }
+        PeriodDaySync.computePinnedValues(
+            cat        = cat,
+            numericValue = state.pinnedNumericValues[cat.id],
+            freeText   = state.pinnedFreeTextValues[cat.id] ?: "",
+            selections = state.pinnedCategorySelections[cat.id] ?: emptySet(),
+        )
 
     fun disablePeriodTracking() {
         viewModelScope.launch { preferencesStore?.setPeriodTrackingEnabled(false) }
@@ -552,17 +497,11 @@ class LogPeriodViewModel(
     }
 
     companion object {
-        private fun flowLabelToSliderValue(label: String): Float = when (label) {
-            "Spotting" -> 1f
-            "Light"    -> 2f
-            "Heavy"    -> 4f
-            else       -> 3f  // "Medium" and any custom label default to the middle
-        }
+        private fun flowLabelToSliderValue(label: String): Float =
+            PeriodDaySync.flowLabelToSliderValue(label)
 
         /** 1-based day number of [date] within an episode starting at [start], or null when before it. */
-        private fun dayNumber(start: LocalDate, date: LocalDate): Int? {
-            val n = ChronoUnit.DAYS.between(start, date).toInt() + 1
-            return if (n >= 1) n else null
-        }
+        private fun dayNumber(start: LocalDate, date: LocalDate): Int? =
+            PeriodDaySync.dayNumber(start, date)
     }
 }
