@@ -8,6 +8,9 @@ Entries within each section are ordered by risk to a new project if forgotten: b
 
 ### Android / Compose
 
+**A `role: Color` parameter shadows the `role` semantics property — qualify with `this.role` inside `semantics {}`**
+Components that take the category's colour as a `role: Color` parameter break the idiomatic `semantics { role = Role.Button }` assignment: inside the lambda, the enclosing function's `role` parameter shadows the `SemanticsPropertyReceiver.role` extension property, so the unqualified assignment tries to reassign the `val` parameter and fails to compile. Write `this.role = Role.Button` (and likewise `this.selected` / `this.contentDescription` when locals share those names) inside `semantics {}` and `clearAndSetSemantics {}` blocks. The qualified form still satisfies `a11y_check.py`'s pattern match.
+
 **`SwipeToDismissBox`: use `confirmValueChange` returning `false` to intercept — not `LaunchedEffect` + `reset()`**
 When a swipe should show a confirmation dialog before committing, the natural-looking approach is `confirmValueChange = { true }` (allow the state change) then call `state.reset()` in the dialog's Cancel handler. This causes two bugs: (1) if the composition survives navigation, the `LaunchedEffect` key hasn't changed on return so the dialog silently re-appears; (2) `reset()` takes one animation frame, leaving a brief window where swiping is disabled. The correct pattern is `confirmValueChange = { newValue -> if (newValue == EndToStart) { showConfirm = true; false } else true }`. Returning `false` rejects the transition entirely — the box springs back immediately, no `reset()` call is needed, and the dialog fully controls the outcome. Remove the `LaunchedEffect` and the coroutine scope from the composable.
 
