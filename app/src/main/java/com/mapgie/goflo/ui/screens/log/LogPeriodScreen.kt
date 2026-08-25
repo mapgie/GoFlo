@@ -59,6 +59,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.ui.components.MetricConfig
+import com.mapgie.goflo.ui.components.MetricInput
+import com.mapgie.goflo.ui.components.MetricValue
+import com.mapgie.goflo.ui.util.CategoryType
 import com.mapgie.goflo.ui.util.decodeScaleLabels
 import com.mapgie.goflo.ui.components.SelectableChip
 import java.time.Instant
@@ -414,6 +418,7 @@ fun LogPeriodScreen(
                         onToggleValue   = { viewModel.togglePinnedValue(category.id, it) },
                         onNumericChange = { viewModel.setPinnedNumericValue(category.id, it) },
                         onFreeTextChange = { viewModel.setPinnedFreeText(category.id, it) },
+                        onSingleValueChange = { viewModel.setPinnedSingleValue(category.id, it) },
                     )
                 }
 
@@ -479,8 +484,44 @@ private fun PinnedCategoryInput(
     onToggleValue: (String) -> Unit,
     onNumericChange: (Float) -> Unit,
     onFreeTextChange: (String) -> Unit,
+    onSingleValueChange: (String) -> Unit = {},
 ) {
     when (category.categoryType) {
+        // The two Phase 4 types delegate to the MetricInput facade; their
+        // readings live in the selection set as a single value label
+        // ("Yes"/"No", "HH:mm"), which the existing pinned-category save
+        // path already persists. The pre-existing branches below are
+        // intentionally untouched (they are fully replaced in Phase 5).
+        "yes_no" -> MetricInput(
+            type = CategoryType.YES_NO,
+            config = MetricConfig(name = category.name),
+            value = MetricValue.YesNo(
+                when {
+                    "Yes" in selectedValues -> true
+                    "No" in selectedValues -> false
+                    else -> null
+                }
+            ),
+            role = MaterialTheme.colorScheme.primary,
+            onRole = MaterialTheme.colorScheme.onPrimary,
+            onChange = { v ->
+                (v as? MetricValue.YesNo)?.value?.let {
+                    onSingleValueChange(if (it) "Yes" else "No")
+                }
+            },
+        )
+
+        "time" -> MetricInput(
+            type = CategoryType.TIME,
+            config = MetricConfig(name = category.name),
+            value = MetricValue.TimeOfDay(selectedValues.firstOrNull()),
+            role = MaterialTheme.colorScheme.primary,
+            onRole = MaterialTheme.colorScheme.onPrimary,
+            onChange = { v ->
+                (v as? MetricValue.TimeOfDay)?.time?.let(onSingleValueChange)
+            },
+        )
+
         "numeric_slider" -> {
             val min = category.numericMin
             val max = category.numericMax

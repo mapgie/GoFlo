@@ -1,8 +1,10 @@
 package com.mapgie.goflo.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -31,9 +33,14 @@ import com.mapgie.goflo.ui.util.CategoryType
 /**
  * The value a [MetricInput] holds, one variant per input model.
  *
- * The Yes/No and Time variants are defined now so Phase 4 can add the
- * matching [CategoryType] entries without reshaping this API; nothing renders
- * them yet.
+ * ### Storage encoding (PLAN.md §8 decision #3, resolved by the owner)
+ * Every variant round-trips to the same store as before: plain value-label
+ * strings in `tracking_log_values`. The two Phase 4 types follow suit with
+ * NO new columns and NO migration:
+ * - [YesNo] persists as the literal label "Yes" or "No".
+ * - [TimeOfDay] persists as a 24-hour "HH:mm" label.
+ * Stats already counts value labels, so Yes/No charts work for free; a time
+ * label is display-only in Stats (accepted).
  */
 sealed interface MetricValue {
     /** Multi-select text labels (the `default` chip input). */
@@ -51,10 +58,10 @@ sealed interface MetricValue {
     /** A per-day tally (the `increment` input). */
     data class Count(val count: Int) : MetricValue
 
-    /** Yes/No state; null until the user answers. Rendered from Phase 4. */
+    /** Yes/No state; null until the user answers. Stored as "Yes"/"No". */
     data class YesNo(val value: Boolean?) : MetricValue
 
-    /** A time of day as "HH:mm"; null until picked. Rendered from Phase 4. */
+    /** A time of day as "HH:mm"; null until picked. Stored as "HH:mm". */
     data class TimeOfDay(val time: String?) : MetricValue
 }
 
@@ -74,15 +81,41 @@ data class MetricConfig(
 )
 
 /**
+ * Whether a `numeric_slider` category renders as discrete tap-steps
+ * ([StepScale]) rather than a continuous [Slider]. The "kill the slider" rule:
+ * a whole-step scale of up to 10 steps is a rating and gets tap-steps; a
+ * decimal or wider range is a genuine measure and keeps a real slider.
+ *
+ * Exposed so callers (the log screens) can decide which [MetricValue] variant
+ * mirrors their state without duplicating the threshold.
+ */
+fun MetricConfig.usesStepScale(): Boolean =
+    !allowDecimals && (max - min + 1) in 2..10
+
+/** Reads the numeric reading out of whichever slider-family variant holds it. */
+private fun MetricValue?.numericOrNull(): Float? = when (this) {
+    is MetricValue.Scale -> step?.toFloat()
+    is MetricValue.Continuous -> value
+    is MetricValue.Count -> count.toFloat()
+    else -> null
+}
+
+/**
  * The one input facade: screens render a metric through this and never branch
  * on the category type themselves.
  *
- * Phase 3 stub: the switch exists and returns a working control per type, but
- * full logging behaviour (save blocking, timed timelines, value formatting)
- * lands in Phase 4, which is also where the `yes_no` and `time` types join
- * [CategoryType]. The "kill the slider" rule is applied here: a discrete
- * whole-step scale renders as a [StepScale]; only a genuinely continuous
- * measure (decimals allowed, or a wide range) keeps a real slider.
+ * Behaviour parity with the pre-redesign per-type sections is the contract:
+ * - `numeric_slider`: whole-step behaviour is kept (tap-steps for ratings,
+ *   a stepped slider for whole ranges wider than 10, continuous only with
+ *   decimals), scale labels still caption the steps, and an unset value still
+ *   displays as the range minimum (which is also what saves).
+ * - `numeric_free`: unit label + decimal keyboard; the caller keeps its
+ *   empty-input-blocks-save rule (the facade never fabricates a value).
+ * - `increment`: count never drops below 0; the caller keeps its
+ *   count-of-zero-blocks-save rule. Timed increment (per-tap immediate saves)
+ *   is a screen-level flow rendered with [Timeline], not through this facade.
+ * - `yes_no` / `time`: new in Phase 4, see [MetricValue] for the storage
+ *   encoding.
  */
 @Composable
 fun MetricInput(
@@ -108,33 +141,27 @@ fun MetricInput(
         )
 
         CategoryType.NUMERIC_SLIDER -> {
-            val stepCount = config.max - config.min + 1
-            val isContinuous = config.allowDecimals || stepCount > 10
-            if (isContinuous) {
-                val current = (value as? MetricValue.Continuous)?.value ?: config.min.toFloat()
-                Slider(
-                    value = current.coerceIn(config.min.toFloat(), config.max.toFloat()),
-                    onValueChange = { onChange(MetricValue.Continuous(it)) },
-                    valueRange = config.min.toFloat()..config.max.toFloat(),
-                    colors = SliderDefaults.colors(
-                        thumbColor = role,
-                        activeTrackColor = role,
-                    ),
-                    modifier = modifier.fillMaxWidth(),
-                )
-            } else {
+            if (config.usesStepScale()) {
                 val range = config.min..config.max
                 val labels = if (config.stepLabels.isEmpty()) null
                 else range.map { config.stepLabels[it] ?: it.toString() }
                 StepScale(
                     name = config.name,
                     range = range,
-                    value = (value as? MetricValue.Scale)?.step,
+                    value = value.numericOrNull()?.toInt(),
                     role = role,
                     onRole = onRole,
                     onSelect = { onChange(MetricValue.Scale(it)) },
                     labels = labels,
                     endLabels = config.endLabels,
+                    modifier = modifier,
+                )
+            } else {
+                ContinuousSlider(
+                    config = config,
+                    value = value.numericOrNull(),
+                    role = role,
+                    onChange = { onChange(MetricValue.Continuous(it)) },
                     modifier = modifier,
                 )
             }
@@ -143,7 +170,8 @@ fun MetricInput(
         CategoryType.NUMERIC_FREE -> OutlinedTextField(
             value = (value as? MetricValue.FreeNumber)?.text ?: "",
             onValueChange = { onChange(MetricValue.FreeNumber(it)) },
-            label = { Text(config.unit ?: "Value") },
+            label = { Text(if (config.unit.isNullOrBlank()) "Value" else config.unit) },
+            placeholder = { Text("Enter a number") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true,
             modifier = modifier.fillMaxWidth(),
@@ -158,19 +186,33 @@ fun MetricInput(
             ) {
                 OutlinedIconButton(
                     onClick = { onChange(MetricValue.Count((count - 1).coerceAtLeast(0))) },
+                    enabled = count > 0,
                 ) {
                     Icon(
                         imageVector = Icons.Default.Remove,
                         contentDescription = "Decrease ${config.name}",
                     )
                 }
-                Text(
-                    text = count.toString(),
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = TextStyle(fontFeatureSettings = "tnum"),
-                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = count.toString(),
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
+                    )
+                    if (!config.unit.isNullOrBlank()) {
+                        Text(
+                            text = config.unit,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp),
+                        )
+                    }
+                }
                 FilledIconButton(
                     onClick = { onChange(MetricValue.Count(count + 1)) },
                     colors = IconButtonDefaults.filledIconButtonColors(
@@ -184,6 +226,116 @@ fun MetricInput(
                     )
                 }
             }
+        }
+
+        CategoryType.YES_NO -> SegmentedToggle(
+            options = listOf("Yes", "No"),
+            selected = when ((value as? MetricValue.YesNo)?.value) {
+                true -> 0
+                false -> 1
+                null -> -1
+            },
+            onSelect = { onChange(MetricValue.YesNo(it == 0)) },
+            role = role,
+            modifier = modifier,
+        )
+
+        // Label stays the generic "Time": both log screens already frame the
+        // input with the category's name, so repeating it would read doubled.
+        CategoryType.TIME -> TimeField(
+            value = (value as? MetricValue.TimeOfDay)?.time,
+            role = role,
+            onChange = { onChange(MetricValue.TimeOfDay(it)) },
+            modifier = modifier,
+        )
+    }
+}
+
+/**
+ * The slider kept for genuine measures: continuous when decimals are allowed,
+ * whole-number stepped when the range is wider than [StepScale] comfortably
+ * fits. Mirrors the pre-redesign slider exactly: large readout (falling back
+ * to the range minimum, which is also the value that saves), optional scale
+ * label for the current whole value, min/max end labels, and a hint until the
+ * user sets a value.
+ */
+@Composable
+private fun ContinuousSlider(
+    config: MetricConfig,
+    value: Float?,
+    role: Color,
+    onChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val min = config.min.toFloat()
+    val max = config.max.toFloat()
+    val sliderValue = (value ?: min).coerceIn(min, max)
+
+    // Steps: 0 = continuous (for decimals), otherwise whole-number steps.
+    val steps = if (config.allowDecimals) 0 else {
+        val range = (max - min).toInt()
+        if (range > 1) range - 1 else 0
+    }
+
+    fun format(v: Float): String =
+        if (config.allowDecimals) "%.1f".format(v) else v.toInt().toString()
+
+    val scaleLabel = if (!config.allowDecimals) config.stepLabels[sliderValue.toInt()] else null
+
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.End,
+        ) {
+            Text(
+                text = if (config.unit.isNullOrBlank()) format(sliderValue)
+                else "${format(sliderValue)} ${config.unit}",
+                style = MaterialTheme.typography.headlineMedium,
+                color = role,
+            )
+            if (scaleLabel != null) {
+                Text(
+                    text = scaleLabel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Slider(
+            value = sliderValue,
+            onValueChange = onChange,
+            valueRange = min..max,
+            steps = steps,
+            colors = SliderDefaults.colors(
+                thumbColor = role,
+                activeTrackColor = role,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = format(min),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (value == null) {
+                Text(
+                    text = "Drag to set a value",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Text(
+                text = format(max),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -210,6 +362,15 @@ private fun MetricInputPreviewContent() {
         onRole = MaterialTheme.colorScheme.onPrimary,
         onChange = {},
     )
+    SectionHeader(label = "Temperature")
+    MetricInput(
+        type = CategoryType.NUMERIC_SLIDER,
+        config = MetricConfig(name = "Temperature", min = 35, max = 39, allowDecimals = true, unit = "C"),
+        value = MetricValue.Continuous(36.6f),
+        role = MaterialTheme.colorScheme.tertiary,
+        onRole = MaterialTheme.colorScheme.onTertiary,
+        onChange = {},
+    )
     SectionHeader(label = "Weight")
     MetricInput(
         type = CategoryType.NUMERIC_FREE,
@@ -222,10 +383,28 @@ private fun MetricInputPreviewContent() {
     SectionHeader(label = "Count", value = "6 glasses of water")
     MetricInput(
         type = CategoryType.INCREMENT,
-        config = MetricConfig(name = "Water"),
+        config = MetricConfig(name = "Water", unit = "glasses"),
         value = MetricValue.Count(6),
         role = MaterialTheme.colorScheme.primary,
         onRole = MaterialTheme.colorScheme.onPrimary,
+        onChange = {},
+    )
+    SectionHeader(label = "Took medication", value = "Yes", valueColor = MaterialTheme.colorScheme.primary)
+    MetricInput(
+        type = CategoryType.YES_NO,
+        config = MetricConfig(name = "Took medication"),
+        value = MetricValue.YesNo(true),
+        role = MaterialTheme.colorScheme.primary,
+        onRole = MaterialTheme.colorScheme.onPrimary,
+        onChange = {},
+    )
+    SectionHeader(label = "Woke up", value = "07:45", valueColor = MaterialTheme.colorScheme.secondary)
+    MetricInput(
+        type = CategoryType.TIME,
+        config = MetricConfig(name = "Woke up"),
+        value = MetricValue.TimeOfDay("07:45"),
+        role = MaterialTheme.colorScheme.secondary,
+        onRole = MaterialTheme.colorScheme.onSecondary,
         onChange = {},
     )
 }

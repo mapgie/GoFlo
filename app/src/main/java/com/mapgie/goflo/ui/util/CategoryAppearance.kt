@@ -86,6 +86,8 @@ enum class CategoryType(val key: String, val displayName: String) {
     NUMERIC_SLIDER("numeric_slider", "Slider scale"),
     NUMERIC_FREE  ("numeric_free",   "Numeric (Input)"),
     INCREMENT     ("increment",      "Plus One"),
+    YES_NO        ("yes_no",         "Yes / No"),
+    TIME          ("time",           "Time"),
 }
 
 fun String.toCategoryType(): CategoryType =

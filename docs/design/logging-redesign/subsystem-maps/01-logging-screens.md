@@ -6,6 +6,8 @@
 > - Date: 2026-08-22
 >
 > **Staleness check for future sessions:** run `git diff d07d947 -- app/src/main/java/com/mapgie/goflo/ui/screens/log/` before trusting the line numbers below. If any log-screen file changed, re-read it. The *shape* of the description (two separate screens, `categoryType` discriminator) is durable; exact line numbers drift.
+>
+> **Phase 4 drift (branch `claude/logging-redesign-phase-4`):** `LogCategoryScreen` no longer contains the per-type section composables described in §2 — every non-timed input renders through the `MetricInput` facade (`ui/components/MetricInput.kt`), and the timed-increment path renders the `Timeline` primitive via a screen-level `TimedIncrementTimeline`. The screen keeps a small `when` only to map `LogCategoryUiState` onto a `MetricValue` (`metricValueFor`) and to frame card vs bare-chip layouts. Two new `categoryType` strings exist: `"yes_no"` (stores "Yes"/"No" value labels) and `"time"` (stores 24h "HH:mm" value labels); both flow through `LogCategoryUiState.selectedValues` as a single-label set, and `LogCategoryViewModel.save()`'s else-branch persists them. `PinnedCategoryInput` in `LogPeriodScreen` gained additive `"yes_no"`/`"time"` branches delegating to `MetricInput` (its four pre-existing branches and `LogPeriodViewModel.computePinnedValues` are unchanged; the new types save through the existing else/selection-set path plus a new `setPinnedSingleValue`). Line numbers below refer to the pre-Phase-4 files; the save-flow description in §4 remains accurate.
 
 ## Overview: two truly separate destinations
 

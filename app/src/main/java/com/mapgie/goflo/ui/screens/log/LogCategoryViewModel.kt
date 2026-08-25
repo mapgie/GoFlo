@@ -190,6 +190,15 @@ class LogCategoryViewModel(
         }
     }
 
+    /**
+     * Replaces the whole selection set. Used by the MetricInput-driven screen:
+     * chip multi-select passes the toggled set; the single-label yes_no and
+     * time types pass a one-element set ("Yes"/"No" or "HH:mm"), which is
+     * exactly the value-label string persisted for them.
+     */
+    fun setSelectedValues(values: Set<String>) =
+        _uiState.update { it.copy(selectedValues = values) }
+
     fun setNumericValue(v: Float) = _uiState.update { it.copy(numericValue = v) }
 
     fun setNumericFreeText(text: String) = _uiState.update { it.copy(numericFreeText = text) }
@@ -266,6 +275,8 @@ class LogCategoryViewModel(
                 if (count <= 0) return   // nothing to record; use delete to clear
                 setOf(count.toString())
             }
+            // default chips, yes_no ("Yes"/"No") and time ("HH:mm") all persist
+            // their labels straight from the selection set.
             else -> state.selectedValues
         }
 

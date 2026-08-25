@@ -29,8 +29,11 @@ import androidx.room.PrimaryKey
  * [groupId] optionally files this category under a [Group].  Nullable, no
  * foreign key: deleting a group unfiles its members rather than cascading.
  *
- * [categoryType] is one of "default" | "numeric_slider" | "numeric_free" | "increment"
- * (see [com.mapgie.goflo.ui.util.CategoryType]).  It is immutable after creation.
+ * [categoryType] is one of "default" | "numeric_slider" | "numeric_free" |
+ * "increment" | "yes_no" | "time" (see [com.mapgie.goflo.ui.util.CategoryType]).
+ * It is immutable after creation.  The "yes_no" and "time" types store their
+ * readings as plain value-label strings ("Yes"/"No" and 24-hour "HH:mm"), so
+ * they need no schema support beyond [TrackingLogValue].
  *
  * [numericUnit] is an optional suffix shown alongside numeric values (e.g. "°C").
  *
@@ -66,5 +69,14 @@ data class TrackingCategory(
     @ColumnInfo(defaultValue = "") val modeKey: String = "",
     val groupId: Long? = null,
 ) {
-    val isNumeric: Boolean get() = categoryType != "default"
+    /**
+     * Whether this category's stored value labels parse as numbers (drives the
+     * numeric chart types in Stats).  Enumerated explicitly rather than
+     * "anything but default" because "yes_no" and "time" store non-numeric
+     * labels ("Yes"/"No", "HH:mm") and must chart as label categories.
+     */
+    val isNumeric: Boolean
+        get() = categoryType == "numeric_slider" ||
+            categoryType == "numeric_free" ||
+            categoryType == "increment"
 }

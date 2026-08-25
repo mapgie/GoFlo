@@ -345,6 +345,19 @@ class LogPeriodViewModel(
     }
 
     /**
+     * Replaces a pinned category's selection with one label. Used by the
+     * single-value yes_no and time input types, whose reading is stored as a
+     * lone value-label string ("Yes"/"No" or "HH:mm"); the existing
+     * selection-set save path persists it unchanged.
+     */
+    fun setPinnedSingleValue(categoryId: Long, label: String) = _uiState.update { state ->
+        state.copy(
+            pinnedCategorySelections = state.pinnedCategorySelections + (categoryId to setOf(label)),
+            hasChanges = true,
+        )
+    }
+
+    /**
      * Saves the day: marks [LogPeriodUiState.date] as a period day (which
      * starts, continues, or bridges an episode as needed), applies any
      * episode-boundary edits, and writes this day's flow/symptoms/pinned

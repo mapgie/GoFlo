@@ -694,7 +694,11 @@ private fun AddCategoryDialog(
     var allowMultiple    by rememberSaveable { mutableStateOf(false) }
     var showInLogPeriod  by rememberSaveable { mutableStateOf(false) }
 
-    val isNumericType = selectedType != CategoryType.DEFAULT.key
+    // Only the numeric family carries a unit; Yes/No and Time store fixed
+    // labels ("Yes"/"No", "HH:mm") and need no extra configuration at all.
+    val isNumericType = selectedType == CategoryType.NUMERIC_SLIDER.key ||
+        selectedType == CategoryType.NUMERIC_FREE.key ||
+        selectedType == CategoryType.INCREMENT.key
     // Only the slider type uses a min/max range — free input and increment do not.
     val isSliderType = selectedType == CategoryType.NUMERIC_SLIDER.key
 

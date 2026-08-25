@@ -32,6 +32,9 @@ When a SmallFloatingActionButton contains an Icon with `contentDescription = nul
 **`ModalBottomSheetProperties` requires all parameters explicitly in Material3 1.2.x**
 The constructor has no default values in this version — passing only `shouldDismissOnBackPress` fails to compile. Always supply all three: `securePolicy = SecureFlagPolicy.Inherit, isFocusable = true, shouldDismissOnBackPress = false`. `SecureFlagPolicy` also needs an explicit import from `androidx.compose.ui.window`.
 
+**A classification defined by negation ("anything but X") silently misclassifies new variants**
+`TrackingCategory.isNumeric` was `categoryType != "default"`, which was correct while every non-default type happened to store numbers. Adding the label-valued "yes_no" and "time" types would have silently routed "Yes"/"HH:mm" strings into numeric chart math (`toFloatOrNull()` returning null everywhere) with no compile error, because a negated predicate auto-includes every future variant. When a derived property gates behaviour, define membership positively (enumerate the types that ARE numeric); then a new variant defaults to the safe side and the property's KDoc records why. Grep for `!=` against discriminator fields whenever adding a variant to a string-keyed or enum type.
+
 **Parallel write paths must each respect every category setting**
 When two code paths write to the same store (e.g. `LogPeriodViewModel.syncSymptomsToTrackingLog` and `LogCategoryViewModel.save` both writing to `tracking_logs`), each path must independently read and apply every relevant category flag. If a new flag is added (like `trackAgainstTime`) and only one path is updated, the other silently ignores the setting. When adding a per-category behaviour flag, grep for all call sites of the underlying `saveLog` / `updateLogInPlace` and confirm they all handle the new flag.
 
