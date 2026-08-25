@@ -1,6 +1,0 @@
-{
-  "bump": "minor",
-  "added": [
-    "Three extra in-theme colour roles for categories (Quaternary, Quinary, Senary) that re-theme with your palette, plus a clearer fixed colour option that stays put on theme change"
-  ]
-}
