@@ -31,6 +31,15 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.54.0-beta.1] - 2026-08-25
+
+### Added
+- Three extra in-theme colour roles for categories (Quaternary, Quinary, Senary) that re-theme with your palette, plus a clearer fixed colour option that stays put on theme change
+
+### Changed
+- Themes: refreshed all 12 named palettes so each name's three colour chord delivers. Coral now reads as coral, lagoon teal and gold; Dragon Fire is all fire; Midnight Neon glows in both light and dark. Accessibility themes are unchanged.
+
+---
 ## [0.53.1-beta.1] - 2026-08-22
 
 ### Fixed
