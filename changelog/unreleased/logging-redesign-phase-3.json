@@ -1,0 +1,4 @@
+{
+  "bump": "patch",
+  "changed": ["Internal: shared UI component library for the logging redesign (no user-facing change yet)"]
+}
