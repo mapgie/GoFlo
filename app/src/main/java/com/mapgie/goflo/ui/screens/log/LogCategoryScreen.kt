@@ -129,8 +129,12 @@ private fun DatePickerDialogWrapper(
     }
 }
 
-/** Builds the [MetricConfig] the [MetricInput] facade renders from a category row. */
-private fun metricConfigFor(
+/**
+ * Builds the [MetricConfig] the [MetricInput] facade renders from a category
+ * row. Internal so the unified day screen ([LogScreen]) shares the exact same
+ * mapping instead of a copy that could drift.
+ */
+internal fun metricConfigFor(
     category: TrackingCategory,
     availableValues: List<String>,
 ): MetricConfig = MetricConfig(
@@ -175,9 +179,12 @@ private fun metricValueFor(
  * timestamped log immediately, so the day renders as a running total plus a
  * [Timeline] of today's entries with per-entry delete. There is deliberately
  * no notes field or Save button on this path.
+ *
+ * Internal so the unified day screen ([LogScreen]) renders the identical
+ * timed-increment surface.
  */
 @Composable
-private fun TimedIncrementTimeline(
+internal fun TimedIncrementTimeline(
     category: TrackingCategory,
     entries: List<com.mapgie.goflo.data.repository.TrackingLogWithValues>,
     onAddOne: () -> Unit,

@@ -66,4 +66,18 @@ sealed class Screen(val route: String) {
         fun editEntry(categoryId: Long, logId: Long) =
             "log_category/$categoryId?logId=$logId"
     }
+
+    // ── Unified day logging (logging redesign Phase 5) ─────────────────────────
+
+    /**
+     * Route for the unified day screen, where a running period is a state of
+     * the day rather than a separate destination.
+     *
+     * Additive: [LogPeriod] and [LogCategory] stay registered and reachable
+     * until the parity sign-off (removal is Phase 8 of the logging redesign).
+     * - [date] — ISO 8601 date string; omit to default to today
+     */
+    data object LogDay : Screen("log_day?date={date}") {
+        fun forDate(date: LocalDate) = "log_day?date=$date"
+    }
 }
