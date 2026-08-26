@@ -51,6 +51,9 @@ import com.mapgie.goflo.ui.util.toHexColorKey
  *
  * State is hoisted: [selectedToken] is a [CategoryColor] key or an 8-char hex
  * key, and [onPick] fires with the tapped token.
+ *
+ * Set [showFixedSection] to false on surfaces that only offer in-theme roles
+ * (a group's colour role is never a raw hex).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -61,6 +64,7 @@ fun RolePicker(
     roles: List<CategoryColor> = CategoryColor.entries,
     fixedColors: List<Int> = CATEGORY_COLOR_OPTIONS,
     extraFixedSlot: (@Composable () -> Unit)? = null,
+    showFixedSection: Boolean = true,
 ) {
     Column(
         modifier = modifier,
@@ -79,20 +83,22 @@ fun RolePicker(
                 )
             }
         }
-        HairlineDivider()
-        SectionHeader(label = "Fixed colour", value = "Stays put on theme change")
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            fixedColors.forEach { argb ->
-                FixedSwatch(
-                    argb = argb,
-                    isSelected = argb.toHexColorKey() == selectedToken,
-                    onPick = onPick,
-                )
+        if (showFixedSection) {
+            HairlineDivider()
+            SectionHeader(label = "Fixed colour", value = "Stays put on theme change")
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                fixedColors.forEach { argb ->
+                    FixedSwatch(
+                        argb = argb,
+                        isSelected = argb.toHexColorKey() == selectedToken,
+                        onPick = onPick,
+                    )
+                }
+                extraFixedSlot?.invoke()
             }
-            extraFixedSlot?.invoke()
         }
     }
 }
