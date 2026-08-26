@@ -31,6 +31,24 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.56.0-beta.1] - 2026-08-26
+
+### Added
+- Redesigned 2-step category creation: name, icon, colour role, input type, and per-day switches on step 1, with scale range, step labels, and decimals on step 2
+- Category edit screen with per-category reminders (wired to existing custom alarms), a scale settings step, and a delete-with-history danger zone
+- New category input types: Yes/No and Time
+- New unified day log screen (preview): period, flow, symptoms, and every tracked category for a day in one place, opened from the day sheet on the calendar
+- Re-file an entry from the day log: tap a category's name to file the value you entered under a different category, organised by group
+- Categories can be filed into groups and can optionally adopt the group's colour role, following any later recolour of the group
+
+### Changed
+- The input type of a category stays editable until its first logged entry, then locks with an explanation
+- Internal: shared UI component library for the logging redesign (no user-facing change yet)
+- Rating scales now log with discrete tap-steps instead of a drag slider (decimal and wide ranges keep the slider)
+- Unified how category inputs are rendered (no change to existing categories or their stored data)
+- Redesigned the What You Track screen with Grouped and Ungrouped views: group cards, an add-to-group sheet, and inline group management (create, rename, recolour, reorder, delete)
+
+---
 ## [0.55.0-beta.1] - 2026-08-26
 
 ### Added

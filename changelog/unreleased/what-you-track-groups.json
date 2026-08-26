@@ -1,9 +1,0 @@
-{
-  "bump": "minor",
-  "changed": [
-    "Redesigned the What You Track screen with Grouped and Ungrouped views: group cards, an add-to-group sheet, and inline group management (create, rename, recolour, reorder, delete)"
-  ],
-  "added": [
-    "Categories can be filed into groups and can optionally adopt the group's colour role, following any later recolour of the group"
-  ]
-}
