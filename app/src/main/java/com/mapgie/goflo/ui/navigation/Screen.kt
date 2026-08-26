@@ -79,6 +79,17 @@ sealed class Screen(val route: String) {
             "log_category/$categoryId?logId=$logId"
     }
 
+    // ── Period detail (History drill-in) ───────────────────────────────────────
+
+    /**
+     * Read-only view of one period episode expanded into its individual days.
+     * Opened from a History card; day rows continue to [LogDay] and the Edit
+     * action continues to [LogPeriod].
+     */
+    data object PeriodDetail : Screen("period_detail/{periodId}") {
+        fun forPeriod(periodId: Long) = "period_detail/$periodId"
+    }
+
     // ── Unified day logging (logging redesign Phase 5) ─────────────────────────
 
     /**
