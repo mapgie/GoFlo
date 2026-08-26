@@ -890,7 +890,10 @@ private fun AddToGroupSheet(
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
-    var adoptColor by rememberSaveable { mutableStateOf(true) }
+    // A hex token (fixed swatch or custom picker) is a deliberate colour choice;
+    // filing must not silently replace it, so the adopt switch starts off.
+    val hasOwnFixedColor = isFixedColorToken(category.colorToken)
+    var adoptColor by rememberSaveable { mutableStateOf(!hasOwnFixedColor) }
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -915,7 +918,11 @@ private fun AddToGroupSheet(
             ListCard {
                 SwitchRow(
                     title = "Use the group's colour",
-                    subtitle = "The category follows its group's colour role from now on",
+                    subtitle = if (hasOwnFixedColor) {
+                        "This category has its own custom colour. Turning this on replaces it with the group's colour role."
+                    } else {
+                        "The category follows its group's colour role from now on"
+                    },
                     checked = adoptColor,
                     role = MaterialTheme.colorScheme.primary,
                     onRole = MaterialTheme.colorScheme.onPrimary,
@@ -1043,7 +1050,8 @@ private fun AddMemberSheet(
             ListCard {
                 SwitchRow(
                     title = "Use the group's colour",
-                    subtitle = "Filed categories follow this group's colour role",
+                    subtitle = "Filed categories follow this group's colour role. " +
+                        "Categories with their own custom colour keep it.",
                     checked = adoptColor,
                     role = MaterialTheme.colorScheme.primary,
                     onRole = MaterialTheme.colorScheme.onPrimary,
@@ -1066,7 +1074,10 @@ private fun AddMemberSheet(
                         key = category.name,
                         value = currentGroup?.let { "In ${it.name}" } ?: "Ungrouped",
                         valueColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        onClick = { onPick(category, adoptColor) },
+                        // One switch covers every candidate, so a deliberately chosen
+                        // hex colour is protected here per category; adopting for such
+                        // a category stays available from its own Add-to-group sheet.
+                        onClick = { onPick(category, adoptColor && !isFixedColorToken(category.colorToken)) },
                     )
                 }
                 if (sorted.isNotEmpty()) HairlineDivider()
@@ -1840,6 +1851,17 @@ private fun CategoryIconGrid(selectedKey: String, onSelect: (String) -> Unit) {
             }
         }
     }
+}
+
+/**
+ * True when the token is a stored hex colour, i.e. any deliberately chosen
+ * non-theme colour: a fixed swatch or a custom picker colour. Unlike
+ * [isCustomColorToken] this includes the fixed swatches. The length check is
+ * not sufficient on its own because "tertiary" is also 8 characters.
+ */
+internal fun isFixedColorToken(token: String): Boolean {
+    if (token.length != 8) return false
+    return CategoryColor.entries.none { it.key == token }
 }
 
 internal fun isCustomColorToken(token: String): Boolean {

@@ -1,0 +1,6 @@
+{
+  "bump": "patch",
+  "changed": [
+    "Adding a category to a group no longer replaces its custom colour by default: the colour switch starts off for custom-coloured categories, and bulk-adding from a group card always keeps them"
+  ]
+}
