@@ -36,6 +36,10 @@ interface TrackingLogDao {
     @Query("SELECT * FROM tracking_logs WHERE date = :date AND categoryId = :categoryId ORDER BY loggedAt ASC, id ASC")
     suspend fun getLogsForDateAndCategory(date: String, categoryId: Long): List<TrackingLog>
 
+    /** Number of tracking log rows recorded for [categoryId], across all dates. */
+    @Query("SELECT COUNT(*) FROM tracking_logs WHERE categoryId = :categoryId")
+    suspend fun countLogsForCategory(categoryId: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLog(log: TrackingLog): Long
 

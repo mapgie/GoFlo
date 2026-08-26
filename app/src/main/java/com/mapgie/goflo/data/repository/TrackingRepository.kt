@@ -390,6 +390,17 @@ class TrackingRepository(
         return newCount
     }
 
+    /**
+     * True when at least one tracking log exists for the category.
+     *
+     * Used by the category edit flow (logging redesign Phase 7) to decide
+     * whether the input type is still editable: the owner-decided rule is
+     * "the type is fixed once logged" — computed here from the presence of
+     * dependent data rather than stored as a flag.
+     */
+    suspend fun hasLogs(categoryId: Long): Boolean =
+        logDao.countLogsForCategory(categoryId) > 0
+
     /** Returns the existing log (with values) for a specific (date, category), or null. */
     suspend fun getExistingLog(date: LocalDate, categoryId: Long): TrackingLogWithValues? {
         val log = logDao.getLogForDateAndCategory(date.toString(), categoryId) ?: return null

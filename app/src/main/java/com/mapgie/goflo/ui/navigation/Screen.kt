@@ -39,6 +39,18 @@ sealed class Screen(val route: String) {
         fun forCategory(id: Long) = "manage_category_values/$id"
     }
 
+    /**
+     * The 2-step category create/edit flow (logging redesign Phase 7).
+     * - [categoryId] `> 0` edits an existing category; `-1` creates a new one.
+     * - [groupId] `> 0` (create only) files the new category into that group on
+     *   save and pre-selects the group's default input type.
+     */
+    data object CategoryEdit : Screen("category_edit?categoryId={categoryId}&groupId={groupId}") {
+        val newCategory = "category_edit?categoryId=-1&groupId=-1"
+        fun newInGroup(groupId: Long) = "category_edit?categoryId=-1&groupId=$groupId"
+        fun forCategory(categoryId: Long) = "category_edit?categoryId=$categoryId&groupId=-1"
+    }
+
     // ── Custom alarms ──────────────────────────────────────────────────────────
 
     data object CustomAlarms : Screen("custom_alarms")
