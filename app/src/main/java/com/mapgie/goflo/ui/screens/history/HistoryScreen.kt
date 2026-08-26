@@ -173,7 +173,9 @@ fun HistoryScreen(
                                 }
                             }
                         },
-                        onClick     = { onNavigate(Screen.LogPeriod.withId(period.id)) },
+                        // Opens the read-only period detail (day-by-day) view;
+                        // the editor stays reachable from its Edit action.
+                        onClick     = { onNavigate(Screen.PeriodDetail.forPeriod(period.id)) },
                         modifier    = Modifier,
                     )
                 }

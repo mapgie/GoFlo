@@ -59,6 +59,8 @@ import com.mapgie.goflo.ui.screens.categories.ManageCategoryValuesScreen
 import com.mapgie.goflo.ui.screens.categories.ManageCategoryValuesViewModel
 import com.mapgie.goflo.ui.screens.history.HistoryScreen
 import com.mapgie.goflo.ui.screens.history.HistoryViewModel
+import com.mapgie.goflo.ui.screens.history.PeriodDetailScreen
+import com.mapgie.goflo.ui.screens.history.PeriodDetailViewModel
 import com.mapgie.goflo.ui.screens.home.HomeScreen
 import com.mapgie.goflo.ui.screens.home.HomeViewModel
 import com.mapgie.goflo.ui.screens.log.LogCategoryScreen
@@ -304,6 +306,24 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             composable(Screen.History.route) {
                 val vm: HistoryViewModel = viewModel(factory = HistoryViewModel.Factory(app.repository, app, app.trackingRepository, app.preferencesStore))
                 HistoryScreen(viewModel = vm, onNavigate = { navController.navigate(it) })
+            }
+
+            composable(
+                route = Screen.PeriodDetail.route,
+                arguments = listOf(navArgument("periodId") { type = NavType.LongType })
+            ) { backStack ->
+                val periodId = backStack.arguments?.getLong("periodId") ?: return@composable
+                val vm: PeriodDetailViewModel = viewModel(
+                    key = "period_detail_$periodId",
+                    factory = PeriodDetailViewModel.Factory(
+                        periodId, app.repository, app.trackingRepository, app.preferencesStore
+                    )
+                )
+                PeriodDetailScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onNavigate = { navController.navigate(it) },
+                )
             }
 
             composable(Screen.Stats.route) {
