@@ -31,6 +31,15 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.55.0-beta.1] - 2026-08-26
+
+### Added
+- Groups: categories can now belong to a group that owns a shared colour role and a default input type (data layer; management UI arrives in a later update)
+
+### Changed
+- Internal: shared UI component library for the logging redesign (no user-facing change yet)
+
+---
 ## [0.54.0-beta.1] - 2026-08-25
 
 ### Added
