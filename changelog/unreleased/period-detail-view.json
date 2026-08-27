@@ -1,9 +1,0 @@
-{
-  "bump": "minor",
-  "added": [
-    "New period detail screen: tap a period in History to see it day by day, with each day's flow, symptoms, and other logged entries; tap a day to open its log, or use Edit to change the period's dates and notes"
-  ],
-  "changed": [
-    "Tapping a period in History now opens the new detail view first; the period editor is one tap away via its Edit action"
-  ]
-}

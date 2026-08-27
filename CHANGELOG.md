@@ -31,6 +31,16 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.57.0-beta.1] - 2026-08-27
+
+### Added
+- New period detail screen: tap a period in History to see it day by day, with each day's flow, symptoms, and other logged entries; tap a day to open its log, or use Edit to change the period's dates and notes
+
+### Changed
+- Adding a category to a group no longer replaces its custom colour by default: the colour switch starts off for custom-coloured categories, and bulk-adding from a group card always keeps them
+- Tapping a period in History now opens the new detail view first; the period editor is one tap away via its Edit action
+
+---
 ## [0.56.0-beta.1] - 2026-08-26
 
 ### Added
