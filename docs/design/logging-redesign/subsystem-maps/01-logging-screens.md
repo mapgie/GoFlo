@@ -13,7 +13,11 @@
 
 > **Period detail drift (branch `claude/period-detail-view`, outside the phased plan):** a read-only `PeriodDetailScreen` (`ui/screens/history/`) at route `period_detail/{periodId}` now sits between a History card tap and the destinations below — its day rows open `Screen.LogDay.forDate(date)` and its Edit action opens `Screen.LogPeriod.withId(id)`; no logging screen or save path changed.
 
-## Overview: two truly separate destinations
+> **Phase 8 removal (branch `claude/logging-redesign-phase-8`) — the two screens this map describes NO LONGER EXIST.** Deleted: `LogPeriodScreen.kt`, `LogPeriodViewModel.kt`, `LogCategoryScreen.kt`, `LogCategoryViewModel.kt` (taking `PinnedCategoryInput`, `DateSelectorCard`, `SectionLabel`, and both private `DatePickerDialogWrapper` copies with them), `LogEntryTopBar.kt` (orphaned), and the `Screen.LogPeriod` / `Screen.LogCategory` routes plus their `MainActivity` registrations. Sections 1 through 6 below are kept as the historical description of the removed code; the durable content is §4's save-flow semantics, which live on in `LogViewModel` + `PeriodDaySync`.
+>
+> The one logging destination is now `LogScreen` at `log_day?date={date}&categoryId={categoryId}&logId={logId}`: `categoryId` focuses (expands) that category's input — used by the Quick Log widget deep link and the speed dial; `logId` loads that specific log as its category's entry for in-place editing — how one particular log of an allowMultiple category is edited from the day sheet. Entry points after the flip: calendar day tap (`HomeScreen.handleQuickLog`), the speed dial ("Log Period" and every category item), the day sheet ("Open day log", per-entry edit, period edit), `PeriodDetailScreen` (day rows and the top-bar "Open first day" action), and the widget deep link in `MainActivity`. Relocations: `metricConfigFor` + `TimedIncrementTimeline` → `ui/screens/log/MetricSupport.kt`; `DatePickerDialogWrapper` → shared `ui/components/DatePickerDialogWrapper.kt`. Kept: `PeriodDaySync` (flow mapping + fan-out; also used by `PeriodDetailViewModel`), `AddSymptomDialog`, every repository method.
+
+## Overview: two truly separate destinations (REMOVED in Phase 8 — historical)
 
 "Log Period" and "Log Category" are **fully separate screens, routes, ViewModels, and repositories**. They share only two small helpers: the `LogEntryTopBar` composable and a private (duplicated) `DatePickerDialogWrapper`. Period logging is a bespoke multi-section day editor on `PeriodRepository`; category logging is a single generic input on `TrackingRepository`.
 

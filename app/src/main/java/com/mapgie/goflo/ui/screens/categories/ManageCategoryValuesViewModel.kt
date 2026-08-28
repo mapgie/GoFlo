@@ -44,45 +44,8 @@ class ManageCategoryValuesViewModel(
         initialValue = ManageCategoryValuesUiState()
     )
 
-    fun renameCategory(newName: String) {
-        if (newName.isBlank()) return
-        viewModelScope.launch { repository.renameCategory(categoryId, newName) }
-    }
-
-    fun updateAppearance(iconName: String, colorToken: String) {
-        viewModelScope.launch { repository.updateCategoryAppearance(categoryId, iconName, colorToken) }
-    }
-
-    fun updateNumericSettings(
-        min: Float,
-        max: Float,
-        allowDecimals: Boolean,
-        unit: String,
-        scaleLabels: String = "",
-    ) {
-        viewModelScope.launch {
-            repository.updateNumericSettings(categoryId, min, max, allowDecimals, unit, scaleLabels)
-        }
-    }
-
-    fun updateUnit(unit: String) {
-        viewModelScope.launch { repository.updateNumericUnit(categoryId, unit) }
-    }
-
-    fun setShowInLogPeriod(show: Boolean) {
-        viewModelScope.launch { repository.updateShowInLogPeriod(categoryId, show) }
-    }
-
-    fun setAllowMultiple(allowMultiple: Boolean) {
-        viewModelScope.launch { repository.updateAllowMultiple(categoryId, allowMultiple) }
-    }
-
     fun setFlowSliderMode(useSlider: Boolean) {
         viewModelScope.launch { repository.updateFlowCategoryMode(categoryId, useSlider) }
-    }
-
-    fun setTrackAgainstTime(track: Boolean) {
-        viewModelScope.launch { repository.updateTrackAgainstTime(categoryId, track) }
     }
 
     fun addValue(label: String) {

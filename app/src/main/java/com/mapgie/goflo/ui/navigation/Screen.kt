@@ -9,12 +9,6 @@ sealed class Screen(val route: String) {
     data object Stats : Screen("stats")
     data object StatsGrid : Screen("stats_grid")
     data object Settings : Screen("settings")
-    data object LogPeriod : Screen("log_period?periodId={periodId}&startDate={startDate}") {
-        fun withId(periodId: Long, targetDate: LocalDate? = null) =
-            if (targetDate != null) "log_period?periodId=$periodId&startDate=$targetDate" else "log_period?periodId=$periodId"
-        val newEntry = "log_period?periodId=-1"
-        fun newEntryForDate(date: LocalDate) = "log_period?periodId=-1&startDate=$date"
-    }
     data object PinSetup : Screen("pin_setup?changing={changing}") {
         val newPin = "pin_setup?changing=false"
         val changePin = "pin_setup?changing=true"
@@ -61,46 +55,32 @@ sealed class Screen(val route: String) {
         fun newForCategory(categoryId: Long) = "edit_alarm?alarmId=-1&categoryId=$categoryId"
     }
 
-    // ── Per-day category logging ────────────────────────────────────────────────
-
-    /**
-     * Route for logging or editing a tracking category entry.
-     * - [categoryId] — the TrackingCategory.id to log
-     * - [date] — ISO 8601 date string; omit to default to today
-     * - [logId] — the existing TrackingLog.id when editing; omit for a new entry
-     */
-    data object LogCategory : Screen(
-        "log_category/{categoryId}?date={date}&logId={logId}"
-    ) {
-        fun newEntry(categoryId: Long, date: LocalDate) =
-            "log_category/$categoryId?date=$date"
-
-        fun editEntry(categoryId: Long, logId: Long) =
-            "log_category/$categoryId?logId=$logId"
-    }
-
     // ── Period detail (History drill-in) ───────────────────────────────────────
 
     /**
      * Read-only view of one period episode expanded into its individual days.
-     * Opened from a History card; day rows continue to [LogDay] and the Edit
-     * action continues to [LogPeriod].
+     * Opened from a History card; day rows and the top-bar action both
+     * continue to [LogDay].
      */
     data object PeriodDetail : Screen("period_detail/{periodId}") {
         fun forPeriod(periodId: Long) = "period_detail/$periodId"
     }
 
-    // ── Unified day logging (logging redesign Phase 5) ─────────────────────────
+    // ── Unified day logging ────────────────────────────────────────────────────
 
     /**
      * Route for the unified day screen, where a running period is a state of
-     * the day rather than a separate destination.
-     *
-     * Additive: [LogPeriod] and [LogCategory] stay registered and reachable
-     * until the parity sign-off (removal is Phase 8 of the logging redesign).
+     * the day rather than a separate destination. Since Phase 8 of the logging
+     * redesign this is the only logging destination.
      * - [date] — ISO 8601 date string; omit to default to today
+     * - [categoryId] — optional category to focus (expand and scroll context to)
+     * - [logId] — optional specific TrackingLog.id to load for in-place editing;
+     *   the way to edit one particular log of an allow-multiple category
      */
-    data object LogDay : Screen("log_day?date={date}") {
+    data object LogDay : Screen("log_day?date={date}&categoryId={categoryId}&logId={logId}") {
         fun forDate(date: LocalDate) = "log_day?date=$date"
+        fun forCategory(date: LocalDate, categoryId: Long) =
+            "log_day?date=$date&categoryId=$categoryId"
+        fun forLog(date: LocalDate, logId: Long) = "log_day?date=$date&logId=$logId"
     }
 }

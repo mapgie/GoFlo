@@ -42,7 +42,7 @@ data class AppPreferences(
     /**
      * The tracking category ID to open when the user taps the FAB (Quick Log).
      * -1L means "Log Period" (the default). Any other value is a TrackingCategory.id
-     * and opens LogCategoryScreen for that category.
+     * and opens the unified day screen with that category focused.
      */
     val quickLogCategoryId: Long = -1L,
     /** Whether to show predicted future period days on the calendar. */

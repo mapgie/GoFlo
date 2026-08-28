@@ -67,12 +67,10 @@ fun DayLogSheet(
     onDismiss: () -> Unit,
     onEditPeriod: (Long) -> Unit,
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
+    /** Opens the full log menu so one category can be picked directly. */
     onLogMore: () -> Unit,
-    /**
-     * Optional entry to the unified day screen (logging redesign Phase 5).
-     * Null hides the row; the classic per-screen actions above are unaffected.
-     */
-    onOpenDayLog: (() -> Unit)? = null,
+    /** Opens the unified day screen for this day, the standard logging surface. */
+    onOpenDayLog: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
 
@@ -142,7 +140,7 @@ fun DayLogSheet(
             HorizontalDivider()
 
             // Split tracked categories into those logged with the period (the
-            // ones that appear on the Log Period screen) and everything else.
+            // ones pinned into the day screen's flow context) and everything else.
             val periodLinkedCats = if (period != null) {
                 categoryOrder.filter { catId ->
                     logsByCategory[catId]?.firstOrNull()?.category?.showInLogPeriod == true
@@ -217,22 +215,20 @@ fun DayLogSheet(
                 HorizontalDivider()
             }
 
-            // ── Log more ──────────────────────────────────────────────────────
+            // ── Open the day / log more ───────────────────────────────────────
 
             OutlinedButton(
+                onClick  = { onDismiss(); onOpenDayLog() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Open day log")
+            }
+
+            TextButton(
                 onClick  = { onDismiss(); onLogMore() },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Log more for this day…")
-            }
-
-            if (onOpenDayLog != null) {
-                TextButton(
-                    onClick  = { onDismiss(); onOpenDayLog() },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Try the new day log (preview)")
-                }
             }
 
             Spacer(Modifier.height(8.dp))

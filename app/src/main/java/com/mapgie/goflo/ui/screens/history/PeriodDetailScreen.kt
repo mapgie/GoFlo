@@ -64,7 +64,8 @@ private val monthDayYear = DateTimeFormatter.ofPattern("MMM d, yyyy")
  * one row per logged day (day number, date, the day's flow as a word in the
  * Flow category's role colour, and a compact line for symptoms and other
  * logged categories). Tapping a day opens the unified day screen for that
- * date; the top bar's Edit action opens the existing period editor.
+ * date; the top bar's edit action opens the same screen on the first day,
+ * where the episode's dates, notes, and deletion live.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,9 +97,9 @@ fun PeriodDetailScreen(
                     }
                 },
                 actions = {
-                    state.period?.let { period ->
-                        IconButton(onClick = { onNavigate(Screen.LogPeriod.withId(period.id)) }) {
-                            Icon(Icons.Outlined.Edit, contentDescription = "Edit period")
+                    state.startDate?.let { firstDay ->
+                        IconButton(onClick = { onNavigate(Screen.LogDay.forDate(firstDay)) }) {
+                            Icon(Icons.Outlined.Edit, contentDescription = "Open first day")
                         }
                     }
                 },

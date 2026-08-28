@@ -63,7 +63,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.BuildConfig
-import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.ui.components.CalendarGrid
 import com.mapgie.goflo.ui.components.DayLogSheet
 import com.mapgie.goflo.ui.navigation.Screen
@@ -111,19 +110,6 @@ fun HomeScreen(
 
     // ── Quick Log helper ──────────────────────────────────────────────────────
 
-    // If [date] falls within (or within gap tolerance of) an existing period,
-    // open that period's editor for this specific day so its values can be
-    // logged independently; the save itself extends, bridges, or continues
-    // the period as needed. Otherwise start a new period entry for the day.
-    fun navigateToLogPeriod(date: LocalDate) {
-        val existing = PeriodRepository.periodForDate(state.periods, date, state.periodGapToleranceDays)
-        if (existing != null) {
-            onNavigate(Screen.LogPeriod.withId(existing.id, date))
-        } else {
-            onNavigate(Screen.LogPeriod.newEntryForDate(date))
-        }
-    }
-
     // Open the full log menu (speed dial) targeted at [date], so whatever is
     // picked from it gets logged for that day rather than today.
     fun openLogMenuFor(date: LocalDate) {
@@ -139,12 +125,14 @@ fun HomeScreen(
                 openLogMenuFor(date)
             }
             id == -1L ->
-                navigateToLogPeriod(date)
+                // Period quick log: the unified day screen resolves for itself
+                // whether the day starts, continues, or edits a period.
+                onNavigate(Screen.LogDay.forDate(date))
             cat?.categoryType == "increment" ->
                 // Instantly add one for the tapped day; no screen navigation.
                 viewModel.incrementCategory(id, date)
             else ->
-                onNavigate(Screen.LogCategory.newEntry(id, date))
+                onNavigate(Screen.LogDay.forCategory(date, id))
         }
     }
 
@@ -156,15 +144,17 @@ fun HomeScreen(
             period = data.period,
             trackingLogs = data.trackingLogs,
             onDismiss = { viewModel.clearSelectedDay() },
-            onEditPeriod = { periodId ->
+            onEditPeriod = {
                 viewModel.clearSelectedDay()
-                // Open the editor for this specific day so its own flow and
-                // symptoms are what gets edited, not the period's first day.
-                onNavigate(Screen.LogPeriod.withId(periodId, data.date))
+                // The unified day screen edits this specific day's own flow
+                // and symptoms, not the period's first day.
+                onNavigate(Screen.LogDay.forDate(data.date))
             },
-            onEditTrackingLog = { categoryId, logId ->
+            onEditTrackingLog = { _, logId ->
                 viewModel.clearSelectedDay()
-                onNavigate(Screen.LogCategory.editEntry(categoryId, logId))
+                // Targets that one log, so a single entry of an allow-multiple
+                // category is edited in place rather than starting a new one.
+                onNavigate(Screen.LogDay.forLog(data.date, logId))
             },
             onLogMore = {
                 viewModel.clearSelectedDay()
@@ -231,14 +221,14 @@ fun HomeScreen(
                 onLogPeriod = {
                     showLogMenu = false
                     logMenuTargetDate = null
-                    navigateToLogPeriod(targetDate)
+                    onNavigate(Screen.LogDay.forDate(targetDate))
                 },
                 periodTrackingEnabled = state.periodTrackingEnabled,
                 categories = state.trackingCategories,
                 onLogCategory = { categoryId ->
                     showLogMenu = false
                     logMenuTargetDate = null
-                    onNavigate(Screen.LogCategory.newEntry(categoryId, targetDate))
+                    onNavigate(Screen.LogDay.forCategory(targetDate, categoryId))
                 }
             )
         }

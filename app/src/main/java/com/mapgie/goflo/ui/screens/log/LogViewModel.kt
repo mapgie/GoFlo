@@ -28,8 +28,8 @@ import java.time.format.DateTimeFormatter
 /**
  * The per-day state of one tracked category on the unified day screen.
  *
- * Mirrors the fields LogCategoryViewModel keeps for its single category, held
- * once per category here. [touched] records whether the user changed anything
+ * Mirrors the fields the retired single-category screen kept for its one
+ * category, held once per category here. [touched] records whether the user changed anything
  * this session: untouched entries are skipped on save, so the screen neither
  * fabricates logs for ignored categories nor rewrites stored entries (which
  * would re-stamp or clear their recorded time). Pinned categories are the
@@ -127,9 +127,15 @@ data class LogUiState(
  *
  * Period behaviour (episode continuation, the flow slider mapping, the save
  * fan-out into the tracking system, widget and reminder refreshes) delegates
- * to [PeriodDaySync] and [PeriodRepository], the same code paths
- * [LogPeriodViewModel] uses, so the two surfaces cannot drift. Generic
- * category behaviour mirrors [LogCategoryViewModel]'s save rules per entry.
+ * to [PeriodDaySync] and [PeriodRepository], the code paths the retired
+ * standalone period screen used, so period semantics could not drift during
+ * the migration. Generic category behaviour keeps the retired category
+ * screen's save rules per entry (see [entryValuesToSave]).
+ *
+ * Deep-link targeting: [focusCategoryId] expands that category's input on
+ * first load (quick-log widget, speed dial); [editLogId] loads that one
+ * specific log into its category's entry for in-place editing, which is how a
+ * single log of an allow-multiple category is edited from the day sheet.
  */
 class LogViewModel(
     private val repository: PeriodRepository,
@@ -137,12 +143,18 @@ class LogViewModel(
     private val initialDate: LocalDate,
     private val application: Application? = null,
     private val preferencesStore: AppPreferencesStore? = null,
+    focusCategoryId: Long? = null,
+    editLogId: Long? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LogUiState(date = initialDate))
     val uiState: StateFlow<LogUiState> = _uiState.asStateFlow()
 
     private var optionSubscriptionsStarted = false
+
+    /** One-shot: consumed by the first [loadDay]; day switches load normally. */
+    private var pendingFocusCategoryId: Long? = focusCategoryId
+    private var pendingEditLogId: Long? = editLogId
 
     init {
         viewModelScope.launch {
@@ -181,7 +193,7 @@ class LogViewModel(
             (epEndStored == null || !date.isAfter(epEndStored))
         // Opening a day just past the stored end (within tolerance) extends the
         // end to that day, so saving continues the period instead of trimming
-        // the new day away — same rule as LogPeriodViewModel's init.
+        // the new day away — the period screen's long-standing rule.
         val effectiveEnd =
             if (epEndStored != null && date.isAfter(epEndStored)) date else epEndStored
 
@@ -219,6 +231,29 @@ class LogViewModel(
             entriesMap[cat.id] = loadEntry(cat, date)
         }
 
+        // One-shot deep-link targeting (consumed on the first load only):
+        // focus a category, or load one specific log for in-place editing.
+        // The latter is how a single entry of an allow-multiple category is
+        // edited: the loaded log carries existingLog, so save() updates it in
+        // place and "Delete entry" removes exactly it.
+        var focusId = pendingFocusCategoryId
+        pendingFocusCategoryId = null
+        val editTarget = pendingEditLogId?.let { id ->
+            pendingEditLogId = null
+            trackingRepository.getLogById(id)
+        }
+        if (editTarget != null && editTarget.log.date == date.toString()) {
+            val cat = categories.firstOrNull { it.id == editTarget.log.categoryId }
+            if (cat != null) {
+                focusId = cat.id
+                // Timed increments render the whole day's timeline already;
+                // only collect-then-save types load the one targeted log.
+                if (!(cat.categoryType == "increment" && cat.trackAgainstTime)) {
+                    entriesMap[cat.id] = entryFromLog(cat, editTarget)
+                }
+            }
+        }
+
         _uiState.update { state ->
             state.copy(
                 date = date,
@@ -245,7 +280,7 @@ class LogViewModel(
                 categories = categories,
                 categoryValues = valuesMap,
                 entries = entriesMap,
-                activeCategoryId = null,
+                activeCategoryId = focusId,
                 hasChanges = false,
             )
         }
@@ -276,8 +311,9 @@ class LogViewModel(
         val timed = cat.categoryType == "increment" && cat.trackAgainstTime
         val timedEntries =
             if (timed) trackingRepository.getLogsForDateAndCategory(date, cat.id) else emptyList()
-        // allowMultiple categories always start a fresh entry, matching
-        // LogCategoryViewModel's new-entry behaviour.
+        // allowMultiple categories always start a fresh entry (the retired
+        // category screen's new-entry behaviour); a specific existing log is
+        // loaded only through the editLogId deep link.
         val existing = if (timed || cat.allowMultiple) null
             else trackingRepository.getExistingLog(date, cat.id)
         val numeric =
@@ -297,6 +333,31 @@ class LogViewModel(
         )
     }
 
+    /**
+     * Builds a [DayMetricEntry] from one specific stored log (the [editLogId]
+     * deep link), mirroring [loadEntry]'s per-type field mapping but pinned to
+     * exactly that log instead of the day's first.
+     */
+    private fun entryFromLog(
+        cat: TrackingCategory,
+        existing: TrackingLogWithValues,
+    ): DayMetricEntry {
+        val numeric =
+            if (cat.categoryType == "numeric_slider" || cat.categoryType == "increment")
+                existing.values.firstOrNull()?.toFloatOrNull()
+            else null
+        val freeText = if (cat.categoryType == "numeric_free")
+            existing.values.firstOrNull() ?: "" else ""
+        return DayMetricEntry(
+            selectedValues = existing.values.toSet(),
+            numericValue = numeric,
+            freeText = freeText,
+            notes = existing.log.notes,
+            trackTime = cat.trackAgainstTime,
+            existingLog = existing.log,
+        )
+    }
+
     private suspend fun reloadEntry(categoryId: Long) {
         val state = _uiState.value
         val cat = state.categories.firstOrNull { it.id == categoryId } ?: return
@@ -308,9 +369,8 @@ class LogViewModel(
 
     /**
      * Changes the day being shown and reloads every section's stored values
-     * for it, so the form always reflects the selected day (the same rule as
-     * LogCategoryViewModel.setDate). Unsaved edits are guarded by the screen
-     * before this is called.
+     * for it, so the form always reflects the selected day. Unsaved edits are
+     * guarded by the screen before this is called.
      */
     fun setDate(newDate: LocalDate) {
         if (newDate == _uiState.value.date) return
@@ -556,7 +616,7 @@ class LogViewModel(
 
     /**
      * Saves the day. When the day is on-period (or being started), the period
-     * path mirrors LogPeriodViewModel.save(): mark the day, apply episode
+     * path keeps the period screen's save order: mark the day, apply episode
      * boundary edits, write episode meta, then fan the day's flow out to the
      * tracking system, and refresh widgets and prediction reminders. Symptoms
      * and every tracked category then save through the shared per-day rules.
@@ -663,7 +723,7 @@ class LogViewModel(
     }
 
     /**
-     * LogCategoryViewModel.save()'s per-type rules, applied per entry: an
+     * The retired category screen's per-type save rules, applied per entry: an
      * unset slider falls back to its displayed minimum, empty free numeric
      * input and a count of zero or less record nothing (the old screen blocks
      * those saves; here the category is skipped and any existing log is left
@@ -743,10 +803,15 @@ class LogViewModel(
         private val date: LocalDate,
         private val application: Application? = null,
         private val preferencesStore: AppPreferencesStore? = null,
+        private val focusCategoryId: Long? = null,
+        private val editLogId: Long? = null,
     ) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             @Suppress("UNCHECKED_CAST")
-            return LogViewModel(repository, trackingRepository, date, application, preferencesStore) as T
+            return LogViewModel(
+                repository, trackingRepository, date, application, preferencesStore,
+                focusCategoryId, editLogId,
+            ) as T
         }
     }
 }

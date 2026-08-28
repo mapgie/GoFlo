@@ -184,6 +184,12 @@ State that captures the user's entire current configuration (e.g. "X axis = Cate
 
 ### Code Quality / Review
 
+**Text-based unused-import scrubbing wrongly flags Compose's `getValue`/`setValue` delegate imports**
+When trimming imports without a compiler (e.g. after deleting half a file in a build-less environment), a "does the identifier appear in the body?" check is right for almost every import but wrong for `androidx.compose.runtime.getValue`/`setValue`: property delegation (`var x by remember { mutableStateOf(...) }`, `val s by flow.collectAsState()`) uses those operators without their names ever appearing in the source. Removing them fails only at compile time. Whitelist the delegate-operator imports in any mechanical scrub, and treat `by` in a file as proof they are needed.
+
+**Stage a deletion: supersede-and-annotate in one phase, delete against the manifest in the next**
+When a new surface replaces old code, cutting the last references and deleting the code in the same change makes the diff unreviewable and the parity argument untestable. The pattern that worked here: the phase that ships the replacement leaves the old code compiled but unreferenced, annotated `@Suppress("unused")` with a comment naming its replacement (a removal manifest in the code itself). The deletion phase then verifies each annotation still holds, deletes, and proves the removal with greps for every deleted symbol and route string. The annotations make the dead set explicit to both reviewers and later sessions, and anything that regrew a reference in between fails the grep instead of silently surviving.
+
 **Branch protection blocks force push — use merge, not rebase, for conflict resolution**
 When a branch is protected against force push and upstream has moved on, `git rebase origin/main` rewrites local history that can no longer be pushed. The only forward path is `git merge origin/main`, which creates a merge commit but preserves the existing remote history. If both branches claimed the same version string, resolve by bumping the lower-priority branch's version upward in the same merge commit — don't leave the version collision for the reviewer to spot.
 
