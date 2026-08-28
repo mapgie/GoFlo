@@ -31,8 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,7 +48,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -75,6 +72,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.ui.components.ChipRow
+import com.mapgie.goflo.ui.components.DatePickerDialogWrapper
 import com.mapgie.goflo.ui.components.HairlineDivider
 import com.mapgie.goflo.ui.components.ListCard
 import com.mapgie.goflo.ui.components.ListRow
@@ -92,9 +90,7 @@ import com.mapgie.goflo.ui.util.effectiveColorToken
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryOnColor
 import com.mapgie.goflo.ui.util.toCategoryType
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 private val displayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy")
@@ -1379,32 +1375,3 @@ private fun entrySummary(
     }
 }
 
-// ── Date picker ───────────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DatePickerDialogWrapper(
-    initial: LocalDate,
-    minDate: LocalDate? = null,
-    onConfirm: (LocalDate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val initialMillis = initial.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
-    val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                val millis = pickerState.selectedDateMillis ?: return@TextButton
-                val picked = Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).toLocalDate()
-                if (minDate == null || !picked.isBefore(minDate)) {
-                    onConfirm(picked)
-                }
-            }) { Text("OK") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    ) {
-        DatePicker(state = pickerState)
-    }
-}

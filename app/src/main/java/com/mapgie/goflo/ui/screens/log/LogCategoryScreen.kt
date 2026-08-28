@@ -130,24 +130,6 @@ private fun DatePickerDialogWrapper(
 }
 
 /**
- * Builds the [MetricConfig] the [MetricInput] facade renders from a category
- * row. Internal so the unified day screen ([LogScreen]) shares the exact same
- * mapping instead of a copy that could drift.
- */
-internal fun metricConfigFor(
-    category: TrackingCategory,
-    availableValues: List<String>,
-): MetricConfig = MetricConfig(
-    name = category.name,
-    options = availableValues,
-    min = category.numericMin.toInt(),
-    max = category.numericMax.toInt(),
-    stepLabels = category.scaleLabels.decodeScaleLabels(),
-    unit = category.numericUnit.takeIf { it.isNotBlank() },
-    allowDecimals = category.allowDecimals,
-)
-
-/**
  * Maps the screen state onto the [MetricValue] variant [MetricInput] expects
  * for [type]. Yes/No and Time reuse [LogCategoryUiState.selectedValues] as a
  * single-label set, matching how their readings are stored ("Yes"/"No",
@@ -172,72 +154,6 @@ private fun metricValueFor(
         }
     )
     CategoryType.TIME -> MetricValue.TimeOfDay(state.selectedValues.firstOrNull())
-}
-
-/**
- * Timed increment ("Plus One" + track against time): each append saves a new
- * timestamped log immediately, so the day renders as a running total plus a
- * [Timeline] of today's entries with per-entry delete. There is deliberately
- * no notes field or Save button on this path.
- *
- * Internal so the unified day screen ([LogScreen]) renders the identical
- * timed-increment surface.
- */
-@Composable
-internal fun TimedIncrementTimeline(
-    category: TrackingCategory,
-    entries: List<com.mapgie.goflo.data.repository.TrackingLogWithValues>,
-    onAddOne: () -> Unit,
-    onDeleteEntry: (com.mapgie.goflo.data.database.entities.TrackingLog) -> Unit,
-) {
-    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                category.name,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    entries.size.toString(),
-                    style = MaterialTheme.typography.displayLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                if (category.numericUnit.isNotBlank()) {
-                    Text(
-                        category.numericUnit,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
-                }
-            }
-        }
-    }
-    Timeline(
-        entries = entries.map { entry ->
-            TimelineEntryData(
-                id = entry.log.id,
-                time = entry.log.loggedAt.ifEmpty { "No time" },
-                value = "+1",
-            )
-        },
-        role = MaterialTheme.colorScheme.primary,
-        onAppend = onAddOne,
-        appendLabel = "Log +1 now",
-        onDeleteEntry = { data ->
-            entries.firstOrNull { it.log.id == data.id }?.let { onDeleteEntry(it.log) }
-        },
-    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
