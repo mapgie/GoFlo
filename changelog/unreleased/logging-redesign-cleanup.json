@@ -1,0 +1,10 @@
+{
+  "bump": "minor",
+  "changed": [
+    "The unified day log is now the standard logging screen everywhere: calendar taps, the Log button, the day sheet, and the Quick Log widget all open it, with the tapped category focused",
+    "Editing an entry from the day sheet opens the day log targeting that exact entry, including one specific log of a category that allows multiple logs per day",
+    "The old separate Log Period and category logging screens have been removed now that the day log covers everything they did",
+    "The period detail screen's pencil action opens the first day of the period in the day log",
+    "A category's range, step labels, unit, and options are now edited in one place, the Edit screen; the values screen keeps the value list and the Flow selector style"
+  ]
+}
