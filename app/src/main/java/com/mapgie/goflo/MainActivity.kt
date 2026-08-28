@@ -206,11 +206,12 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
     val appPrefs by app.preferencesStore.preferences.collectAsState(initial = AppPreferences())
     val dashboardEnabled = appPrefs.dashboardEnabled
 
-    // Deep-link from the Quick Log widget: navigate to the category log screen for today.
+    // Deep-link from the Quick Log widget: open today's unified day screen
+    // with that category's input focused.
     LaunchedEffect(pendingCategoryId) {
         if (pendingCategoryId != -1L) {
             navController.navigate(
-                Screen.LogCategory.newEntry(pendingCategoryId, java.time.LocalDate.now())
+                Screen.LogDay.forCategory(java.time.LocalDate.now(), pendingCategoryId)
             )
         }
     }
@@ -661,27 +662,34 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                 )
             }
 
-            // ── Unified day logging (logging redesign Phase 5) ───────────────────
-            // Additive route: the LogPeriod and LogCategory destinations above
-            // stay registered and reachable until parity sign-off (Phase 8).
+            // ── Unified day logging ──────────────────────────────────────────────
+            // The one logging destination: a running period is a state of the
+            // day. Optional deep links focus one category's input or load one
+            // specific log for in-place editing.
 
             composable(
                 route = Screen.LogDay.route,
                 arguments = listOf(
-                    navArgument("date") { type = NavType.StringType; nullable = true; defaultValue = null }
+                    navArgument("date") { type = NavType.StringType; nullable = true; defaultValue = null },
+                    navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L },
+                    navArgument("logId") { type = NavType.LongType; defaultValue = -1L },
                 )
             ) { backStack ->
                 val dateStr = backStack.arguments?.getString("date")
                 val date = dateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
                     ?: java.time.LocalDate.now()
+                val focusCategoryId = backStack.arguments?.getLong("categoryId")?.takeIf { it != -1L }
+                val editLogId = backStack.arguments?.getLong("logId")?.takeIf { it != -1L }
                 val vm: com.mapgie.goflo.ui.screens.log.LogViewModel = viewModel(
-                    key = "log_day_$dateStr",
+                    key = "log_day_${dateStr}_${focusCategoryId}_$editLogId",
                     factory = com.mapgie.goflo.ui.screens.log.LogViewModel.Factory(
                         repository = app.repository,
                         trackingRepository = app.trackingRepository,
                         date = date,
                         application = app,
                         preferencesStore = app.preferencesStore,
+                        focusCategoryId = focusCategoryId,
+                        editLogId = editLogId,
                     )
                 )
                 com.mapgie.goflo.ui.screens.log.LogScreen(
