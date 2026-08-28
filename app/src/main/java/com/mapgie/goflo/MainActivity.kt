@@ -63,8 +63,6 @@ import com.mapgie.goflo.ui.screens.history.PeriodDetailScreen
 import com.mapgie.goflo.ui.screens.history.PeriodDetailViewModel
 import com.mapgie.goflo.ui.screens.home.HomeScreen
 import com.mapgie.goflo.ui.screens.home.HomeViewModel
-import com.mapgie.goflo.ui.screens.log.LogCategoryScreen
-import com.mapgie.goflo.ui.screens.log.LogCategoryViewModel
 import com.mapgie.goflo.ui.screens.dashboard.DashboardScreen
 import com.mapgie.goflo.ui.screens.dashboard.DashboardViewModel
 import com.mapgie.goflo.ui.screens.settings.PrivacyPolicyScreen
@@ -379,23 +377,6 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
             }
 
             composable(
-                route = Screen.LogPeriod.route,
-                arguments = listOf(
-                    navArgument("periodId") { type = NavType.LongType; defaultValue = -1L },
-                    navArgument("startDate") { type = NavType.StringType; nullable = true; defaultValue = null }
-                )
-            ) { backStack ->
-                val periodId = backStack.arguments?.getLong("periodId") ?: -1L
-                val startDateStr = backStack.arguments?.getString("startDate")
-                val prefilledDate = startDateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
-                val vm: com.mapgie.goflo.ui.screens.log.LogPeriodViewModel = viewModel(
-                    key = "log_${periodId}_${startDateStr}",
-                    factory = com.mapgie.goflo.ui.screens.log.LogPeriodViewModel.Factory(app.repository, periodId, prefilledDate, app.trackingRepository, app, app.preferencesStore)
-                )
-                com.mapgie.goflo.ui.screens.log.LogPeriodScreen(viewModel = vm, onBack = { navController.popBackStack() })
-            }
-
-            composable(
                 route = Screen.PinSetup.route,
                 arguments = listOf(navArgument("changing") {
                     type = NavType.BoolType; defaultValue = false
@@ -630,35 +611,6 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     onNavigateToEditCategory = {
                         navController.navigate(Screen.CategoryEdit.forCategory(categoryId))
                     },
-                )
-            }
-
-            // ── Per-day category logging ─────────────────────────────────────────
-
-            composable(
-                route = Screen.LogCategory.route,
-                arguments = listOf(
-                    navArgument("categoryId") { type = NavType.LongType },
-                    navArgument("date") { type = NavType.StringType; nullable = true; defaultValue = null },
-                    navArgument("logId") { type = NavType.LongType; defaultValue = -1L }
-                )
-            ) { backStack ->
-                val categoryId = backStack.arguments?.getLong("categoryId") ?: return@composable
-                val dateStr = backStack.arguments?.getString("date")
-                val logId = backStack.arguments?.getLong("logId")?.takeIf { it != -1L }
-                val prefilledDate = dateStr?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
-                val vm: LogCategoryViewModel = viewModel(
-                    key = "log_cat_${categoryId}_${dateStr}_${logId}",
-                    factory = LogCategoryViewModel.Factory(
-                        categoryId = categoryId,
-                        prefilledDate = prefilledDate,
-                        existingLogId = logId,
-                        repository = app.trackingRepository
-                    )
-                )
-                LogCategoryScreen(
-                    viewModel = vm,
-                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 

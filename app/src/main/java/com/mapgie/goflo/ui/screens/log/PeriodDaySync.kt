@@ -8,13 +8,14 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 /**
- * Period-day logic shared between [LogPeriodViewModel] (the standalone period
- * screen) and [LogViewModel] (the unified day screen).
+ * Period-day logic used by [LogViewModel] (the unified day screen) and the
+ * period-detail surface.
  *
- * Extracted rather than duplicated so the flow slider mapping and the save
+ * Originally extracted from the standalone period screen's ViewModel (retired
+ * in Phase 8 of the logging redesign) so the flow slider mapping and the save
  * fan-out into the tracking system (which make period data appear under
- * Flow/Symptoms/pinned categories in Stats) cannot drift between the two
- * surfaces. Behaviour is byte-for-byte the pre-extraction LogPeriodViewModel
+ * Flow/Symptoms/pinned categories in Stats) could not drift while both
+ * surfaces coexisted. Behaviour is byte-for-byte the original period-screen
  * logic.
  */
 internal object PeriodDaySync {
