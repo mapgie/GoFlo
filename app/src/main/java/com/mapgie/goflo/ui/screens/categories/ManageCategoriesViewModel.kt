@@ -43,43 +43,6 @@ class ManageCategoriesViewModel(
                 initialValue = ManageCategoriesUiState()
             )
 
-    fun addCategory(
-        name: String,
-        iconName: String,
-        colorToken: String,
-        categoryType: String = "default",
-        numericMin: Float = 0f,
-        numericMax: Float = 10f,
-        allowDecimals: Boolean = false,
-        numericUnit: String = "",
-        allowMultiple: Boolean = false,
-        showInLogPeriod: Boolean = false,
-        groupId: Long? = null,
-        onCreated: (Long) -> Unit = {},
-    ) {
-        if (name.isBlank()) return
-        viewModelScope.launch {
-            val id = repository.addCategory(
-                name            = name,
-                iconName        = iconName,
-                colorToken      = colorToken,
-                categoryType    = categoryType,
-                numericMin      = numericMin,
-                numericMax      = numericMax,
-                allowDecimals   = allowDecimals,
-                numericUnit     = numericUnit,
-                allowMultiple   = allowMultiple,
-                showInLogPeriod = showInLogPeriod,
-            )
-            if (groupId != null) repository.assignCategoryToGroup(id, groupId)
-            onCreated(id)
-        }
-    }
-
-    fun updateCategoryAppearance(id: Long, iconName: String, colorToken: String) {
-        viewModelScope.launch { repository.updateCategoryAppearance(id, iconName, colorToken) }
-    }
-
     fun archiveCategory(category: TrackingCategory) {
         viewModelScope.launch { repository.archiveCategory(category.id) }
     }

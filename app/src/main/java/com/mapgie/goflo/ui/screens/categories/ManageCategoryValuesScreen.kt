@@ -12,11 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Alarm
@@ -52,11 +49,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -66,13 +60,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.mapgie.goflo.data.database.entities.CustomAlarm
 import com.mapgie.goflo.data.database.entities.TrackingCategory
 import com.mapgie.goflo.data.database.entities.TrackingValue
-import com.mapgie.goflo.ui.util.decodeScaleLabels
-import com.mapgie.goflo.ui.util.encodeScaleLabels
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,16 +82,6 @@ fun ManageCategoryValuesScreen(
     var pendingDeleteValue        by rememberSaveable { mutableStateOf<Long?>(null) }
     var pendingArchiveCategory    by rememberSaveable { mutableStateOf(false) }
     var pendingDeleteCategory     by rememberSaveable { mutableStateOf(false) }
-    var hasUnsavedChanges         by remember { mutableStateOf(false) }
-    var currentSaveAction         by remember { mutableStateOf<(() -> Unit)?>(null) }
-    var showUnsavedChangesDialog  by rememberSaveable { mutableStateOf(false) }
-
-    val handleBack: () -> Unit = {
-        if (hasUnsavedChanges) showUnsavedChangesDialog = true
-        else onNavigateBack()
-    }
-
-    BackHandler(enabled = hasUnsavedChanges) { showUnsavedChangesDialog = true }
 
     LaunchedEffect(state.isLoading, state.category) {
         if (!state.isLoading && state.category == null) onNavigateBack()
@@ -233,35 +214,12 @@ fun ManageCategoryValuesScreen(
         )
     }
 
-    if (showUnsavedChangesDialog) {
-        AlertDialog(
-            onDismissRequest = { showUnsavedChangesDialog = false },
-            title = { Text("Unsaved changes") },
-            text = { Text("Do you want to save your changes before going back?") },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showUnsavedChangesDialog = false
-                        currentSaveAction?.invoke()
-                    },
-                    enabled = currentSaveAction != null
-                ) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showUnsavedChangesDialog = false
-                    onNavigateBack()
-                }) { Text("Discard", color = MaterialTheme.colorScheme.error) }
-            }
-        )
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(state.category?.name ?: "Category") },
                 navigationIcon = {
-                    IconButton(onClick = handleBack) {
+                    IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -369,53 +327,22 @@ fun ManageCategoryValuesScreen(
         val category = state.category
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
             Box(modifier = Modifier.weight(1f)) {
+                // Per-type numeric settings, the rename/appearance dialogs, and
+                // the per-category switches were consolidated into the Edit
+                // flow (CategoryEditScreen) in Phase 8. This screen keeps what
+                // only it does: the value catalog and the Flow selector mode.
                 when (category?.categoryType) {
-                    "numeric_slider" -> NumericSliderSettings(
-                        category                = category,
-                        modifier                = Modifier,
-                        onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
-                        onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
-                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
-                        onToggleFlowSlider      = { viewModel.setFlowSliderMode(it) },
-                        onUnsavedState          = { hasChanges, saveAction ->
-                            hasUnsavedChanges = hasChanges
-                            currentSaveAction = saveAction
-                        },
-                        onSave                  = { min, max, decimals, unit, scaleLabels ->
-                            viewModel.updateNumericSettings(min, max, decimals, unit, scaleLabels)
-                            onNavigateBack()
-                        }
-                    )
-                    "numeric_free" -> NumericFreeSettings(
-                        category                = category,
-                        modifier                = Modifier,
-                        onToggleLogWithPeriod   = { viewModel.setShowInLogPeriod(it) },
-                        onToggleAllowMultiple   = { viewModel.setAllowMultiple(it) },
-                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
-                        onUnsavedState          = { hasChanges, saveAction ->
-                            hasUnsavedChanges = hasChanges
-                            currentSaveAction = saveAction
-                        },
-                        onSave                  = { unit ->
-                            viewModel.updateUnit(unit)
-                            onNavigateBack()
-                        }
-                    )
-                    "increment" -> IncrementCategoryInfo(
-                        category                 = category,
-                        modifier                 = Modifier,
-                        onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
-                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) }
+                    "numeric_slider", "numeric_free", "increment" -> NumericCategoryInfo(
+                        category           = category,
+                        modifier           = Modifier,
+                        onToggleFlowSlider = { viewModel.setFlowSliderMode(it) },
                     )
                     else -> DefaultCategoryValues(
-                        state                    = state,
-                        modifier                 = Modifier,
-                        onAddValue               = { showAddValue = true },
-                        onRenameValue            = { renamingValue = it.id },
-                        onToggleLogWithPeriod    = { viewModel.setShowInLogPeriod(it) },
-                        onToggleAllowMultiple    = { viewModel.setAllowMultiple(it) },
-                        onToggleTrackAgainstTime = { viewModel.setTrackAgainstTime(it) },
-                        onToggleFlowSlider       = { viewModel.setFlowSliderMode(it) }
+                        state              = state,
+                        modifier           = Modifier,
+                        onAddValue         = { showAddValue = true },
+                        onRenameValue      = { renamingValue = it.id },
+                        onToggleFlowSlider = { viewModel.setFlowSliderMode(it) },
                     )
                 }
             }
@@ -511,9 +438,6 @@ private fun DefaultCategoryValues(
     modifier: Modifier,
     onAddValue: () -> Unit,
     onRenameValue: (TrackingValue) -> Unit,
-    onToggleLogWithPeriod: (Boolean) -> Unit,
-    onToggleAllowMultiple: (Boolean) -> Unit,
-    onToggleTrackAgainstTime: (Boolean) -> Unit,
     onToggleFlowSlider: (Boolean) -> Unit,
 ) {
     Column(
@@ -524,24 +448,10 @@ private fun DefaultCategoryValues(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         val category = state.category
-        if (category?.isSystem == false) {
-            LogWithPeriodRow(
-                checked   = category.showInLogPeriod,
-                onChecked = onToggleLogWithPeriod
-            )
-            AllowMultipleRow(
-                checked   = category.allowMultiple,
-                onChecked = onToggleAllowMultiple
-            )
-        }
-        TrackAgainstTimeRow(
-            checked   = category?.trackAgainstTime ?: false,
-            onChecked = onToggleTrackAgainstTime
-        )
         if (category?.systemKey == "flow") {
             FlowSliderRow(isSlider = false, onToggle = onToggleFlowSlider)
+            HorizontalDivider()
         }
-        HorizontalDivider()
 
         Text(
             "Values in this category",
@@ -583,398 +493,92 @@ private fun DefaultCategoryValues(
                 )
             )
         }
+
+        HorizontalDivider()
+        EditFlowHint()
     }
 }
 
-// ── Plus One (increment) category info ────────────────────────────────────────
+// ── Numeric family (slider / input / Plus One) info ──────────────────────────
+// The range, step labels, unit, and per-category switches these sections used
+// to edit in place moved to the Edit flow (CategoryEditScreen) in Phase 8.
 
 @Composable
-private fun IncrementCategoryInfo(
+private fun NumericCategoryInfo(
     category: TrackingCategory,
     modifier: Modifier,
-    onToggleLogWithPeriod: (Boolean) -> Unit,
-    onToggleTrackAgainstTime: (Boolean) -> Unit,
+    onToggleFlowSlider: (Boolean) -> Unit,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (!category.isSystem) {
-            LogWithPeriodRow(
-                checked   = category.showInLogPeriod,
-                onChecked = onToggleLogWithPeriod
-            )
-        }
-        TrackAgainstTimeRow(
-            checked   = category.trackAgainstTime,
-            onChecked = onToggleTrackAgainstTime
-        )
-        HorizontalDivider()
-
-        Text(
-            "Plus One category",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            "Plus One categories don't use predefined values — each log records a running count " +
-            "for the day. Use the + button on the home screen or the log screen to add to today's total.",
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}
-
-// ── Numeric slider settings content ──────────────────────────────────────────
-
-@Composable
-private fun NumericSliderSettings(
-    category: TrackingCategory,
-    modifier: Modifier,
-    onToggleLogWithPeriod: (Boolean) -> Unit,
-    onToggleAllowMultiple: (Boolean) -> Unit,
-    onToggleTrackAgainstTime: (Boolean) -> Unit,
-    onToggleFlowSlider: (Boolean) -> Unit,
-    onUnsavedState: (hasChanges: Boolean, saveAction: (() -> Unit)?) -> Unit,
-    onSave: (min: Float, max: Float, allowDecimals: Boolean, unit: String, scaleLabels: String) -> Unit,
-) {
-    val originalMin = remember {
-        if (category.allowDecimals) "%.1f".format(category.numericMin)
-        else category.numericMin.toInt().toString()
-    }
-    val originalMax = remember {
-        if (category.allowDecimals) "%.1f".format(category.numericMax)
-        else category.numericMax.toInt().toString()
-    }
-    val originalAllowDecimals = remember { category.allowDecimals }
-    val originalUnit = remember { category.numericUnit }
-    val originalLabels = remember { category.scaleLabels.decodeScaleLabels() }
-
-    var minText          by rememberSaveable { mutableStateOf(originalMin) }
-    var maxText          by rememberSaveable { mutableStateOf(originalMax) }
-    var allowDecimals    by rememberSaveable { mutableStateOf(originalAllowDecimals) }
-    var unit             by rememberSaveable { mutableStateOf(originalUnit) }
-    var labelValuesExpanded by rememberSaveable { mutableStateOf(originalLabels.isNotEmpty()) }
-
-    // Optional per-step labels (e.g. 1→"Good", 5→"Bad"). Editable only for
-    // whole-number ranges with a manageable number of steps.
-    val labels = remember { mutableStateMapOf<Int, String>().apply { putAll(originalLabels) } }
-
-    val minInt = minText.toIntOrNull()
-    val maxInt = maxText.toIntOrNull()
-    val canLabel = !allowDecimals && minInt != null && maxInt != null &&
-        maxInt > minInt && (maxInt - minInt) <= 20
-
-    val canSave by remember {
-        derivedStateOf {
-            minText.toFloatOrNull() != null && maxText.toFloatOrNull() != null &&
-            (minText.toFloatOrNull() ?: 0f) < (maxText.toFloatOrNull() ?: 10f)
-        }
-    }
-
-    val hasChanges by remember {
-        derivedStateOf {
-            minText != originalMin || maxText != originalMax ||
-            allowDecimals != originalAllowDecimals || unit != originalUnit ||
-            (labelValuesExpanded && labels.toMap() != originalLabels) ||
-            (!labelValuesExpanded && originalLabels.isNotEmpty())
-        }
-    }
-
-    SideEffect {
-        onUnsavedState(
-            hasChanges,
-            if (hasChanges && canSave) {
-                {
-                    onSave(
-                        minText.toFloatOrNull() ?: 0f,
-                        maxText.toFloatOrNull() ?: 10f,
-                        allowDecimals,
-                        unit.trim(),
-                        when {
-                            labelValuesExpanded && canLabel -> labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
-                            !labelValuesExpanded -> ""
-                            else -> category.scaleLabels
-                        }
-                    )
-                }
-            } else null
-        )
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        if (!category.isSystem) {
-            LogWithPeriodRow(
-                checked   = category.showInLogPeriod,
-                onChecked = onToggleLogWithPeriod
-            )
-            AllowMultipleRow(
-                checked   = category.allowMultiple,
-                onChecked = onToggleAllowMultiple
-            )
-        }
-        TrackAgainstTimeRow(
-            checked   = category.trackAgainstTime,
-            onChecked = onToggleTrackAgainstTime
-        )
         if (category.systemKey == "flow") {
-            FlowSliderRow(isSlider = true, onToggle = onToggleFlowSlider)
-        }
-        HorizontalDivider()
-
-        Text(
-            "Slider scale settings",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        OutlinedTextField(
-            value         = unit,
-            onValueChange = { unit = it },
-            label         = { Text("Unit / Key (optional)") },
-            placeholder   = { Text("e.g. °C, bpm, kg…") },
-            singleLine    = true,
-            modifier      = Modifier.fillMaxWidth()
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value           = minText,
-                onValueChange   = { minText = it },
-                label           = { Text("Min") },
-                singleLine      = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier        = Modifier.weight(1f)
-            )
-            OutlinedTextField(
-                value           = maxText,
-                onValueChange   = { maxText = it },
-                label           = { Text("Max") },
-                singleLine      = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier        = Modifier.weight(1f)
-            )
+            FlowSliderRow(isSlider = category.categoryType == "numeric_slider", onToggle = onToggleFlowSlider)
+            HorizontalDivider()
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text("Allow decimals", style = MaterialTheme.typography.titleSmall)
+        when (category.categoryType) {
+            "increment" -> {
                 Text(
-                    "Slider snaps to 0.1 steps instead of whole numbers",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Plus One category",
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-            Switch(checked = allowDecimals, onCheckedChange = { enabled ->
-                allowDecimals = enabled
-                // Reformat the Min/Max fields to match the new step mode. Turning
-                // decimals off must strip the trailing ".0" so the values parse as
-                // whole numbers again, otherwise the label editor (which requires an
-                // integer range) can never re-enable after decimals are switched off.
-                fun reformat(text: String): String =
-                    text.toFloatOrNull()?.let {
-                        if (enabled) "%.1f".format(it) else it.toInt().toString()
-                    } ?: text
-                minText = reformat(minText)
-                maxText = reformat(maxText)
-            })
-        }
-
-        // ── Optional per-step labels ─────────────────────────────────────────
-        HorizontalDivider()
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Label values", style = MaterialTheme.typography.titleSmall)
-            Switch(
-                checked = labelValuesExpanded,
-                onCheckedChange = { labelValuesExpanded = it }
-            )
-        }
-        if (labelValuesExpanded) {
-            Text(
-                "Name points on your scale (e.g. 1 = Good, 3 = Neutral, 5 = Bad). " +
-                    "Labels appear in the distribution chart in Stats.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            if (canLabel) {
-                (minInt!!..maxInt!!).forEach { step ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            step.toString(),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.width(36.dp)
-                        )
-                        OutlinedTextField(
-                            value         = labels[step] ?: "",
-                            onValueChange = { v -> if (v.isBlank()) labels.remove(step) else labels[step] = v },
-                            label         = { Text("Label") },
-                            singleLine    = true,
-                            modifier      = Modifier.weight(1f)
-                        )
-                    }
-                }
-            } else {
                 Text(
-                    "Tip: use whole numbers with a range of 20 steps or fewer (decimals off) to label individual values.",
-                    style = MaterialTheme.typography.bodySmall,
+                    "Plus One categories don't use predefined values. Each log records a " +
+                    "running count for the day: use the + button on the home screen or the " +
+                    "day screen to add to today's total.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            "numeric_slider" -> {
+                Text(
+                    "Slider scale category",
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "This category logs a position on a stepped scale, so it has no value " +
+                    "list to manage. The range, step labels, and unit live in the " +
+                    "category's settings.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            else -> {
+                Text(
+                    "Numeric input category",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    "This category logs a typed number, so it has no value list to manage. " +
+                    "The unit lives in the category's settings.",
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
 
-        Spacer(Modifier.height(4.dp))
-
-        Button(
-            onClick  = {
-                if (canSave) onSave(
-                    minText.toFloatOrNull() ?: 0f,
-                    maxText.toFloatOrNull() ?: 10f,
-                    allowDecimals,
-                    unit.trim(),
-                    when {
-                        labelValuesExpanded && canLabel -> labels.filterKeys { it in minInt!!..maxInt!! }.encodeScaleLabels()
-                        !labelValuesExpanded -> ""
-                        else -> category.scaleLabels
-                    }
-                )
-            },
-            enabled  = canSave,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Save") }
+        EditFlowHint()
     }
 }
 
-// ── Numeric free-input settings content ──────────────────────────────────────
-
+/** Points at the Edit action, where everything this screen no longer edits lives. */
 @Composable
-private fun NumericFreeSettings(
-    category: TrackingCategory,
-    modifier: Modifier,
-    onToggleLogWithPeriod: (Boolean) -> Unit,
-    onToggleAllowMultiple: (Boolean) -> Unit,
-    onToggleTrackAgainstTime: (Boolean) -> Unit,
-    onUnsavedState: (hasChanges: Boolean, saveAction: (() -> Unit)?) -> Unit,
-    onSave: (unit: String) -> Unit,
-) {
-    val originalUnit = remember { category.numericUnit }
-    var unit by rememberSaveable { mutableStateOf(originalUnit) }
-
-    val hasChanges by remember { derivedStateOf { unit != originalUnit } }
-
-    SideEffect {
-        onUnsavedState(
-            hasChanges,
-            if (hasChanges) ({ onSave(unit.trim()) }) else null
-        )
-    }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        if (!category.isSystem) {
-            LogWithPeriodRow(
-                checked   = category.showInLogPeriod,
-                onChecked = onToggleLogWithPeriod
-            )
-            AllowMultipleRow(
-                checked   = category.allowMultiple,
-                onChecked = onToggleAllowMultiple
-            )
-        }
-        TrackAgainstTimeRow(
-            checked   = category.trackAgainstTime,
-            onChecked = onToggleTrackAgainstTime
-        )
-        HorizontalDivider()
-
-        Text(
-            "Numeric Input settings",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        OutlinedTextField(
-            value         = unit,
-            onValueChange = { unit = it },
-            label         = { Text("Unit / Key (optional)") },
-            placeholder   = { Text("e.g. °C, bpm, kg…") },
-            singleLine    = true,
-            modifier      = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick  = { onSave(unit.trim()) },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Save") }
-    }
+private fun EditFlowHint() {
+    Text(
+        "Use the Edit action in the top bar to change this category's name, icon, " +
+        "colour, input settings, reminders, and options.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
-// ── Log with period toggle row ────────────────────────────────────────────────
-
-@Composable
-private fun LogWithPeriodRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("Log with period", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Show this category on the Log Period screen",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onChecked)
-    }
-}
-
-@Composable
-private fun AllowMultipleRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("Allow multiple per day", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Log this category more than once on the same day",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onChecked)
-    }
-}
+// ── Flow selector mode toggle ─────────────────────────────────────────────────
+// Only this screen offers the built-in Flow category's chips/slider switch.
 
 @Composable
 private fun FlowSliderRow(isSlider: Boolean, onToggle: (Boolean) -> Unit) {
@@ -992,25 +596,6 @@ private fun FlowSliderRow(isSlider: Boolean, onToggle: (Boolean) -> Unit) {
             )
         }
         Switch(checked = isSlider, onCheckedChange = onToggle)
-    }
-}
-
-@Composable
-private fun TrackAgainstTimeRow(checked: Boolean, onChecked: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("Track against time", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Record the time of each log entry so you can view them by time of day",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        Switch(checked = checked, onCheckedChange = onChecked)
     }
 }
 
@@ -1049,39 +634,6 @@ private fun AddValueDialog(
                 onClick  = { if (trimmed.isNotBlank() && !alreadyExists) onAdd(trimmed) },
                 enabled  = trimmed.isNotBlank() && !alreadyExists
             ) { Text("Add") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
-    )
-}
-
-// Superseded by CategoryEditScreen (logging redesign Phase 7), which covers
-// renaming. Kept unreferenced until Phase 8 removes it against the parity list.
-@Suppress("unused")
-@Composable
-private fun RenameCategoryDialog(
-    currentName: String,
-    onRename: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var name by rememberSaveable { mutableStateOf(currentName) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Rename category") },
-        text = {
-            OutlinedTextField(
-                value         = name,
-                onValueChange = { name = it },
-                label         = { Text("Category name") },
-                singleLine    = true,
-                modifier      = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            TextButton(
-                onClick  = { if (name.isNotBlank()) onRename(name) },
-                enabled  = name.isNotBlank() && name != currentName
-            ) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
