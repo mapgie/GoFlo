@@ -312,7 +312,8 @@ fun SettingsScreen(
     onNavigateToPinSetup: (changing: Boolean) -> Unit,
     onNavigateToLicenses: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
-    onNavigateToManageCategories: () -> Unit = {}
+    onNavigateToManageCategories: () -> Unit = {},
+    onNavigateToManage: () -> Unit = {}
 ) {
     val context    = LocalContext.current
     val prefs      by viewModel.prefs.collectAsState()
@@ -607,13 +608,14 @@ fun SettingsScreen(
 
     when (currentSubScreen) {
         SettingsSubScreen.NONE -> SettingsMainList(
-            security      = security,
-            currentTheme  = currentTheme,
-            scrollState   = mainListScrollState,
-            onBack        = onBack,
-            onNavigateTo  = { currentSubScreen = it },
-            onOpenDiscord = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
-            onOpenSupport = { openUrl(context, "https://github.com/sponsors/mapgie") }
+            security         = security,
+            currentTheme     = currentTheme,
+            scrollState      = mainListScrollState,
+            onBack           = onBack,
+            onNavigateTo     = { currentSubScreen = it },
+            onNavigateToManage = onNavigateToManage,
+            onOpenDiscord    = { openUrl(context, "https://discord.gg/xphnQCZeYq") },
+            onOpenSupport    = { openUrl(context, "https://github.com/sponsors/mapgie") }
         )
         SettingsSubScreen.CYCLE -> CycleSubScreen(
             prefs     = prefs,
@@ -690,6 +692,7 @@ private fun SettingsMainList(
     scrollState:  ScrollState,
     onBack:       () -> Unit,
     onNavigateTo: (SettingsSubScreen) -> Unit,
+    onNavigateToManage: () -> Unit,
     onOpenDiscord: () -> Unit,
     onOpenSupport: () -> Unit,
 ) {
@@ -753,6 +756,16 @@ private fun SettingsMainList(
                         )
                     }
                 }
+
+                // ── MANAGE ────────────────────────────────────────────────────
+                SettingsNavItem(
+                    title    = "Manage",
+                    subtitle = "Tracking modes, categories, cycle, and reminders",
+                    icon     = Icons.Outlined.Tune,
+                    onClick  = onNavigateToManage
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
                 // ── PERSONALISATION ───────────────────────────────────────────
                 SettingsSectionHeader("Personalisation")
