@@ -1,0 +1,8 @@
+{
+  "bump": "minor",
+  "changed": [
+    "Settings now has its own spot on the bottom navigation bar",
+    "The home screen's top-right icon now opens Manage",
+    "Manage is now the first item in the Settings screen"
+  ]
+}

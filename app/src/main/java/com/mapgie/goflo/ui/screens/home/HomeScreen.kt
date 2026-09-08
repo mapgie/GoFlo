@@ -27,7 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.outlined.HelpOutline
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Card
@@ -192,10 +192,10 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onNavigate(Screen.Settings.route) }) {
+                    IconButton(onClick = { onNavigate(Screen.Manage.route) }) {
                         Icon(
-                            imageVector        = Icons.Default.Settings,
-                            contentDescription = "Settings",
+                            imageVector        = Icons.Outlined.Tune,
+                            contentDescription = "Manage",
                             tint               = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                     }
