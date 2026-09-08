@@ -486,14 +486,14 @@ fun SettingsScreen(
                     Text("How should the imported data be handled?", style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Merge — adds new periods; skips any whose start date already exists. " +
+                        "Merge: adds new periods; skips any whose start date already exists. " +
                         "Safe if you have already logged some entries on this device.",
                         style = MaterialTheme.typography.bodySmall,
                         color  = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        "Replace — deletes everything on this device first, then imports. " +
+                        "Replace: deletes everything on this device first, then imports. " +
                         "Use when moving all data from your old phone.",
                         style = MaterialTheme.typography.bodySmall,
                         color  = MaterialTheme.colorScheme.onSurfaceVariant
@@ -554,7 +554,8 @@ fun SettingsScreen(
             text    = {
                 Text(
                     "This will permanently remove all period logs, symptoms, tracking logs, " +
-                    "and notes. Your category configuration is kept. This cannot be undone."
+                    "notes, any saved pregnancy date, and cached export files. Your category " +
+                    "and group configuration is kept. This cannot be undone."
                 )
             },
             confirmButton = {
@@ -575,8 +576,9 @@ fun SettingsScreen(
             title   = { Text("Reset category settings?") },
             text    = {
                 Text(
-                    "This will delete all your custom categories and restore any hidden built-in " +
-                    "categories. Your period logs and tracking history are kept. This cannot be undone."
+                    "This will delete all your custom categories and groups, and restore any hidden " +
+                    "built-in categories. Your period logs and tracking history are kept. " +
+                    "This cannot be undone."
                 )
             },
             confirmButton = {
@@ -1635,7 +1637,7 @@ private fun ExportDataSubScreen(
                     Column {
                         Text("Full backup", style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "Data plus category names, values, colours, settings, and dashboard pins. Use for transferring to a new phone.",
+                            "Data plus category names, values, colours, groups, settings, and dashboard pins. Use for transferring to a new phone.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

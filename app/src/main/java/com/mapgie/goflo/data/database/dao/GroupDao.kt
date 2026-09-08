@@ -35,4 +35,8 @@ interface GroupDao {
 
     @Delete
     suspend fun deleteGroup(group: Group)
+
+    /** Removes every group. Callers must unfile member categories first. */
+    @Query("DELETE FROM `groups`")
+    suspend fun deleteAllGroups()
 }

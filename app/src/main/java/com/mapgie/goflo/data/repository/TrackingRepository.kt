@@ -518,11 +518,16 @@ class TrackingRepository(
     }
 
     /**
-     * Deletes all user-created categories and restores built-in categories to visible.
-     * Tracking logs for deleted categories are cascade-deleted by the FK constraint.
-     * Period data (periods, symptoms) is untouched.
+     * Deletes all user-created categories and groups, and restores built-in
+     * categories to visible. Tracking logs for deleted categories are
+     * cascade-deleted by the FK constraint. Period data (periods, symptoms)
+     * is untouched. Groups are category configuration, so a configuration
+     * reset removes them too (their user-entered names can be sensitive);
+     * built-in categories are unfiled rather than deleted.
      */
     suspend fun resetCategoryConfiguration() {
+        categoryDao.clearAllGroupAssignments()
+        groupDao?.deleteAllGroups()
         categoryDao.deleteAllCustomCategories()
         categoryDao.unarchiveAllSystemCategories()
     }

@@ -128,7 +128,7 @@ fun ExportOptionsDialog(
                         ) {
                             Text(customStart?.format(dateDisplayFmt) ?: "From")
                         }
-                        Text("–")
+                        Text("to")
                         OutlinedButton(
                             onClick  = { showEndPicker = true },
                             modifier = Modifier.weight(1f)
@@ -200,7 +200,7 @@ fun ExportOptionsDialog(
                             Text(f.name, style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 when (f) {
-                                    ExportFormat.JSON -> "Full backup — can be re-imported"
+                                    ExportFormat.JSON -> "Full backup, can be re-imported"
                                     ExportFormat.CSV  -> "Spreadsheet-friendly flat table"
                                 },
                                 style = MaterialTheme.typography.bodySmall,

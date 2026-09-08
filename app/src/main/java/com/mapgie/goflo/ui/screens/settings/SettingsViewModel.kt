@@ -481,7 +481,7 @@ class SettingsViewModel(
         val metaTo   = endDate   ?: LocalDate.now()
 
         val root = JSONObject()
-        root.put("version", if (config.fullBackup) 4 else 2)
+        root.put("version", if (config.fullBackup) 5 else 2)
         root.put("exportedAt", LocalDate.now().toString())
         if (config.fullBackup) root.put("fullBackup", true)
         val rangeObj = JSONObject()
@@ -489,8 +489,24 @@ class SettingsViewModel(
         rangeObj.put("to", metaTo.toString())
         root.put("dateRange", rangeObj)
 
-        // ── Full backup: category configuration, settings, and alarms ────────
+        // ── Full backup: groups, category configuration, settings, alarms ────
         if (config.fullBackup) {
+            // Groups first: categories reference them by name on import, since
+            // row ids change across a restore.
+            val allGroups = trackingRepository.getAllGroupsOnce()
+            if (allGroups.isNotEmpty()) {
+                val groupsArray = JSONArray()
+                allGroups.forEach { group ->
+                    val groupObj = JSONObject()
+                    groupObj.put("name", group.name)
+                    groupObj.put("colorRole", group.colorRole)
+                    groupObj.put("defaultInputType", group.defaultInputType)
+                    groupsArray.put(groupObj)
+                }
+                root.put("groups", groupsArray)
+            }
+            val groupNameById = allGroups.associateBy({ it.id }, { it.name })
+
             val allCats = trackingRepository.getAllCategoriesOnce()
             val catsArray = JSONArray()
             allCats.forEach { cat ->
@@ -513,6 +529,7 @@ class SettingsViewModel(
                 catObj.put("showInLogPeriod", cat.showInLogPeriod)
                 catObj.put("trackAgainstTime", cat.trackAgainstTime)
                 catObj.put("modeKey", cat.modeKey)
+                catObj.put("groupName", cat.groupId?.let { groupNameById[it] } ?: "")
                 val valArr = JSONArray()
                 trackingRepository.getValuesForCategoryOnce(cat.id)
                     .sortedBy { it.displayOrder }
@@ -554,6 +571,13 @@ class SettingsViewModel(
                 put("pregnancyDateStr", prefs.pregnancyDateStr)
                 put("pregnancyStartType", prefs.pregnancyStartType)
                 put("temperatureUnitCelsius", prefs.temperatureUnitCelsius)
+                put("customLightBackgroundArgb", prefs.customLightBackgroundArgb)
+                put("customDarkBackgroundArgb", prefs.customDarkBackgroundArgb)
+                put("customThemeName", prefs.customThemeName)
+                put("periodTrackingEnabled", prefs.periodTrackingEnabled)
+                put("periodGapToleranceDays", prefs.periodGapToleranceDays)
+                put("dailyCheckEnabled", prefs.dailyCheckEnabled)
+                put("flowLevelRestoreDone", prefs.flowLevelRestoreDone)
                 put("preperiodEnabled", prefs.reminder.preperiodEnabled)
                 put("preperiodDaysBefore", prefs.reminder.preperiodDaysBefore)
                 put("ovulationEnabled", prefs.reminder.ovulationEnabled)
@@ -599,6 +623,8 @@ class SettingsViewModel(
                 profileObj.put("primaryArgb", profile.primaryArgb)
                 profileObj.put("secondaryArgb", profile.secondaryArgb)
                 profileObj.put("tertiaryArgb", profile.tertiaryArgb)
+                profileObj.put("lightBackgroundArgb", profile.lightBackgroundArgb)
+                profileObj.put("darkBackgroundArgb", profile.darkBackgroundArgb)
                 profilesArray.put(profileObj)
             }
             if (profilesArray.length() > 0) root.put("colorProfiles", profilesArray)
@@ -659,6 +685,7 @@ class SettingsViewModel(
                     entry.values.forEach { valArray.put(it) }
                     logObj.put("values", valArray)
                     logObj.put("notes", entry.log.notes)
+                    if (entry.log.loggedAt.isNotBlank()) logObj.put("loggedAt", entry.log.loggedAt)
                     logsArray.put(logObj)
                 }
                 catObj.put("logs", logsArray)
@@ -772,7 +799,12 @@ class SettingsViewModel(
                 runCatching {
                     if (!json.trimStart().startsWith('[')) {
                         val root = JSONObject(json)
-                        // Full backup: restore category configuration first so log import can match names.
+                        // Full backup: restore groups first (categories reference them by
+                        // name), then category configuration so log import can match names.
+                        val groupsArray = root.optJSONArray("groups")
+                        if (groupsArray != null || replace) {
+                            importGroups(groupsArray, replace)
+                        }
                         val categoriesArray = root.optJSONArray("categories")
                         if (categoriesArray != null) {
                             importCategoryConfig(categoriesArray, replace)
@@ -819,6 +851,19 @@ class SettingsViewModel(
                                 settingsObj.optString("pregnancyStartType", "EDD"),
                             )
                             store.setTemperatureUnitCelsius(settingsObj.optBoolean("temperatureUnitCelsius", true))
+                            store.setCustomBackgroundArgbs(
+                                settingsObj.optInt("customLightBackgroundArgb", 0),
+                                settingsObj.optInt("customDarkBackgroundArgb", 0),
+                            )
+                            store.setCustomThemeName(settingsObj.optString("customThemeName", ""))
+                            store.setPeriodTrackingEnabled(settingsObj.optBoolean("periodTrackingEnabled", true))
+                            settingsObj.optInt("periodGapToleranceDays", -1)
+                                .takeIf { it in 0..3 }
+                                ?.let { store.setPeriodGapToleranceDays(it) }
+                            store.setDailyCheckEnabled(settingsObj.optBoolean("dailyCheckEnabled", true))
+                            if (settingsObj.optBoolean("flowLevelRestoreDone", false)) {
+                                store.setFlowLevelRestoreDone(true)
+                            }
                             store.setPreperiodEnabled(settingsObj.optBoolean("preperiodEnabled", false))
                             store.setPreperiodDaysBefore(settingsObj.optInt("preperiodDaysBefore", 2))
                             store.setOvulationEnabled(settingsObj.optBoolean("ovulationEnabled", false))
@@ -848,6 +893,8 @@ class SettingsViewModel(
                                     primaryArgb  = obj.optInt("primaryArgb", 0),
                                     secondaryArgb = obj.optInt("secondaryArgb", 0),
                                     tertiaryArgb = obj.optInt("tertiaryArgb", 0),
+                                    lightBackgroundArgb = obj.optInt("lightBackgroundArgb", 0),
+                                    darkBackgroundArgb  = obj.optInt("darkBackgroundArgb", 0),
                                 ))
                             }
                         }
@@ -856,6 +903,32 @@ class SettingsViewModel(
                 reschedule()
             }
             onResult(result)
+        }
+    }
+
+    /**
+     * Restores category groups from a full backup. Groups are matched by name
+     * because row ids change across a restore; in replace mode all existing
+     * groups are removed first (never their member categories, which are
+     * unfiled and re-filed by the category import that follows).
+     */
+    private suspend fun importGroups(groupsArray: JSONArray?, replace: Boolean) {
+        if (replace) {
+            trackingRepository.getAllGroupsOnce().forEach { trackingRepository.deleteGroup(it.id) }
+        }
+        if (groupsArray == null) return
+        for (i in 0 until groupsArray.length()) {
+            val obj = groupsArray.getJSONObject(i)
+            val name = obj.optString("name").takeIf { it.isNotBlank() } ?: continue
+            val colorRole = obj.optString("colorRole", "primary")
+            val inputType = obj.optString("defaultInputType", "default")
+            val existing = trackingRepository.getAllGroupsOnce().firstOrNull { it.name == name }
+            if (existing == null) {
+                trackingRepository.addGroup(name, colorRole, inputType)
+            } else {
+                trackingRepository.updateGroupRole(existing.id, colorRole)
+                trackingRepository.updateGroupDefaultInputType(existing.id, inputType)
+            }
         }
     }
 
@@ -872,7 +945,8 @@ class SettingsViewModel(
                 if (isArchived) trackingRepository.archiveCategory(newId)
                 category = trackingRepository.getCategoryByIdOnce(newId)
             }
-            val categoryId = category?.id ?: continue
+            val cat = category ?: continue
+            val categoryId = cat.id
 
             val logsArray = catObj.optJSONArray("logs") ?: continue
             for (j in 0 until logsArray.length()) {
@@ -888,12 +962,20 @@ class SettingsViewModel(
                         for (k in 0 until valuesArray.length()) add(valuesArray.getString(k))
                     }
                 }
-                trackingRepository.saveLog(date, categoryId, values, logObj.optString("notes", ""))
+                // Honour allow-multiple and per-tap timestamps: without them, a
+                // day with several entries collapses to one on restore and
+                // time-tracked history loses its times.
+                trackingRepository.saveLog(
+                    date, categoryId, values, logObj.optString("notes", ""),
+                    allowMultiple = cat.allowMultiple,
+                    loggedAt      = logObj.optString("loggedAt", ""),
+                )
             }
         }
     }
 
     private suspend fun importCategoryConfig(categoriesArray: JSONArray, replace: Boolean) {
+        val groupIdByName = trackingRepository.getAllGroupsOnce().associateBy({ it.name }, { it.id })
         for (i in 0 until categoriesArray.length()) {
             val catObj = categoriesArray.getJSONObject(i)
             val catName = catObj.optString("name").takeIf { it.isNotBlank() } ?: continue
@@ -949,6 +1031,17 @@ class SettingsViewModel(
                     trackingRepository.unarchiveCategory(categoryId)
             }
 
+            // Restore group membership (backups from before groups existed have
+            // no "groupName" key; leave those categories' filing untouched).
+            if (catObj.has("groupName")) {
+                val groupId = groupIdByName[catObj.optString("groupName", "")]
+                if (groupId != null) {
+                    trackingRepository.assignCategoryToGroup(categoryId, groupId)
+                } else {
+                    trackingRepository.unassignCategory(categoryId)
+                }
+            }
+
             // Restore values (labels/options) for this category.
             val valuesArray = catObj.optJSONArray("values") ?: continue
             val existingValues = trackingRepository.getValuesForCategoryOnce(categoryId)
@@ -963,17 +1056,22 @@ class SettingsViewModel(
     }
 
     /**
-     * Permanently deletes all stored data (periods, symptoms, and tracking logs),
-     * then reschedules reminders (which will cancel predictive alarms now that
-     * data is gone). Categories and their value definitions are preserved.
+     * Permanently deletes all stored health data (periods, symptoms, tracking
+     * logs, the saved pregnancy date, and any cached export files), then
+     * reschedules reminders (which will cancel predictive alarms now that data
+     * is gone). Categories, groups, and value definitions are configuration and
+     * are preserved; "Reset category settings" removes those.
      *
-     * NOTE: whenever new data tables are added, this method must be updated
-     * to include them — and the same applies to importData and exportWithOptions.
+     * NOTE: whenever new data tables or health-bearing preferences are added,
+     * this method must be updated to include them — and the same applies to
+     * importData and exportWithOptions.
      */
     fun deleteAllData(onComplete: () -> Unit) {
         viewModelScope.launch {
             repository.deleteAllData()
             trackingRepository.deleteAllLogs()
+            store.setPregnancyDate("", "EDD")
+            DataExporter.clearExportCache(context)
             reschedule()
             onComplete()
         }
