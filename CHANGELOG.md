@@ -31,6 +31,28 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.58.0-beta.1] - 2026-09-08
+
+### Added
+- Full backups now include category groups and group membership, so restoring on a new phone keeps your grouping and group-inherited colours
+
+### Changed
+- The unified day log is now the standard logging screen everywhere: calendar taps, the Log button, the day sheet, and the Quick Log widget all open it, with the tapped category focused
+- Editing an entry from the day sheet opens the day log targeting that exact entry, including one specific log of a category that allows multiple logs per day
+- The old separate Log Period and category logging screens have been removed now that the day log covers everything they did
+- The period detail screen's pencil action opens the first day of the period in the day log
+- A category's range, step labels, unit, and options are now edited in one place, the Edit screen; the values screen keeps the value list and the Flow selector style
+- Settings now has its own spot on the bottom navigation bar
+- The home screen's top-right icon now opens Manage
+- Manage is now the first item in the Settings screen
+
+### Fixed
+- Restoring a backup no longer loses per-entry times or collapses a day with several entries into one
+- Full backups now carry custom theme backgrounds, saved palette backgrounds, the period gap tolerance, period tracking on/off, and other previously missed settings
+- Delete All Data now also removes any saved pregnancy date and cached export files, and Reset category settings now also removes groups
+- Exported files no longer accumulate in the app cache: each new export clears the previous one
+
+---
 ## [0.57.0-beta.1] - 2026-08-27
 
 ### Added
