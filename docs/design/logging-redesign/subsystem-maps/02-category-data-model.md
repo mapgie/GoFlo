@@ -92,7 +92,7 @@ Values: `getValuesForCategory`/`…Once`, `insertValue` (IGNORE), `updateValue`,
 Groups *(v24)*: `assignCategoryToGroup(categoryId, groupId?)`, `clearGroupAssignments(groupId)`.
 
 ### GroupDao *(v24)*
-`getAllGroups(): Flow` / `getAllGroupsOnce()` (ordered `displayOrder, name`), `getGroupById`, `insertGroup` (REPLACE→Long), `updateGroup`, `deleteGroup`. Table name is always backticked in raw SQL (`groups` is keyword-adjacent).
+`getAllGroups(): Flow` / `getAllGroupsOnce()` (ordered `displayOrder, name`), `getGroupById`, `insertGroup` (REPLACE→Long), `updateGroup`, `deleteGroup`, `deleteAllGroups` (config reset; callers unfile members first via `TrackingCategoryDao.clearAllGroupAssignments`). Table name is always backticked in raw SQL (`groups` is keyword-adjacent). Groups round-trip through the v5 full backup by name (`groups` array + per-category `groupName`), and `resetCategoryConfiguration` removes them.
 
 ### TrackingLogDao
 Logs: `getLogsForDate`/`…Once`; `getAllLogDates`; `getLogById`/`…Once`; `getLogForDateAndCategory` (LIMIT 1); `getLogsForDateAndCategory` (multiple, ordered by loggedAt); `insertLog` (REPLACE→Long), `updateLog`, `deleteLog`. Log values: `getLogValuesForLog`/`…Once`, `insertLogValue`, `deleteLogValuesForLog`. Stats/export: `getLogsForCategoryInRange`, `getValueCountsForCategory` (→ `ValueCount`), `getAllLogsInRange`, `getLogsForCategoriesInRange`, `getAllLogsForCategories`, `getLogValuesForLogs`, `getEarliest/LatestLogDate`, delete ranges/date/all.

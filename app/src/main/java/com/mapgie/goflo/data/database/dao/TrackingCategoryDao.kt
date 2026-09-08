@@ -69,6 +69,10 @@ interface TrackingCategoryDao {
     @Query("UPDATE tracking_categories SET groupId = NULL WHERE groupId = :groupId")
     suspend fun clearGroupAssignments(groupId: Long)
 
+    /** Unfiles every category. Called before all groups are deleted in a reset. */
+    @Query("UPDATE tracking_categories SET groupId = NULL")
+    suspend fun clearAllGroupAssignments()
+
     // ── Values ────────────────────────────────────────────────────────────
 
     @Query("SELECT * FROM tracking_values WHERE categoryId = :categoryId ORDER BY displayOrder ASC, id ASC")
