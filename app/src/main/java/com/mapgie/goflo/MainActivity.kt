@@ -15,7 +15,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.filled.Settings
 import android.graphics.Color as AndroidColor
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -238,7 +238,7 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                 NavigationBar {
                     NavigationBarItem(
                         colors   = navItemColors,
-                        selected = currentRoute == Screen.Home.route || currentRoute == Screen.Settings.route,
+                        selected = currentRoute == Screen.Home.route || currentRoute == Screen.Manage.route,
                         onClick = { navController.navigate(Screen.Home.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true; restoreState = true
@@ -280,13 +280,13 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     )
                     NavigationBarItem(
                         colors   = navItemColors,
-                        selected = currentRoute == Screen.Manage.route,
-                        onClick = { navController.navigate(Screen.Manage.route) {
+                        selected = currentRoute == Screen.Settings.route,
+                        onClick = { navController.navigate(Screen.Settings.route) {
                             popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                             launchSingleTop = true; restoreState = true
                         } },
-                        icon = { Icon(Icons.Outlined.Tune, contentDescription = "Manage") },
-                        label = { Text("Manage") }
+                        icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
+                        label = { Text("Settings") }
                     )
                 }
             }
@@ -372,7 +372,8 @@ private fun MainNavHost(app: GoFloApplication, currentTheme: AppTheme, pendingCa
                     },
                     onNavigateToLicenses = { navController.navigate(Screen.Licenses.route) },
                     onNavigateToPrivacy  = { navController.navigate(Screen.Privacy.route) },
-                    onNavigateToManageCategories = { navController.navigate(Screen.ManageCategories.route) }
+                    onNavigateToManageCategories = { navController.navigate(Screen.ManageCategories.route) },
+                    onNavigateToManage   = { navController.navigate(Screen.Manage.route) }
                 )
             }
 
