@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.repository.TrackingLogWithValues
 import com.mapgie.goflo.ui.components.ChipRow
 import com.mapgie.goflo.ui.components.DatePickerDialogWrapper
 import com.mapgie.goflo.ui.components.HairlineDivider
@@ -83,6 +84,7 @@ import com.mapgie.goflo.ui.components.PrimarySaveBar
 import com.mapgie.goflo.ui.components.SectionHeader
 import com.mapgie.goflo.ui.components.SelectableChip
 import com.mapgie.goflo.ui.components.SwitchRow
+import com.mapgie.goflo.ui.components.TimelineEntry
 import com.mapgie.goflo.ui.components.ToneHero
 import com.mapgie.goflo.ui.components.roleContainerTint
 import com.mapgie.goflo.ui.components.usesStepScale
@@ -216,8 +218,8 @@ fun LogScreen(
             onDismissRequest = { showRemoveDayConfirm = false },
             title = { Text("Remove this day?") },
             text = { Text(
-                "${state.date.format(displayFormat)} will no longer count as a period day. " +
-                "Anything else logged for this day is kept."
+                "${state.date.format(displayFormat)} will no longer count as a period day, " +
+                "and its flow entry is removed. Anything else logged for this day is kept."
             ) },
             confirmButton = {
                 TextButton(
@@ -885,7 +887,7 @@ private fun MetricSectionBody(
                 category = category,
                 entries = entry.timedEntries,
                 onAddOne = { viewModel.addTimedIncrement(category.id) },
-                onDeleteEntry = { viewModel.deleteTimedEntry(category.id, it) },
+                onDeleteEntry = { viewModel.deleteDayLog(category.id, it) },
             )
             return@Column
         }
@@ -946,6 +948,29 @@ private fun MetricSectionBody(
                             onClick = { viewModel.toggleEntryValue(category.id, label) },
                         )
                     }
+                }
+            }
+        }
+
+        // Allow-multiple: what is already stored this day, each row editable
+        // in place or deletable, so a saved entry never becomes unreachable.
+        if (entry.dayLogs.isNotEmpty()) {
+            Text(
+                text = if (entry.existingLog != null) "Other entries this day" else "Already logged this day",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ListCard {
+                entry.dayLogs.forEachIndexed { index, logged ->
+                    TimelineEntry(
+                        time = logged.log.loggedAt.ifEmpty { "#${index + 1}" },
+                        value = loggedValuesText(category, logged, config),
+                        role = role,
+                        sub = logged.log.notes.takeIf { it.isNotEmpty() },
+                        onEdit = { viewModel.editDayLog(category.id, logged) },
+                        onDelete = { viewModel.deleteDayLog(category.id, logged.log) },
+                    )
+                    if (index < entry.dayLogs.lastIndex) HairlineDivider()
                 }
             }
         }
@@ -1261,6 +1286,21 @@ private fun metricValueForEntry(
     CategoryType.TIME -> MetricValue.TimeOfDay(entry.selectedValues.firstOrNull())
 }
 
+/** Words for one stored log's values, as the reading it recorded. */
+private fun loggedValuesText(
+    category: TrackingCategory,
+    logged: TrackingLogWithValues,
+    config: MetricConfig,
+): String {
+    val first = logged.values.firstOrNull()
+    val stub = DayMetricEntry(
+        selectedValues = logged.values.toSet(),
+        numericValue = first?.toFloatOrNull(),
+        freeText = first ?: "",
+    )
+    return entrySummary(category, stub, config) ?: logged.values.joinToString(", ")
+}
+
 /** Words for the current reading, or null when nothing is set for the day. */
 private fun entrySummary(
     category: TrackingCategory,
@@ -1275,6 +1315,19 @@ private fun entrySummary(
         val n = entry.timedEntries.size
         return if (n > 0) withUnit(n.toString()) else null
     }
+    // An allow-multiple day with nothing in the input still has a reading:
+    // how many entries are stored.
+    val stored = entry.dayLogs.size.takeIf { it > 0 }?.let { "$it logged" }
+    return current(type, entry, config, ::withUnit, category) ?: stored
+}
+
+private fun current(
+    type: CategoryType,
+    entry: DayMetricEntry,
+    config: MetricConfig,
+    withUnit: (String) -> String,
+    category: TrackingCategory,
+): String? {
     return when (type) {
         CategoryType.NUMERIC_SLIDER -> entry.numericValue?.let { v ->
             if (!category.allowDecimals) {

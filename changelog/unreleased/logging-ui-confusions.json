@@ -10,6 +10,8 @@
   ],
   "fixed": [
     "Logging a period day just before a period's start now moves the start back to that day instead of silently dropping it",
-    "Deleting an entry on a period day now sticks: categories set to \"Log with period\" are no longer written back with default values on every save, so a deleted log stays deleted and untouched categories no longer gain fabricated logs"
+    "Deleting an entry on a period day now sticks: categories set to \"Log with period\" are no longer written back with default values on every save, so a deleted log stays deleted and untouched categories no longer gain fabricated logs",
+    "Categories that allow multiple entries per day now list the day's stored entries under the input, each with Edit and Delete, so a saved entry is always reachable from the day screen",
+    "\"Remove this day from period\" now also removes that day's flow entry, which otherwise lingered with no way to delete it"
   ]
 }
