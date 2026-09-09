@@ -67,6 +67,8 @@ data class LogUiState(
     /** The episode covering (or within tolerance reach of) [date], if any. */
     val episodeId: Long? = null,
     val episodeStart: LocalDate? = null,
+    /** The episode start as loaded, restored when a pending start is undone. */
+    val loadedEpisodeStart: LocalDate? = null,
     /** Editable explicit episode end ("until"), null = open. */
     val endDate: LocalDate? = null,
     /** The end date as loaded, so the End action can be undone before saving. */
@@ -112,6 +114,12 @@ data class LogUiState(
     // ── Screen state ─────────────────────────────────────────────────────────
     /** The category whose input is currently expanded from a grouped card row. */
     val activeCategoryId: Long? = null,
+    /**
+     * When set, the screen shows only this category's input (opened for one
+     * thing from the speed dial, the widget, or a day-sheet entry) until the
+     * user asks for the whole day.
+     */
+    val focusedCategoryId: Long? = null,
     val hasChanges: Boolean = false,
     val saved: Boolean = false,
     val deleted: Boolean = false,
@@ -132,10 +140,11 @@ data class LogUiState(
  * the migration. Generic category behaviour keeps the retired category
  * screen's save rules per entry (see [entryValuesToSave]).
  *
- * Deep-link targeting: [focusCategoryId] expands that category's input on
- * first load (quick-log widget, speed dial); [editLogId] loads that one
- * specific log into its category's entry for in-place editing, which is how a
- * single log of an allow-multiple category is edited from the day sheet.
+ * Deep-link targeting: [focusCategoryId] opens the screen focused on that one
+ * category (quick-log widget, speed dial), hiding the rest of the day until
+ * the user asks for it; [editLogId] loads that one specific log into its
+ * category's entry for in-place editing, which is how a single log of an
+ * allow-multiple category is edited from the day sheet.
  */
 class LogViewModel(
     private val repository: PeriodRepository,
@@ -259,6 +268,7 @@ class LogViewModel(
                 date = date,
                 episodeId = episode?.id,
                 episodeStart = epStart,
+                loadedEpisodeStart = epStart,
                 endDate = effectiveEnd,
                 loadedEndDate = effectiveEnd,
                 isPeriodDay = isPeriodDay,
@@ -281,6 +291,10 @@ class LogViewModel(
                 categoryValues = valuesMap,
                 entries = entriesMap,
                 activeCategoryId = focusId,
+                // Focus survives day switches ("log this for another day") and
+                // is only ever set by the first, deep-linked load.
+                focusedCategoryId = state.focusedCategoryId
+                    ?: focusId?.takeIf { id -> categories.any { it.id == id } },
                 hasChanges = false,
             )
         }
@@ -383,13 +397,30 @@ class LogViewModel(
 
     // ── Period actions ────────────────────────────────────────────────────────
 
-    /** Marks the day to be logged as a period day (starting or continuing one) on save. */
-    fun startPeriodToday() = _uiState.update {
-        it.copy(startPeriodToday = true, hasChanges = true)
+    /**
+     * Marks the day to be logged as a period day (starting or continuing one)
+     * on save. A day before its episode's start moves that start back to the
+     * day, so the screen shows the boundary the save will produce.
+     */
+    fun startPeriodToday() = _uiState.update { state ->
+        val start = state.episodeStart
+        val movesStart = state.episodeId != null && start != null && state.date.isBefore(start)
+        state.copy(
+            startPeriodToday = true,
+            episodeStart = if (movesStart) state.date else start,
+            episodeDayNumber = if (movesStart) 1 else state.episodeDayNumber,
+            hasChanges = true,
+        )
     }
 
-    fun undoStartPeriod() = _uiState.update {
-        it.copy(startPeriodToday = false, hasChanges = true)
+    fun undoStartPeriod() = _uiState.update { state ->
+        val start = state.loadedEpisodeStart
+        state.copy(
+            startPeriodToday = false,
+            episodeStart = start,
+            episodeDayNumber = start?.let { PeriodDaySync.dayNumber(minOf(it, state.date), state.date) },
+            hasChanges = true,
+        )
     }
 
     /** Moves the episode start (existing episodes only). */
@@ -502,6 +533,9 @@ class LogViewModel(
         it.copy(activeCategoryId = categoryId)
     }
 
+    /** Leaves the single-category focus and shows the whole day. */
+    fun showFullDay() = _uiState.update { it.copy(focusedCategoryId = null) }
+
     /** Deletes a category's existing log for this day and reloads its entry. */
     fun deleteEntry(categoryId: Long) {
         val log = _uiState.value.entries[categoryId]?.existingLog ?: return
@@ -562,14 +596,14 @@ class LogViewModel(
     fun refileEntry(fromId: Long, toId: Long) {
         val state = _uiState.value
         if (fromId == toId) {
-            _uiState.update { it.copy(activeCategoryId = toId) }
+            _uiState.update { it.focusOn(toId) }
             return
         }
         val fromCat = state.categories.firstOrNull { it.id == fromId }
         val toCat = state.categories.firstOrNull { it.id == toId }
         val fromEntry = state.entries[fromId]
         if (fromCat == null || toCat == null || fromEntry == null || !fromEntry.touched) {
-            _uiState.update { it.copy(activeCategoryId = toId) }
+            _uiState.update { it.focusOn(toId) }
             return
         }
         val labels = serialisedValues(fromCat, fromEntry)
@@ -578,14 +612,19 @@ class LogViewModel(
             _uiState.update { s ->
                 val target = s.entries[toId] ?: DayMetricEntry(trackTime = toCat.trackAgainstTime)
                 val refiled = if (labels.isNullOrEmpty()) target else hydrateEntry(toCat, labels, target)
-                s.copy(
+                s.focusOn(toId).copy(
                     entries = s.entries + (fromId to reset) + (toId to refiled),
-                    activeCategoryId = toId,
                     hasChanges = true,
                 )
             }
         }
     }
+
+    /** Expands [categoryId]'s input; a focused screen follows it to the new category. */
+    private fun LogUiState.focusOn(categoryId: Long): LogUiState = copy(
+        activeCategoryId = categoryId,
+        focusedCategoryId = focusedCategoryId?.let { categoryId },
+    )
 
     /** Serialises an entry's current value to the labels a save would store. */
     private fun serialisedValues(cat: TrackingCategory, entry: DayMetricEntry): Set<String>? =
@@ -631,9 +670,14 @@ class LogViewModel(
                 if (periodSave) {
                     val episode: PeriodEntry? = if (state.episodeId != null) {
                         repository.logPeriodDay(state.date, tolerance)
+                        // The day just logged is part of the episode whatever
+                        // start was loaded: a day before the loaded start has
+                        // just moved that start back, and the boundary edit
+                        // must not trim it away again.
+                        val start = minOf(state.episodeStart ?: state.date, state.date)
                         repository.updateEpisode(
                             id = state.episodeId,
-                            start = state.episodeStart ?: state.date,
+                            start = start,
                             end = state.endDate,
                             notes = state.periodNotes,
                             toleranceDays = tolerance,

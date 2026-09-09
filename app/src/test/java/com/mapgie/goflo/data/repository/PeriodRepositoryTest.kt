@@ -306,6 +306,31 @@ class PeriodRepositoryTest {
         assertEquals(4, f.dayDao.days.size)
     }
 
+    @Test
+    fun `logging the day before an episode then editing with the earlier start keeps the day`() = runBlocking {
+        // The day screen's save sequence for a day just before a stored
+        // start: absorb the day, then apply the boundary edit. The edit must
+        // be fed the post-absorb start (min of loaded start and the day) or it
+        // trims the day straight back out.
+        val f = buildRepository("2024-06-09", "2024-06-10")
+        f.repo.reconcile(1, today = date("2024-06-10"))
+        val id = f.periodDao.periods.single().id
+        val loadedStart = date("2024-06-09")
+        val day = date("2024-06-08")
+
+        f.repo.logPeriodDay(day, 1, today = date("2024-06-10"))
+        val episode = f.repo.updateEpisode(
+            id, minOf(loadedStart, day), null, "", 1, today = date("2024-06-10")
+        )!!
+
+        assertEquals("2024-06-08", episode.startDate)
+        assertEquals(
+            listOf("2024-06-08", "2024-06-09", "2024-06-10"),
+            f.dayDao.days.map { it.date }.sorted(),
+        )
+        assertEquals(1, f.periodDao.periods.size)
+    }
+
     // ── Removing days ─────────────────────────────────────────────────────────
 
     @Test

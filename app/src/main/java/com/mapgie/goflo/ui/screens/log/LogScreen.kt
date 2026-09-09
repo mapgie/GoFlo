@@ -82,6 +82,7 @@ import com.mapgie.goflo.ui.components.MetricValue
 import com.mapgie.goflo.ui.components.PrimarySaveBar
 import com.mapgie.goflo.ui.components.SectionHeader
 import com.mapgie.goflo.ui.components.SelectableChip
+import com.mapgie.goflo.ui.components.SwitchRow
 import com.mapgie.goflo.ui.components.ToneHero
 import com.mapgie.goflo.ui.components.roleContainerTint
 import com.mapgie.goflo.ui.components.usesStepScale
@@ -95,20 +96,19 @@ import java.time.format.DateTimeFormatter
 
 private val displayFormat = DateTimeFormatter.ofPattern("MMM d, yyyy")
 
-// Sentinels for the switch sheet: closed / opened from the title (jump) /
-// opened from a metric header (re-file, value = source category id).
-private const val SHEET_CLOSED = 0L
-private const val SHEET_JUMP = -1L
-
 /**
  * The unified day screen: one screen logs a day, and a running period is a
  * state of that day rather than a separate destination.
  *
  * Off-period, the first tracked category leads as a tonal hero and the footer
- * is a quiet "Period started today" row. On-period, the Flow group slots in at
+ * is a "Period started today" switch. On-period, the Flow group slots in at
  * the top, the lead category compresses into the tracked list, and the footer
  * becomes a filled status row with an End action. Everything between renders
  * identically in both states.
+ *
+ * Opened for one category (speed dial, widget, a day-sheet entry) the screen
+ * shows only that category's input until "Log more for this day" expands it
+ * to the whole day.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -130,8 +130,8 @@ fun LogScreen(
     var showAddSymptomDialog by rememberSaveable { mutableStateOf(false) }
     var showUnsavedChangesDialog by rememberSaveable { mutableStateOf(false) }
     var showOverflowMenu by rememberSaveable { mutableStateOf(false) }
-    /** SHEET_CLOSED, SHEET_JUMP, or the category id a re-file was opened from. */
-    var switchSheetMode by rememberSaveable { mutableStateOf(SHEET_CLOSED) }
+    /** Category id the re-file sheet was opened from, or 0 when closed. */
+    var refileSourceId by rememberSaveable { mutableStateOf(0L) }
     /** Category id awaiting delete-entry confirmation, or 0 when none. */
     var pendingDeleteEntryId by rememberSaveable { mutableStateOf(0L) }
     /** Day picked while unsaved changes exist, awaiting discard confirmation. */
@@ -282,21 +282,16 @@ fun LogScreen(
         )
     }
 
-    if (switchSheetMode != SHEET_CLOSED) {
-        DaySwitchSheet(
-            refileSourceId = switchSheetMode.takeIf { it > 0L },
+    if (refileSourceId != 0L) {
+        RefileSheet(
+            sourceId = refileSourceId,
             state = state,
-            onPickDay = {
-                switchSheetMode = SHEET_CLOSED
-                showDayPicker = true
-            },
             onPickCategory = { categoryId ->
-                val mode = switchSheetMode
-                switchSheetMode = SHEET_CLOSED
-                if (mode > 0L) viewModel.refileEntry(mode, categoryId)
-                else viewModel.setActiveCategory(categoryId)
+                val from = refileSourceId
+                refileSourceId = 0L
+                viewModel.refileEntry(from, categoryId)
             },
-            onDismiss = { switchSheetMode = SHEET_CLOSED },
+            onDismiss = { refileSourceId = 0L },
         )
     }
 
@@ -307,7 +302,7 @@ fun LogScreen(
             LogDayTopBar(
                 state = state,
                 onBack = handleBack,
-                onTitleClick = { switchSheetMode = SHEET_JUMP },
+                onTitleClick = { showDayPicker = true },
                 showOverflowMenu = showOverflowMenu,
                 onOverflowChange = { showOverflowMenu = it },
                 onDisablePeriodTracking = {
@@ -325,6 +320,10 @@ fun LogScreen(
             return@Scaffold
         }
 
+        val focused = state.focusedCategoryId?.let { id ->
+            state.categories.firstOrNull { it.id == id }
+        }
+
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(
                 modifier = Modifier
@@ -334,7 +333,24 @@ fun LogScreen(
                     .padding(top = 16.dp, bottom = 104.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                DaySection(state, onPickDay = { showDayPicker = true })
+                if (focused != null) {
+                    // Opened for one thing: just that thing, and a way out to
+                    // the rest of the day.
+                    CategoryMetricSection(
+                        category = focused,
+                        state = state,
+                        viewModel = viewModel,
+                        hero = true,
+                        onSwitchCategory = { refileSourceId = focused.id },
+                        onDeleteEntry = { pendingDeleteEntryId = focused.id },
+                    )
+                    OutlinedButton(
+                        onClick = viewModel::showFullDay,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Log more for this day") }
+                    ErrorText(state.error)
+                    return@Column
+                }
 
                 if (state.periodActive) {
                     PeriodDatesSection(
@@ -356,7 +372,7 @@ fun LogScreen(
                         category = cat,
                         state = state,
                         viewModel = viewModel,
-                        onSwitchCategory = { switchSheetMode = cat.id },
+                        onSwitchCategory = { refileSourceId = cat.id },
                         onDeleteEntry = { pendingDeleteEntryId = cat.id },
                     )
                 }
@@ -371,7 +387,7 @@ fun LogScreen(
                         state = state,
                         viewModel = viewModel,
                         hero = true,
-                        onSwitchCategory = { switchSheetMode = cat.id },
+                        onSwitchCategory = { refileSourceId = cat.id },
                         onDeleteEntry = { pendingDeleteEntryId = cat.id },
                     )
                 }
@@ -382,7 +398,7 @@ fun LogScreen(
                     state = state,
                     viewModel = viewModel,
                     excludeIds = (pinned.map { it.id } + listOfNotNull(lead?.id)).toSet(),
-                    onSwitchCategory = { switchSheetMode = it },
+                    onSwitchCategory = { refileSourceId = it },
                     onDeleteEntry = { pendingDeleteEntryId = it },
                 )
 
@@ -426,13 +442,7 @@ fun LogScreen(
                     }
                 }
 
-                state.error?.let {
-                    Text(
-                        text = "Error: $it",
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
-                    )
-                }
+                ErrorText(state.error)
             }
 
             PrimarySaveBar(
@@ -446,6 +456,16 @@ fun LogScreen(
             )
         }
     }
+}
+
+@Composable
+private fun ErrorText(error: String?) {
+    if (error == null) return
+    Text(
+        text = "Error: $error",
+        color = MaterialTheme.colorScheme.error,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Assertive },
+    )
 }
 
 // ── Top bar ───────────────────────────────────────────────────────────────────
@@ -487,7 +507,7 @@ private fun LogDayTopBar(
                 }
                 Icon(
                     imageVector = Icons.Default.ExpandMore,
-                    contentDescription = "Switch day or category",
+                    contentDescription = "Change day",
                     modifier = Modifier.padding(start = 4.dp).size(20.dp),
                 )
             }
@@ -525,45 +545,7 @@ private fun LogDayTopBar(
     )
 }
 
-// ── Day + period dates ────────────────────────────────────────────────────────
-
-@Composable
-private fun DaySection(state: LogUiState, onPickDay: () -> Unit) {
-    SectionHeader(label = "Day")
-    ListCard {
-        ListRow(
-            key = "Date",
-            value = state.date.format(displayFormat),
-            valueEmphasis = true,
-            onClick = onPickDay,
-        )
-    }
-    // Continuation context changes as the user picks days and toggles the
-    // period state, so announce it politely to screen readers.
-    if (state.periodActive) {
-        val text = when {
-            state.startPeriodToday && state.continuesEpisodeStart != null -> {
-                val dayNo = state.episodeDayNumber
-                if (dayNo != null && dayNo > 1) {
-                    "Day $dayNo of the period started ${state.continuesEpisodeStart.format(displayFormat)}"
-                } else {
-                    "Continues the period started ${state.continuesEpisodeStart.format(displayFormat)}"
-                }
-            }
-            state.startPeriodToday -> "Starts a new period"
-            state.episodeDayNumber != null -> "Day ${state.episodeDayNumber} of this period"
-            else -> null
-        }
-        if (text != null) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
-        }
-    }
-}
+// ── Period dates ──────────────────────────────────────────────────────────────
 
 @Composable
 private fun PeriodDatesSection(
@@ -833,12 +815,14 @@ private fun GroupCardSection(
 }
 
 /**
- * One tracked category's full input surface: header (the category name is a
- * button that opens the re-file sheet), the [MetricInput] for its type (or the
- * timed-increment timeline), "previously recorded" chips for stored labels no
- * longer in the catalog, the track-against-time checkbox, per-entry notes, and
- * a delete action when an entry already exists. As the off-period [hero], the
- * input nests inside a [ToneHero] that shows the current reading as words.
+ * One tracked category's full input surface: a plain section header with the
+ * current reading, the [MetricInput] for its type (or the timed-increment
+ * timeline), "previously recorded" chips for stored labels no longer in the
+ * catalog, the track-against-time checkbox, per-entry notes, a "move to
+ * another category" action once something has been entered (opens the re-file
+ * sheet), and a delete action when an entry already exists. As the off-period
+ * [hero], the input nests inside a [ToneHero] that shows the current reading
+ * as words.
  */
 @Composable
 private fun CategoryMetricSection(
@@ -858,75 +842,22 @@ private fun CategoryMetricSection(
     val summary = entrySummary(category, entry, config)
 
     if (hero) {
-        MetricHeaderButton(
-            name = category.name,
-            value = null,
-            valueColor = role,
-            onClick = onSwitchCategory,
-        )
+        SectionHeader(label = category.name)
         ToneHero(
             word = summary ?: "Not logged yet",
             role = role,
         ) {
-            MetricSectionBody(category, entry, availableValues, config, role, onRole, viewModel, onDeleteEntry)
+            MetricSectionBody(
+                category, entry, availableValues, config, role, onRole, viewModel,
+                onSwitchCategory, onDeleteEntry,
+            )
         }
     } else {
-        MetricHeaderButton(
-            name = category.name,
-            value = summary,
-            valueColor = role,
-            onClick = onSwitchCategory,
+        SectionHeader(label = category.name, value = summary, valueColor = role)
+        MetricSectionBody(
+            category, entry, availableValues, config, role, onRole, viewModel,
+            onSwitchCategory, onDeleteEntry,
         )
-        MetricSectionBody(category, entry, availableValues, config, role, onRole, viewModel, onDeleteEntry)
-    }
-}
-
-/**
- * The category-name header row: the name is a button opening the re-file
- * sheet ("logged the wrong thing?"), with the current value right-aligned.
- */
-@Composable
-private fun MetricHeaderButton(
-    name: String,
-    value: String?,
-    valueColor: Color,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(8.dp))
-                .semantics { this.role = Role.Button }
-                .clickable(onClick = onClick)
-                .heightIn(min = 44.dp),
-        ) {
-            Text(
-                text = name.uppercase(),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.11.em,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Icon(
-                imageVector = Icons.Default.ExpandMore,
-                contentDescription = "File under another category",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 2.dp).size(16.dp),
-            )
-        }
-        if (value != null) {
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = valueColor,
-            )
-        }
     }
 }
 
@@ -940,6 +871,7 @@ private fun MetricSectionBody(
     role: Color,
     onRole: Color,
     viewModel: LogViewModel,
+    onSwitchCategory: () -> Unit,
     onDeleteEntry: () -> Unit,
 ) {
     val type = category.categoryType.toCategoryType()
@@ -1048,9 +980,14 @@ private fun MetricSectionBody(
                 },
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             if (entry.notes.isEmpty() && !noteOpen) {
                 TextButton(onClick = { noteOpen = true }) { Text("Add note") }
+            }
+            // "Logged the wrong thing?": only an unsaved value can be
+            // re-filed, so the action appears once something is entered.
+            if (entry.touched) {
+                TextButton(onClick = onSwitchCategory) { Text("Move to another category") }
             }
             if (entry.existingLog != null) {
                 TextButton(
@@ -1067,8 +1004,10 @@ private fun MetricSectionBody(
 // ── Period footer ─────────────────────────────────────────────────────────────
 
 /**
- * Off-period: a quiet hairline row that starts (or continues) a period today.
- * On-period: a filled status row naming the period state, with End/Undo.
+ * Off-period, or while a start is pending: a switch that marks this day as a
+ * period day (starting, continuing, or extending one), applied on save.
+ * Once the day is a stored period day: a filled status row naming the period
+ * state, with End/Undo.
  */
 @Composable
 private fun PeriodFooter(
@@ -1078,41 +1017,47 @@ private fun PeriodFooter(
     onEndPeriod: () -> Unit,
     onUndoEnd: () -> Unit,
 ) {
-    if (!state.periodActive) {
+    if (state.startPeriodToday || !state.periodActive) {
         if (!state.periodTrackingEnabled) return
         val continues = state.continuesEpisodeStart
-        ListCard {
-            ListRow(
-                key = if (continues != null) "Log as a period day" else "Period started today",
-                onClick = onStartPeriod,
-            )
+        val pending = state.startPeriodToday
+        val isToday = state.date == LocalDate.now()
+        val title = when {
+            continues != null -> "Log as a period day"
+            isToday -> "Period started today"
+            else -> "Period started this day"
         }
-        if (continues != null) {
-            Text(
-                "Continues the period started ${continues.format(displayFormat)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        val subtitle = when {
+            continues != null && state.date.isBefore(continues) ->
+                "Moves the start of the period from ${continues.format(displayFormat)} to this day"
+            continues != null ->
+                "Continues the period started ${continues.format(displayFormat)}"
+            pending && state.endDate != null ->
+                "Starts a new period, until ${state.endDate.format(displayFormat)}"
+            pending -> "Starts a new period. Save to log it."
+            else -> null
+        }
+        ListCard {
+            SwitchRow(
+                title = title,
+                subtitle = subtitle,
+                checked = pending,
+                role = MaterialTheme.colorScheme.primary,
+                onRole = MaterialTheme.colorScheme.onPrimary,
+                onCheckedChange = { if (it) onStartPeriod() else onUndoStart() },
             )
         }
         return
     }
 
-    val pendingStart = state.startPeriodToday && state.episodeId == null
     val endedToday = state.endDate != null && state.endDate == state.date &&
         state.loadedEndDate != state.endDate
     val title = when {
-        pendingStart -> "Period starts today"
-        state.startPeriodToday -> "Period day added"
         endedToday -> "Period ends today"
         state.endDate == null -> "Period ongoing"
         else -> "Period recorded"
     }
     val since = (state.episodeStart ?: state.date).format(displayFormat)
-    val subtitle = when {
-        pendingStart -> state.endDate?.let { "Until ${it.format(displayFormat)}" } ?: "Save to log it"
-        state.startPeriodToday -> "Continues the period started $since"
-        else -> "Since $since"
-    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -1138,13 +1083,12 @@ private fun PeriodFooter(
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
-                    text = subtitle,
+                    text = "Since $since",
                     fontSize = 11.5.sp,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 )
             }
             when {
-                state.startPeriodToday -> TextButton(onClick = onUndoStart) { Text("Undo") }
                 endedToday -> TextButton(onClick = onUndoEnd) { Text("Undo") }
                 state.endDate == null -> TextButton(onClick = onEndPeriod) { Text("End") }
             }
@@ -1152,27 +1096,23 @@ private fun PeriodFooter(
     }
 }
 
-// ── Switch sheet ──────────────────────────────────────────────────────────────
+// ── Re-file sheet ─────────────────────────────────────────────────────────────
 
 /**
- * The title/header switcher: every category organised by group and tinted by
- * its role, so the colour you're about to log in is visible before you commit.
- *
- * Opened from the screen title it jumps between sections and offers a day
- * change; opened from a metric header ([refileSourceId] set) it re-files the
- * entered value under the picked category, keeping the value.
+ * "Logged the wrong thing?": every category organised by group and tinted by
+ * its role. Picking one re-files the value entered under [sourceId] under the
+ * picked category, keeping the value.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DaySwitchSheet(
-    refileSourceId: Long?,
+private fun RefileSheet(
+    sourceId: Long,
     state: LogUiState,
-    onPickDay: () -> Unit,
     onPickCategory: (Long) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState()
-    val selectedId = refileSourceId ?: state.activeCategoryId
+    val selectedId = sourceId
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Column(
@@ -1185,28 +1125,14 @@ private fun DaySwitchSheet(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = if (refileSourceId != null) "File this entry under…" else "Switch day or category",
+                text = "File this entry under…",
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = if (refileSourceId != null) {
-                    "The value you entered is kept; only the category it is filed under changes."
-                } else {
-                    "Jump to a category, or pick another day to log."
-                },
+                text = "The value you entered is kept; only the category it is filed under changes.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-
-            if (refileSourceId == null) {
-                ListCard {
-                    ListRow(
-                        key = "Change day",
-                        value = state.date.format(displayFormat),
-                        onClick = onPickDay,
-                    )
-                }
-            }
 
             val groupIds = state.groups.map { it.id }.toSet()
             val byGroup = state.categories

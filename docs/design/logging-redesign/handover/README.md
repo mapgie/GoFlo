@@ -41,13 +41,14 @@ The canvas is organised in rows. Left→right, top→bottom:
 - **Single-metric log:** the metric *is* the page — tonal `primaryContainer` hero holds the reading as words ("Barely noticeable"), 5-step scale, notes fill former dead space, a small 7-day sparkline.
 
 ### Row 2 — One log screen, two states
-- **Off-period daily log:** mood leads in an **amber hero** ("How did today feel"); flow not rendered; symptoms, tracked metrics, notes below; a hairline "Period started today" footer row.
+- **Off-period daily log:** mood leads in an **amber hero** ("How did today feel"); flow not rendered; symptoms, tracked metrics, notes below; a "Period started today" switch row as the footer.
 - **On-period:** a blue **Flow** group slots in at the top, mood hero compresses to one row, footer becomes a filled `primaryContainer` status row ("Period ongoing · since Aug 6 · End"). **Everything between is byte-for-byte identical** — one screen, period is a state of the day, not a separate destination.
 
 ### Row 3 — Groups tie it together
 - **Settings → Categories & groups:** theme swatch row on top; each group is a row with a colour dot + role label. Switching theme recolours every group.
 - **Grouped multi-metric card:** Environment (Weather/Rainfall/Dampness) = **one card of rows**, not three separate logs. A group of one renders as the single-metric page.
-- **Header switcher:** the screen title is a button → a sheet of categories **organised by group, tinted by role**. Switching re-files the entry; the value already entered is preserved.
+- **Re-file sheet:** a "Move to another category" action under an entered value → a sheet of categories **organised by group, tinted by role**. Picking one re-files the entry; the value already entered is preserved. (The screen title changes the day; section headers are plain labels.)
+- **Focused log:** opened for one category (speed dial, widget, day-sheet entry) the day screen shows only that category, with "Log more for this day" expanding to the whole day.
 
 ### Row 4 — What You Track (management home)
 - **Grouped / Ungrouped** segmented toggle.
