@@ -32,9 +32,9 @@ import java.time.format.DateTimeFormatter
  * category, held once per category here. [touched] records whether the user changed anything
  * this session: untouched entries are skipped on save, so the screen neither
  * fabricates logs for ignored categories nor rewrites stored entries (which
- * would re-stamp or clear their recorded time). Pinned categories are the
- * exception while the day is on-period: they keep the period screen's
- * always-save fan-out semantics.
+ * would re-stamp or clear their recorded time). This holds for pinned ("Log
+ * with period") categories too: an always-save fan-out made their logs
+ * impossible to delete, since the next period save wrote them straight back.
  */
 data class DayMetricEntry(
     val selectedValues: Set<String> = emptySet(),
@@ -49,6 +49,12 @@ data class DayMetricEntry(
     val existingLog: TrackingLog? = null,
     /** Timed entries already logged this day (increment + trackAgainstTime only). */
     val timedEntries: List<TrackingLogWithValues> = emptyList(),
+    /**
+     * Logs already stored this day for an allow-multiple category, other than
+     * the one loaded into the input ([existingLog]); each can be edited in
+     * place or deleted. Empty for single-entry and timed categories.
+     */
+    val dayLogs: List<TrackingLogWithValues> = emptyList(),
     val touched: Boolean = false,
 )
 
@@ -67,6 +73,8 @@ data class LogUiState(
     /** The episode covering (or within tolerance reach of) [date], if any. */
     val episodeId: Long? = null,
     val episodeStart: LocalDate? = null,
+    /** The episode start as loaded, restored when a pending start is undone. */
+    val loadedEpisodeStart: LocalDate? = null,
     /** Editable explicit episode end ("until"), null = open. */
     val endDate: LocalDate? = null,
     /** The end date as loaded, so the End action can be undone before saving. */
@@ -112,6 +120,12 @@ data class LogUiState(
     // ── Screen state ─────────────────────────────────────────────────────────
     /** The category whose input is currently expanded from a grouped card row. */
     val activeCategoryId: Long? = null,
+    /**
+     * When set, the screen shows only this category's input (opened for one
+     * thing from the speed dial, the widget, or a day-sheet entry) until the
+     * user asks for the whole day.
+     */
+    val focusedCategoryId: Long? = null,
     val hasChanges: Boolean = false,
     val saved: Boolean = false,
     val deleted: Boolean = false,
@@ -132,10 +146,11 @@ data class LogUiState(
  * the migration. Generic category behaviour keeps the retired category
  * screen's save rules per entry (see [entryValuesToSave]).
  *
- * Deep-link targeting: [focusCategoryId] expands that category's input on
- * first load (quick-log widget, speed dial); [editLogId] loads that one
- * specific log into its category's entry for in-place editing, which is how a
- * single log of an allow-multiple category is edited from the day sheet.
+ * Deep-link targeting: [focusCategoryId] opens the screen focused on that one
+ * category (quick-log widget, speed dial), hiding the rest of the day until
+ * the user asks for it; [editLogId] loads that one specific log into its
+ * category's entry for in-place editing, which is how a single log of an
+ * allow-multiple category is edited from the day sheet.
  */
 class LogViewModel(
     private val repository: PeriodRepository,
@@ -249,7 +264,11 @@ class LogViewModel(
                 // Timed increments render the whole day's timeline already;
                 // only collect-then-save types load the one targeted log.
                 if (!(cat.categoryType == "increment" && cat.trackAgainstTime)) {
-                    entriesMap[cat.id] = entryFromLog(cat, editTarget)
+                    entriesMap[cat.id] = entryFromLog(cat, editTarget).copy(
+                        dayLogs = entriesMap[cat.id]?.dayLogs
+                            ?.filter { it.log.id != editTarget.log.id }
+                            .orEmpty(),
+                    )
                 }
             }
         }
@@ -259,6 +278,7 @@ class LogViewModel(
                 date = date,
                 episodeId = episode?.id,
                 episodeStart = epStart,
+                loadedEpisodeStart = epStart,
                 endDate = effectiveEnd,
                 loadedEndDate = effectiveEnd,
                 isPeriodDay = isPeriodDay,
@@ -281,6 +301,10 @@ class LogViewModel(
                 categoryValues = valuesMap,
                 entries = entriesMap,
                 activeCategoryId = focusId,
+                // Focus survives day switches ("log this for another day") and
+                // is only ever set by the first, deep-linked load.
+                focusedCategoryId = state.focusedCategoryId
+                    ?: focusId?.takeIf { id -> categories.any { it.id == id } },
                 hasChanges = false,
             )
         }
@@ -316,6 +340,10 @@ class LogViewModel(
         // loaded only through the editLogId deep link.
         val existing = if (timed || cat.allowMultiple) null
             else trackingRepository.getExistingLog(date, cat.id)
+        // Allow-multiple days list what is already stored, so each entry can
+        // be edited or deleted from the day screen itself.
+        val dayLogs = if (!timed && cat.allowMultiple)
+            trackingRepository.getLogsForDateAndCategory(date, cat.id) else emptyList()
         val numeric =
             if (cat.categoryType == "numeric_slider" || cat.categoryType == "increment")
                 existing?.values?.firstOrNull()?.toFloatOrNull()
@@ -330,6 +358,7 @@ class LogViewModel(
             trackTime = cat.trackAgainstTime,
             existingLog = existing?.log,
             timedEntries = timedEntries,
+            dayLogs = dayLogs,
         )
     }
 
@@ -365,6 +394,22 @@ class LogViewModel(
         _uiState.update { it.copy(entries = it.entries + (categoryId to fresh)) }
     }
 
+    /**
+     * Refreshes only the stored-entries list of an allow-multiple category,
+     * leaving whatever is in its input (unsaved or being edited) alone.
+     */
+    private suspend fun refreshDayLogs(categoryId: Long) {
+        val state = _uiState.value
+        val all = trackingRepository.getLogsForDateAndCategory(state.date, categoryId)
+        _uiState.update { s ->
+            val entry = s.entries[categoryId] ?: return@update s
+            val editingId = entry.existingLog?.id
+            s.copy(entries = s.entries + (categoryId to entry.copy(
+                dayLogs = all.filter { it.log.id != editingId },
+            )))
+        }
+    }
+
     // ── Day switching ─────────────────────────────────────────────────────────
 
     /**
@@ -383,13 +428,30 @@ class LogViewModel(
 
     // ── Period actions ────────────────────────────────────────────────────────
 
-    /** Marks the day to be logged as a period day (starting or continuing one) on save. */
-    fun startPeriodToday() = _uiState.update {
-        it.copy(startPeriodToday = true, hasChanges = true)
+    /**
+     * Marks the day to be logged as a period day (starting or continuing one)
+     * on save. A day before its episode's start moves that start back to the
+     * day, so the screen shows the boundary the save will produce.
+     */
+    fun startPeriodToday() = _uiState.update { state ->
+        val start = state.episodeStart
+        val movesStart = state.episodeId != null && start != null && state.date.isBefore(start)
+        state.copy(
+            startPeriodToday = true,
+            episodeStart = if (movesStart) state.date else start,
+            episodeDayNumber = if (movesStart) 1 else state.episodeDayNumber,
+            hasChanges = true,
+        )
     }
 
-    fun undoStartPeriod() = _uiState.update {
-        it.copy(startPeriodToday = false, hasChanges = true)
+    fun undoStartPeriod() = _uiState.update { state ->
+        val start = state.loadedEpisodeStart
+        state.copy(
+            startPeriodToday = false,
+            episodeStart = start,
+            episodeDayNumber = start?.let { PeriodDaySync.dayNumber(minOf(it, state.date), state.date) },
+            hasChanges = true,
+        )
     }
 
     /** Moves the episode start (existing episodes only). */
@@ -502,6 +564,9 @@ class LogViewModel(
         it.copy(activeCategoryId = categoryId)
     }
 
+    /** Leaves the single-category focus and shows the whole day. */
+    fun showFullDay() = _uiState.update { it.copy(focusedCategoryId = null) }
+
     /** Deletes a category's existing log for this day and reloads its entry. */
     fun deleteEntry(categoryId: Long) {
         val log = _uiState.value.entries[categoryId]?.existingLog ?: return
@@ -537,14 +602,44 @@ class LogViewModel(
         }
     }
 
-    /** Deletes a specific timed entry (increment + trackAgainstTime undo). */
-    fun deleteTimedEntry(categoryId: Long, log: TrackingLog) {
+    /**
+     * Deletes one of the day's stored logs for [categoryId]: a timed increment
+     * entry, or one row of an allow-multiple category's list. Deleting the
+     * log currently loaded in the input resets the input; deleting any other
+     * row leaves the input as it is.
+     */
+    fun deleteDayLog(categoryId: Long, log: TrackingLog) {
+        val state = _uiState.value
+        val cat = state.categories.firstOrNull { it.id == categoryId } ?: return
+        val timed = cat.categoryType == "increment" && cat.trackAgainstTime
+        val loadedInInput = state.entries[categoryId]?.existingLog?.id == log.id
         viewModelScope.launch {
             runCatching {
                 trackingRepository.deleteLog(log)
-                reloadEntry(categoryId)
+                if (timed || loadedInInput) reloadEntry(categoryId) else refreshDayLogs(categoryId)
             }.onFailure {
                 _uiState.update { s -> s.copy(error = "Could not delete the entry. Please try again.") }
+            }
+        }
+    }
+
+    /**
+     * Loads one of the day's stored logs of an allow-multiple category into
+     * its input for in-place editing (the day sheet's "edit" deep link, done
+     * from the day screen itself). The list then shows the other entries.
+     */
+    fun editDayLog(categoryId: Long, log: TrackingLogWithValues) {
+        val state = _uiState.value
+        val cat = state.categories.firstOrNull { it.id == categoryId } ?: return
+        viewModelScope.launch {
+            val all = trackingRepository.getLogsForDateAndCategory(state.date, categoryId)
+            _uiState.update { s ->
+                s.copy(
+                    entries = s.entries + (categoryId to entryFromLog(cat, log).copy(
+                        dayLogs = all.filter { it.log.id != log.log.id },
+                    )),
+                    activeCategoryId = categoryId,
+                )
             }
         }
     }
@@ -562,14 +657,14 @@ class LogViewModel(
     fun refileEntry(fromId: Long, toId: Long) {
         val state = _uiState.value
         if (fromId == toId) {
-            _uiState.update { it.copy(activeCategoryId = toId) }
+            _uiState.update { it.focusOn(toId) }
             return
         }
         val fromCat = state.categories.firstOrNull { it.id == fromId }
         val toCat = state.categories.firstOrNull { it.id == toId }
         val fromEntry = state.entries[fromId]
         if (fromCat == null || toCat == null || fromEntry == null || !fromEntry.touched) {
-            _uiState.update { it.copy(activeCategoryId = toId) }
+            _uiState.update { it.focusOn(toId) }
             return
         }
         val labels = serialisedValues(fromCat, fromEntry)
@@ -578,14 +673,19 @@ class LogViewModel(
             _uiState.update { s ->
                 val target = s.entries[toId] ?: DayMetricEntry(trackTime = toCat.trackAgainstTime)
                 val refiled = if (labels.isNullOrEmpty()) target else hydrateEntry(toCat, labels, target)
-                s.copy(
+                s.focusOn(toId).copy(
                     entries = s.entries + (fromId to reset) + (toId to refiled),
-                    activeCategoryId = toId,
                     hasChanges = true,
                 )
             }
         }
     }
+
+    /** Expands [categoryId]'s input; a focused screen follows it to the new category. */
+    private fun LogUiState.focusOn(categoryId: Long): LogUiState = copy(
+        activeCategoryId = categoryId,
+        focusedCategoryId = focusedCategoryId?.let { categoryId },
+    )
 
     /** Serialises an entry's current value to the labels a save would store. */
     private fun serialisedValues(cat: TrackingCategory, entry: DayMetricEntry): Set<String>? =
@@ -631,9 +731,14 @@ class LogViewModel(
                 if (periodSave) {
                     val episode: PeriodEntry? = if (state.episodeId != null) {
                         repository.logPeriodDay(state.date, tolerance)
+                        // The day just logged is part of the episode whatever
+                        // start was loaded: a day before the loaded start has
+                        // just moved that start back, and the boundary edit
+                        // must not trim it away again.
+                        val start = minOf(state.episodeStart ?: state.date, state.date)
                         repository.updateEpisode(
                             id = state.episodeId,
-                            start = state.episodeStart ?: state.date,
+                            start = start,
                             end = state.endDate,
                             notes = state.periodNotes,
                             toleranceDays = tolerance,
@@ -685,19 +790,21 @@ class LogViewModel(
             // Timed increments save per tap; never through the day save.
             if (cat.categoryType == "increment" && cat.trackAgainstTime) continue
             val entry = state.entries[cat.id] ?: continue
+            // Only touched entries save: an ignored category must neither
+            // gain a fabricated log nor have its stored entry rewritten
+            // (rewriting would re-stamp or clear its recorded time). Pinned
+            // categories are no exception: saving them untouched on every
+            // period day wrote back any log the user had just deleted.
+            if (!entry.touched) continue
             val pinnedContext = periodSave && cat.showInLogPeriod
             val values: Set<String>? = if (pinnedContext) {
-                // Exact parity with the period screen's pinned fan-out
-                // (slider falls back to min, count saves including 0).
+                // The period screen's pinned value rules (slider falls back
+                // to min, count saves including 0) still apply once touched.
                 PeriodDaySync.computePinnedValues(
                     cat, entry.numericValue, entry.freeText, entry.selectedValues,
                 )
             } else {
-                // Only touched entries save: an ignored category must neither
-                // gain a fabricated log nor have its stored entry rewritten
-                // (rewriting would re-stamp or clear its recorded time).
-                if (!entry.touched) null
-                else entryValuesToSave(cat, entry)
+                entryValuesToSave(cat, entry)
             }
             if (values == null) continue
             val loggedAt = if (entry.trackTime) {
@@ -754,15 +861,20 @@ class LogViewModel(
     // ── Period day removal and episode deletion ───────────────────────────────
 
     /**
-     * Removes this day from the period without touching the day's own tracking
-     * logs — a flow or symptom logged on a day that turns out not to be a
-     * period day is still a valid, dated record.
+     * Removes this day from the period, along with the day's flow log: flow
+     * is a property of a period day, and with the day gone there would be no
+     * surface left to edit or delete it from. Everything else logged for the
+     * day (symptoms, tracked categories) is kept as a valid, dated record.
      */
     fun removeDay() {
         val state = _uiState.value
         viewModelScope.launch {
             try {
                 repository.unlogPeriodDay(state.date, state.toleranceDays)
+                trackingRepository.getSystemCategoryByKey("flow")?.let { flow ->
+                    trackingRepository.getExistingLog(state.date, flow.id)
+                        ?.let { trackingRepository.deleteLog(it.log) }
+                }
                 application?.let { GoFloWidget.updateAllWidgets(it) }
                 application?.let { runCatching { ReminderScheduler.refreshPredictionReminders(it) } }
                 _uiState.update { it.copy(deleted = true) }
