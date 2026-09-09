@@ -9,6 +9,7 @@
     "Category headers on the log screen are plain labels; re-filing an entry moved to a \"Move to another category\" action under the entered value"
   ],
   "fixed": [
-    "Logging a period day just before a period's start now moves the start back to that day instead of silently dropping it"
+    "Logging a period day just before a period's start now moves the start back to that day instead of silently dropping it",
+    "Deleting an entry on a period day now sticks: categories set to \"Log with period\" are no longer written back with default values on every save, so a deleted log stays deleted and untouched categories no longer gain fabricated logs"
   ]
 }

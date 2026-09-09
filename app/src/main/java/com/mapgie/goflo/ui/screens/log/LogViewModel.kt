@@ -32,9 +32,9 @@ import java.time.format.DateTimeFormatter
  * category, held once per category here. [touched] records whether the user changed anything
  * this session: untouched entries are skipped on save, so the screen neither
  * fabricates logs for ignored categories nor rewrites stored entries (which
- * would re-stamp or clear their recorded time). Pinned categories are the
- * exception while the day is on-period: they keep the period screen's
- * always-save fan-out semantics.
+ * would re-stamp or clear their recorded time). This holds for pinned ("Log
+ * with period") categories too: an always-save fan-out made their logs
+ * impossible to delete, since the next period save wrote them straight back.
  */
 data class DayMetricEntry(
     val selectedValues: Set<String> = emptySet(),
@@ -729,19 +729,21 @@ class LogViewModel(
             // Timed increments save per tap; never through the day save.
             if (cat.categoryType == "increment" && cat.trackAgainstTime) continue
             val entry = state.entries[cat.id] ?: continue
+            // Only touched entries save: an ignored category must neither
+            // gain a fabricated log nor have its stored entry rewritten
+            // (rewriting would re-stamp or clear its recorded time). Pinned
+            // categories are no exception: saving them untouched on every
+            // period day wrote back any log the user had just deleted.
+            if (!entry.touched) continue
             val pinnedContext = periodSave && cat.showInLogPeriod
             val values: Set<String>? = if (pinnedContext) {
-                // Exact parity with the period screen's pinned fan-out
-                // (slider falls back to min, count saves including 0).
+                // The period screen's pinned value rules (slider falls back
+                // to min, count saves including 0) still apply once touched.
                 PeriodDaySync.computePinnedValues(
                     cat, entry.numericValue, entry.freeText, entry.selectedValues,
                 )
             } else {
-                // Only touched entries save: an ignored category must neither
-                // gain a fabricated log nor have its stored entry rewritten
-                // (rewriting would re-stamp or clear its recorded time).
-                if (!entry.touched) null
-                else entryValuesToSave(cat, entry)
+                entryValuesToSave(cat, entry)
             }
             if (values == null) continue
             val loggedAt = if (entry.trackTime) {
