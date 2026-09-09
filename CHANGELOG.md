@@ -31,6 +31,23 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.59.0-beta.1] - 2026-09-09
+
+### Added
+- Logging one category from the speed dial, the widget, or a day's entry now opens just that category, with a "Log more for this day" button to expand to the whole day
+
+### Changed
+- "Period started today" is now a switch instead of a row that looked like a menu
+- The Day section is gone; tap the screen title to change the day
+- Category headers on the log screen are plain labels; re-filing an entry moved to a "Move to another category" action under the entered value
+
+### Fixed
+- Logging a period day just before a period's start now moves the start back to that day instead of silently dropping it
+- Deleting an entry on a period day now sticks: categories set to "Log with period" are no longer written back with default values on every save, so a deleted log stays deleted and untouched categories no longer gain fabricated logs
+- Categories that allow multiple entries per day now list the day's stored entries under the input, each with Edit and Delete, so a saved entry is always reachable from the day screen
+- "Remove this day from period" now also removes that day's flow entry, which otherwise lingered with no way to delete it
+
+---
 ## [0.58.0-beta.1] - 2026-09-08
 
 ### Added
