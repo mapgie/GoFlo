@@ -1,0 +1,6 @@
+{
+  "bump": "patch",
+  "fixed": [
+    "The calendar day sheet now lets you delete any entry (including Flow and Symptoms) with a confirmation, shows Flow and Symptoms alongside the period instead of under \"Tracked\", and renders categories that inherit their group's colour in that colour so their values are readable"
+  ]
+}

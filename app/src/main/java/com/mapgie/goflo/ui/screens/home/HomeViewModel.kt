@@ -3,8 +3,10 @@ package com.mapgie.goflo.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mapgie.goflo.data.database.entities.Group
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.database.entities.TrackingLog
 import com.mapgie.goflo.data.preferences.AppPreferencesStore
 import com.mapgie.goflo.data.repository.PeriodRepository
 import com.mapgie.goflo.data.repository.TrackingLogWithValues
@@ -70,6 +72,8 @@ data class DayLogData(
     val date: LocalDate,
     val period: PeriodEntry?,
     val trackingLogs: List<TrackingLogWithValues>,
+    /** Groups, so categories that inherit their colour render in it. */
+    val groups: List<Group> = emptyList(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -171,8 +175,9 @@ class HomeViewModel(
 
             combine(
                 repository.getAllPeriods(),
-                trackingRepository.getLogsForDate(date)
-            ) { periods, trackingLogs ->
+                trackingRepository.getLogsForDate(date),
+                trackingRepository.getAllGroups(),
+            ) { periods, trackingLogs, groups ->
                 val period = periods.firstOrNull { p ->
                     val start = LocalDate.parse(p.startDate)
                     val end = p.endDate?.let { LocalDate.parse(it) } ?: LocalDate.now()
@@ -182,6 +187,7 @@ class HomeViewModel(
                     date = date,
                     period = period,
                     trackingLogs = trackingLogs,
+                    groups = groups,
                 )
             }
         }
@@ -189,6 +195,16 @@ class HomeViewModel(
 
     fun selectDay(date: LocalDate) { _selectedDay.value = date }
     fun clearSelectedDay() { _selectedDay.value = null }
+
+    /**
+     * Deletes stored tracking logs from the day sheet. The sheet's data is a
+     * live query, so it refreshes on its own.
+     */
+    fun deleteTrackingLogs(logs: List<TrackingLog>) {
+        viewModelScope.launch {
+            logs.forEach { trackingRepository.deleteLog(it) }
+        }
+    }
 
     // ── Quick increment (Plus One categories) ───────────────────────────────────
 

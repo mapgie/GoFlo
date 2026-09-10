@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -46,10 +48,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import com.mapgie.goflo.data.database.entities.Group
 import com.mapgie.goflo.data.database.entities.PeriodEntry
 import com.mapgie.goflo.data.database.entities.TrackingCategory
+import com.mapgie.goflo.data.database.entities.TrackingLog
 import com.mapgie.goflo.data.repository.TrackingLogWithValues
+import com.mapgie.goflo.ui.util.COLOR_TOKEN_INHERIT
 import com.mapgie.goflo.ui.util.decodeScaleLabels
+import com.mapgie.goflo.ui.util.effectiveColorToken
 import com.mapgie.goflo.ui.util.toCategoryColor
 import com.mapgie.goflo.ui.util.toCategoryIcon
 import com.mapgie.goflo.ui.util.toCategoryOnColor
@@ -67,6 +73,10 @@ fun DayLogSheet(
     onDismiss: () -> Unit,
     onEditPeriod: (Long) -> Unit,
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
+    /** Deletes stored logs straight from the sheet (after confirmation). */
+    onDeleteTrackingLogs: (List<TrackingLog>) -> Unit,
+    /** Groups, so categories that inherit their colour render in it. */
+    groups: List<Group> = emptyList(),
     /** Opens the full log menu so one category can be picked directly. */
     onLogMore: () -> Unit,
     /** Opens the unified day screen for this day, the standard logging surface. */
@@ -84,6 +94,31 @@ fun DayLogSheet(
     }
     var showAgainstTime by rememberSaveable { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
+    /** Logs awaiting delete confirmation; empty when no dialog is open. */
+    var pendingDelete by remember { mutableStateOf<List<TrackingLogWithValues>>(emptyList()) }
+
+    if (pendingDelete.isNotEmpty()) {
+        val name = pendingDelete.first().category?.name ?: "this"
+        val n = pendingDelete.size
+        AlertDialog(
+            onDismissRequest = { pendingDelete = emptyList() },
+            title = { Text(if (n == 1) "Delete this entry?" else "Delete these entries?") },
+            text = { Text(
+                if (n == 1) "The $name entry for ${date.format(headerFormat)} will be permanently removed."
+                else "All $n $name entries for ${date.format(headerFormat)} will be permanently removed."
+            ) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteTrackingLogs(pendingDelete.map { it.log })
+                        pendingDelete = emptyList()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) { Text("Delete") }
+            },
+            dismissButton = { TextButton(onClick = { pendingDelete = emptyList() }) { Text("Cancel") } },
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -139,12 +174,23 @@ fun DayLogSheet(
 
             HorizontalDivider()
 
-            // Split tracked categories into those logged with the period (the
-            // ones pinned into the day screen's flow context) and everything else.
+            // Split tracked categories into those that belong with the period
+            // (flow and symptoms, plus the ones pinned into the day screen's
+            // period context) and everything else. Flow leads.
             val periodLinkedCats = if (period != null) {
-                categoryOrder.filter { catId ->
-                    logsByCategory[catId]?.firstOrNull()?.category?.showInLogPeriod == true
-                }
+                categoryOrder
+                    .filter { catId ->
+                        val cat = logsByCategory[catId]?.firstOrNull()?.category
+                        cat != null && (cat.isSystem || cat.showInLogPeriod)
+                    }
+                    .sortedBy { catId ->
+                        val cat = logsByCategory[catId]?.firstOrNull()?.category
+                        when {
+                            cat?.systemKey == "flow" -> 0
+                            cat?.isSystem == true -> 1
+                            else -> 2
+                        }
+                    }
             } else {
                 emptyList()
             }
@@ -186,8 +232,10 @@ fun DayLogSheet(
                             )
                             CategoryLogEntry(
                                 entries           = entries,
+                                groups            = groups,
                                 showAgainstTime   = showAgainstTime,
-                                onEditTrackingLog = onEditTrackingLog
+                                onEditTrackingLog = onEditTrackingLog,
+                                onDelete          = { pendingDelete = it },
                             )
                         }
                     }
@@ -207,8 +255,10 @@ fun DayLogSheet(
                     val entries = logsByCategory[catId] ?: return@forEach
                     CategoryLogEntry(
                         entries           = entries,
+                        groups            = groups,
                         showAgainstTime   = showAgainstTime,
-                        onEditTrackingLog = onEditTrackingLog
+                        onEditTrackingLog = onEditTrackingLog,
+                        onDelete          = { pendingDelete = it },
                     )
                 }
 
@@ -243,15 +293,22 @@ fun DayLogSheet(
 @Composable
 private fun CategoryLogEntry(
     entries: List<TrackingLogWithValues>,
+    groups: List<Group>,
     showAgainstTime: Boolean,
     onEditTrackingLog: (categoryId: Long, logId: Long) -> Unit,
+    /** Asks to delete the given logs (one timed entry, or the whole row). */
+    onDelete: (List<TrackingLogWithValues>) -> Unit,
 ) {
     val first = entries.first()
     val category = first.category
-    val bubbleColor = category?.colorToken?.toCategoryColor()
-        ?: MaterialTheme.colorScheme.secondary
-    val onBubble = category?.colorToken?.toCategoryOnColor()
-        ?: MaterialTheme.colorScheme.onSecondary
+    // The group's colour when the category inherits it; a category with no
+    // colour of its own and no group is neutral, and its value text must
+    // then read as ordinary text rather than vanish into the surface tint.
+    val token = category?.effectiveColorToken(groups)
+    val bubbleColor = token?.toCategoryColor() ?: MaterialTheme.colorScheme.secondary
+    val onBubble = token?.toCategoryOnColor() ?: MaterialTheme.colorScheme.onSecondary
+    val valueColor = if (token == null || token == COLOR_TOKEN_INHERIT)
+        MaterialTheme.colorScheme.onSurface else bubbleColor
     val icon = category?.iconName?.toCategoryIcon()?.vector
 
     val hasTimedEntries = showAgainstTime &&
@@ -263,7 +320,8 @@ private fun CategoryLogEntry(
         iconColor   = bubbleColor,
         iconOnColor = onBubble,
         label       = category?.name ?: "Unknown",
-        onEdit      = { onEditTrackingLog(first.log.categoryId, entries.last().log.id) }
+        onEdit      = { onEditTrackingLog(first.log.categoryId, entries.last().log.id) },
+        onDelete    = { onDelete(entries) },
     ) {
         if (hasTimedEntries) {
             // Show each entry with its timestamp on its own line
@@ -297,6 +355,16 @@ private fun CategoryLogEntry(
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                     }
+                    TextButton(
+                        onClick = { onDelete(listOf(entry)) },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text(
+                            text = "delete",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
                 }
             }
         } else {
@@ -314,7 +382,7 @@ private fun CategoryLogEntry(
                     Text(
                         text  = allDisplayValues[0],
                         style = MaterialTheme.typography.titleMedium,
-                        color = bubbleColor
+                        color = valueColor
                     )
                 } else {
                     Text(
@@ -357,7 +425,8 @@ private fun LogEntryRow(
     iconOnColor: Color,
     label: String,
     onEdit: () -> Unit,
-    content: @Composable ColumnScope.() -> Unit
+    onDelete: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     Row(
         modifier              = Modifier.fillMaxWidth(),
@@ -403,6 +472,18 @@ private fun LogEntryRow(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
+        }
+        if (onDelete != null) {
+            TextButton(
+                onClick        = onDelete,
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+            ) {
+                Text(
+                    text  = "delete",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                )
+            }
         }
     }
 }
