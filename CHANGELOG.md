@@ -31,6 +31,12 @@ the table above) and resets `-beta.N` to `beta.1`. Promoting out of beta (droppi
 `-beta.N` suffix) remains a manual edit.
 
 ---
+## [0.59.1-beta.1] - 2026-09-11
+
+### Fixed
+- The calendar day sheet now lets you delete any entry (including Flow and Symptoms) with a confirmation, shows Flow and Symptoms alongside the period instead of under "Tracked", and renders categories that inherit their group's colour in that colour so their values are readable
+
+---
 ## [0.59.0-beta.1] - 2026-09-09
 
 ### Added
