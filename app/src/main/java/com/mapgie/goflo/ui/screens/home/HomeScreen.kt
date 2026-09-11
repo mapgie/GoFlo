@@ -143,7 +143,9 @@ fun HomeScreen(
             date = data.date,
             period = data.period,
             trackingLogs = data.trackingLogs,
+            groups = data.groups,
             onDismiss = { viewModel.clearSelectedDay() },
+            onDeleteTrackingLogs = { viewModel.deleteTrackingLogs(it) },
             onEditPeriod = {
                 viewModel.clearSelectedDay()
                 // The unified day screen edits this specific day's own flow
