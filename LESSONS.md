@@ -207,6 +207,12 @@ A function may accept a flag (`wcag: Boolean = false`) and correctly wire it thr
 
 ---
 
+**A check that copies the values it checks covers only what was copied**
+`wcag_check.py` mirrors Color.kt's palettes as hex tables, so it only ever saw what someone had typed into it: the 24 WCAG AAA variants behind the accessible-colours toggle were never in the table and never checked, and nothing would notice a palette edited in Kotlin but not in Python. `WcagContrastTest` reads `colorSchemeFor()` itself, runs in CI, and also asserts every designed palette has its own AAA variant, which a copied table can't express. Prefer a test against the real code; keep a mirror script only as a fast local aid.
+
+**A check script copied into each repo drifts; ship one copy with the shared workflow**
+`a11y_check.py` lived in both GoFlo and choreDash, and only choreDash's copy learned to skip Glance widget files, so the same rule meant different things in the two apps. The script now ships inside android-Actions as the `a11y-check` composite action, run from the caller's checkout via `$GITHUB_ACTION_PATH`. A reusable workflow can't reach its own repo's files by relative path (`./` is the caller's repo), so a script the shared workflow runs belongs in an action beside it, pinned by SHA. Change the check in android-Actions, then move the pins.
+
 ### Auth
 
 **Auth state transitions need explicit guards**

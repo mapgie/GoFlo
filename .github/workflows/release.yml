@@ -8,6 +8,6 @@ permissions:
 
 jobs:
   release:
-    uses: mapgie/android-Actions/.github/workflows/release.yml@1a6f42d3abb98e085e01ec0803a74e0902b55ff3
+    uses: mapgie/android-Actions/.github/workflows/release.yml@7a6f9e177ee5e65836115bbd0e2bb4adea899887
     with:
       app-name: GoFlo
