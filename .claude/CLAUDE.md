@@ -93,7 +93,17 @@ Promoting out of beta (dropping the `-beta.N` suffix) remains a manual edit.
 - Never use `fallbackToDestructiveMigration` in the Room database config
 - **Never use en dashes (–) or em dashes (—) in user-facing text.** They read as robotic. Use a period, colon, or reword the sentence instead. Hyphens in genuine compound words ("in-app", "4-digit", "built-in", "30-day") are fine.
 
-## Accessibility Rules (enforced by `a11y_check.py` in CI)
+## Accessibility Rules (enforced by the shared `a11y_check.py` in CI)
+
+The role check lives in android-Actions (`.github/actions/a11y-check/a11y_check.py`),
+not in this repo: the shared build workflow runs that one copy for every app. Change
+the check there.
+
+Colour contrast is checked in CI by `WcagContrastTest` (JVM unit test), which reads
+the real `colorSchemeFor()`: every designed theme meets AA, every WCAG accessible
+variant meets AAA (7:1 text, 4.5:1 outlines), and every designed palette has its own
+variant. `wcag_check.py` and `wcag_check_roles.py` are quick local tools that work
+from a copied colour table; keep them in sync with `Color.kt` when you change a colour.
 
 Every `.clickable {}` or `.combinedClickable {}` modifier **must** carry a matching `.semantics { role = Role.<Type> }` in the same modifier chain. Use the role that best describes the element:
 
@@ -111,4 +121,4 @@ Additional rules:
 - Status text that appears or changes in response to user action needs `Modifier.semantics { liveRegion = LiveRegionMode.Assertive }` (errors) or `LiveRegionMode.Polite` (non-urgent feedback).
 - Icon-only interactive controls (FABs, icon-only buttons outside of `IconButton`) need `Modifier.semantics { contentDescription = "<action label>" }` on the container itself.
 - Inline text links inside body copy must use `LinkAnnotation.Url` / `withLink` (not the deprecated `ClickableText`), so the span carries the link role and a full-phrase touch region.
-- Run `python3 a11y_check.py` locally before pushing to confirm no new violations.
+- Before pushing, run `python3 ../android-Actions/.github/actions/a11y-check/a11y_check.py` from the repo root (with android-Actions cloned beside it) to confirm no new violations.

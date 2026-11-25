@@ -17,6 +17,10 @@ Usage:
     python3 wcag_check.py coral --fails-only
 
 Exit code: 0 — all pairs pass  |  1 — one or more pairs fail
+
+This is a quick local tool. CI checks contrast with WcagContrastTest
+(app/src/test/.../ui/theme), which reads the real colour schemes and also
+covers the WCAG AAA variants this table doesn't mirror.
 """
 
 import sys

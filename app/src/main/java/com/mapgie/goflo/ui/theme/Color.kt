@@ -24,7 +24,9 @@ enum class ThemeGroup(val label: String) {
 //   1. Add an entry here with a display name, group, preview ARGB, and isDark flag.
 //   2. Define a private val color scheme below.
 //   3. Add a branch to colorSchemeFor().
-//   4. All colors must pass WCAG AA — run the wcag_check.py script before shipping.
+//   4. All colors must pass WCAG AA. WcagContrastTest checks it in CI; wcag_check.py
+//      is the quick local check (update its table too).
+//   5. Add a WCAG AAA variant and its branch in colorSchemeFor()'s wcag table.
 //
 // Do NOT rename existing enum entries — the name is persisted to DataStore.
 // "Turquoise" → display "Teal" and "Green" → display "Sage" for better UX while

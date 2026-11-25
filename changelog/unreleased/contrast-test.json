@@ -1,0 +1,6 @@
+{
+  "bump": "patch",
+  "changed": [
+    "Every theme's colour contrast, including the WCAG accessible colours, is now checked automatically on each build"
+  ]
+}
